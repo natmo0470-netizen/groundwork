@@ -60,7 +60,7 @@ function tabBar() {
 
 /* ================= onboarding ================= */
 function obDraft() {
-  if (!UI.ob) UI.ob = { name: '', sex: 'male', age: '', units: 'imperial', ft: '5', inch: '10', cm: '178', weight: '', goal: null, experience: null, activity: null, days: [1, 3, 5], minutes: 45, fullGym: true, items: [] };
+  if (!UI.ob) UI.ob = { name: '', sex: 'male', age: '', units: 'imperial', ft: '5', inch: '10', cm: '178', weight: '', goal: null, experience: null, activity: null, days: [1, 3, 5], minutes: 45, fullGym: false, items: [] };
   return UI.ob;
 }
 function obToState(o) {
@@ -140,8 +140,9 @@ function viewOnboarding() {
     const groups = {};
     EQUIPMENT.forEach(e => (groups[e.group] = groups[e.group] || []).push(e));
     body = `<div class="stack"><span class="eyebrow">Step 5 of 5</span><h1 class="h1">What equipment do you have?</h1><p class="muted">Every exercise in your plan will use only what you pick. Bodyweight moves are always included.</p></div>
-      <button class="opt" data-act="ob-fullgym" aria-pressed="${o.fullGym}"><span class="opt-icon">${icon('dumbbell', 22)}</span><span class="grow"><span class="t">Full gym</span><br><span class="d">Gym membership: free weights, machines, cables and cardio</span></span><span class="check">${icon('check', 16)}</span></button>
-      ${o.fullGym ? '' : `<p class="small muted">Or choose exactly what you have:</p>` + Object.entries(groups).map(([g, list]) => `<div class="stack"><span class="label">${g}</span><div class="chips">${list.map(e => `<button class="chip" data-act="ob-item" data-id="${e.id}" aria-pressed="${o.items.includes(e.id)}">${e.label}</button>`).join('')}</div></div>`).join('')}`;
+      <button class="opt" data-act="ob-fullgym" aria-pressed="${o.fullGym}"><span class="opt-icon">${icon('dumbbell', 22)}</span><span class="grow"><span class="t">Full gym</span><br><span class="d">Gym membership: selects everything below in one tap</span></span><span class="check">${icon('check', 16)}</span></button>
+      <p class="small muted">Or pick exactly what you have at home or at your gym:</p>
+      ${Object.entries(groups).map(([g, list]) => `<div class="stack"><span class="label">${g}</span><div class="chips">${list.map(e => `<button class="chip" data-act="ob-item" data-id="${e.id}" aria-pressed="${o.fullGym || o.items.includes(e.id)}">${e.label}</button>`).join('')}</div></div>`).join('')}<p class="small faint" role="status">${equipStatus(o)}</p>`;
   } else if (step === 6) {
     const st = obToState(o); const T = calcTargets(st); const plan = buildPlan(st);
     const first = plan.workouts[0];
@@ -247,6 +248,18 @@ function viewTrain() {
   return `<div class="stack" style="gap:2px"><span class="eyebrow">Training</span><h1 class="h1">${UI.trainSeg === 'plan' ? 'Your plan' : 'Exercise library'}</h1></div>
     <div class="seg"><button data-act="train-seg" data-v="plan" aria-pressed="${UI.trainSeg === 'plan'}">My plan</button><button data-act="train-seg" data-v="lib" aria-pressed="${UI.trainSeg === 'lib'}">Exercise library</button></div>
     ${UI.trainSeg === 'plan' ? viewPlan() : viewLibrary()}`;
+}
+/* Equipment selection: "Full gym" is a shortcut that selects every item; untick any item to customise. */
+function equipToggleAll(d) { d.fullGym = !d.fullGym; d.items = d.fullGym ? FULL_GYM.slice() : []; }
+function equipToggleItem(d, id) {
+  let items = d.fullGym ? FULL_GYM.slice() : d.items.slice();
+  items = items.includes(id) ? items.filter(x => x !== id) : items.concat([id]);
+  d.items = items; d.fullGym = FULL_GYM.every(x => items.includes(x));
+}
+function equipStatus(d) {
+  if (d.fullGym) return 'Full gym: everything selected. Untick anything you don\'t have.';
+  if (!d.items.length) return 'Nothing selected: you\'ll get bodyweight workouts. Bodyweight moves are always included.';
+  return `${d.items.length} selected. Bodyweight moves are always included.`;
 }
 function equipSummary() {
   if (S.equipment.fullGym) return 'Full gym';

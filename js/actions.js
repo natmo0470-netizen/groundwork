@@ -50,8 +50,8 @@ const ACT = {
     else o.days.push(d);
     render();
   },
-  'ob-fullgym': () => { const o = obDraft(); o.fullGym = !o.fullGym; render(); },
-  'ob-item': t => { const o = obDraft(), id = t.dataset.id; o.items = o.items.includes(id) ? o.items.filter(x => x !== id) : o.items.concat([id]); render(); },
+  'ob-fullgym': () => { equipToggleAll(obDraft()); render(); },
+  'ob-item': t => { equipToggleItem(obDraft(), t.dataset.id); render(); },
   'ob-finish': () => {
     S = obToState(UI.ob);
     S.onboarded = true; S.startDate = todayKey();
@@ -249,8 +249,8 @@ const ACT = {
     render();
   },
   'set-min': t => { UI.sheet.draft.minutes = Number(t.dataset.v); render(); },
-  'set-fullgym': () => { UI.sheet.draft.fullGym = !UI.sheet.draft.fullGym; render(); },
-  'set-item': t => { const d = UI.sheet.draft, id = t.dataset.id; d.items = d.items.includes(id) ? d.items.filter(x => x !== id) : d.items.concat([id]); render(); },
+  'set-fullgym': () => { equipToggleAll(UI.sheet.draft); render(); },
+  'set-item': t => { equipToggleItem(UI.sheet.draft, t.dataset.id); render(); },
   'set-rebuild': () => {
     const d = UI.sheet.draft;
     S.schedule = { days: d.days.slice(), minutes: d.minutes };

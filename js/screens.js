@@ -268,8 +268,8 @@ const SHEETS = {
       <div class="card" style="box-shadow:none" id="set-training"><span class="eyebrow">Training schedule and equipment</span>
         <div class="daypick">${order.map(x => `<button data-act="set-day" data-d="${x}" aria-pressed="${d.days.includes(x)}" aria-label="${DOW_LONG[x]}">${DOW[x].slice(0, 2)}</button>`).join('')}</div>
         <div class="seg">${[30, 45, 60, 75].map(m => `<button data-act="set-min" data-v="${m}" aria-pressed="${d.minutes === m}">${m} min</button>`).join('')}</div>
-        <button class="opt" data-act="set-fullgym" aria-pressed="${d.fullGym}"><span class="grow"><span class="t">Full gym</span><br><span class="d">Everything available</span></span><span class="check">${icon('check', 16)}</span></button>
-        ${d.fullGym ? '' : Object.entries(groups).map(([g, list]) => `<div class="stack"><span class="label">${g}</span><div class="chips">${list.map(e => `<button class="chip" data-act="set-item" data-id="${e.id}" aria-pressed="${d.items.includes(e.id)}">${e.label}</button>`).join('')}</div></div>`).join('')}
+        <button class="opt" data-act="set-fullgym" aria-pressed="${d.fullGym}"><span class="grow"><span class="t">Full gym</span><br><span class="d">Selects everything below</span></span><span class="check">${icon('check', 16)}</span></button>
+        ${Object.entries(groups).map(([g, list]) => `<div class="stack"><span class="label">${g}</span><div class="chips">${list.map(e => `<button class="chip" data-act="set-item" data-id="${e.id}" aria-pressed="${d.fullGym || d.items.includes(e.id)}">${e.label}</button>`).join('')}</div></div>`).join('')}<p class="small faint" role="status">${equipStatus(d)}</p>
         <button class="btn train block" data-act="set-rebuild" ${d.days.length < 2 ? 'disabled' : ''}>Save and rebuild plan</button>
         <p class="tiny faint">Rebuilding picks new exercises for your days and equipment. Your workout history and records are kept.</p>
       </div>

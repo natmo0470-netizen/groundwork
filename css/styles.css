@@ -169,7 +169,7 @@ p { margin: 0; }
 .ob-top { display: flex; align-items: center; gap: 12px; }
 .progress { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
 .progress i { display: block; height: 100%; background: var(--train); border-radius: 3px; transition: width .25s ease; }
-.ob-body { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.ob-body { flex: 1; display: flex; flex-direction: column; gap: 16px; padding-bottom: 28px; }
 .ob-foot { display: flex; gap: 10px; position: sticky; bottom: 0; padding-top: 8px; background: linear-gradient(to bottom, transparent, var(--bg) 30%); }
 .ob-foot .btn { flex: 1; }
 .welcome { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 12px 0; }
