@@ -79,7 +79,7 @@ function mealCard(m, di, mi) {
     <div class="row between"><span class="eyebrow">${MEAL_SLOTS[m.slot]}</span><span class="row" style="gap:6px">${m.leftover ? '<span class="tag">Leftovers</span>' : ''}${m.locked ? `<span class="tag fuel">${icon('check', 12)} Locked</span>` : ''}</span></div>
     <button class="meal-main" data-act="recipe-open" data-d="${di}" data-m="${mi}">
       <span class="grow"><span class="h3">${esc(r.name)}</span><br><span class="small muted">${r.minutes} min · ${household(S).length ? 'Your portion ' + niceQty(m.servings) : fmtServings(m.servings)} · ${fmtInt(x.kcal)} kcal</span><br>
-      ${household(S).length ? `<span class="small" style="color:var(--fuel);font-weight:700">Cook ${niceQty(totalServings(S, m))} servings for ${1 + household(S).filter(h => memberPortion(S, h, m) > 0).length}</span><br>` : ''}
+      ${household(S).some(h => memberPortion(S, h, m) > 0) ? `<span class="small" style="color:var(--fuel);font-weight:700">Cook ${niceQty(totalServings(S, m))} servings for ${1 + household(S).filter(h => memberPortion(S, h, m) > 0).length}</span><br>` : ''}
       <span class="pcf"><b class="p">P ${r0(x.p)}</b> <b class="c">C ${r0(x.c)}</b> <b class="f">F ${r0(x.f)}</b></span></span>
       <span class="chev">${icon('chevR', 18)}</span></button>
     <div class="row wrap" style="gap:8px">
@@ -165,7 +165,7 @@ Object.assign(SHEETS, {
       + `<div class="stack"><span class="label">Who's eating</span>
         <div class="list">
           <div class="li"><span class="ni">${icon('user', 20)}</span><span class="grow"><span class="t">You</span><br><span class="d">${fmtInt(calcTargets(S).calories)} kcal · your targets</span></span></div>
-          ${hh.map(m => `<button class="li" data-act="hh-edit" data-id="${m.id}"><span class="ni">${icon('user', 20)}</span><span class="grow"><span class="t">${esc(m.name)}</span><br><span class="d">${fmtInt(m.kcal)} kcal · ${m.meals.map(x => MEAL_SLOTS[x]).join(', ') || 'no meals'}${(m.avoid || []).length || m.avoidText ? ' · avoids ' + (m.avoid || []).map(a => AVOID_OPTIONS.find(o => o[0] === a)[1].toLowerCase()).concat(m.avoidText ? [m.avoidText] : []).join(', ') : ''}</span></span><span class="chev">${icon('chevR', 18)}</span></button>`).join('')}
+          ${hh.map(m => `<button class="li" data-act="hh-edit" data-id="${m.id}"><span class="ni">${icon('user', 20)}</span><span class="grow"><span class="t">${esc(m.name)}</span><br><span class="d">${m.group === 'child' ? `Age ${m.age} · ${fmtInt(memberKcal(m))} kcal${m.adjust ? ` (${m.adjust > 0 ? '+' : ''}${m.adjust} adjusted)` : ' (recommended)'}` : `${fmtInt(m.kcal)} kcal`} · ${m.meals.map(x => MEAL_SLOTS[x]).join(', ') || 'no meals'}${(m.avoid || []).length || m.avoidText ? ' · avoids ' + (m.avoid || []).map(a => AVOID_OPTIONS.find(o => o[0] === a)[1].toLowerCase()).concat(m.avoidText ? [m.avoidText] : []).join(', ') : ''}</span></span><span class="chev">${icon('chevR', 18)}</span></button>`).join('')}
         </div>
         <button class="btn ghost sm" data-act="hh-add" style="align-self:flex-start">${icon('plus', 16)} Add a family member</button>
         <span class="tiny faint">Everyone eats the same recipes in their own portion size. Anyone's foods to avoid apply to shared meals.</span></div>
@@ -186,7 +186,7 @@ Object.assign(SHEETS, {
     return sheetHead(s.id ? 'Edit family member' : 'Add a family member', 'Used only to size portions and shape shared meals')
       + `<div class="field"><label for="hh-name">Name</label><input class="input" id="hh-name" data-hh="name" value="${esc(d.name)}" placeholder="e.g. Sam"></div>
       <div class="stack"><span class="label">Who are they?</span><div class="chips">${HOUSEHOLD_GROUPS.map(([k, l]) => `<button class="chip" data-act="hh-group" data-v="${k}" aria-pressed="${d.group === k}">${l}</button>`).join('')}</div></div>
-      <div class="field"><label for="hh-kcal">Daily calories</label><div class="input-suffix"><input class="input" id="hh-kcal" data-hh="kcal" inputmode="numeric" value="${d.kcal}"><span>kcal</span></div><span class="tiny faint">A typical amount for this group. Adjust it if they eat more or less.</span></div>
+      ${d.group === 'child' ? kidCaloriesHtml(d) : `<div class="field"><label for="hh-kcal">Daily calories</label><div class="input-suffix"><input class="input" id="hh-kcal" data-hh="kcal" inputmode="numeric" value="${d.kcal}"><span>kcal</span></div><span class="tiny faint">A typical amount for an adult. Adjust it if they eat more or less.</span></div>`}
       <div class="stack"><span class="label">Meals they eat from the plan</span><div class="chips">${['breakfast', 'lunch', 'dinner'].map(x => `<button class="chip" data-act="hh-meal" data-v="${x}" aria-pressed="${d.meals.includes(x)}">${MEAL_SLOTS[x]}</button>`).join('')}</div><span class="tiny faint">Turn off meals they eat elsewhere, like school lunch.</span></div>
       <div class="stack"><span class="label">Foods they avoid</span><div class="chips">${AVOID_OPTIONS.map(([k, l]) => `<button class="chip" data-act="hh-avoid" data-v="${k}" aria-pressed="${d.avoid.includes(k)}">${l}</button>`).join('')}</div>
         <input class="input" id="hh-avoid-text" data-hh="avoidText" value="${esc(d.avoidText || '')}" placeholder="Anything else? e.g. spicy, mushrooms" aria-label="Other foods they avoid"></div>
@@ -224,6 +224,18 @@ Object.assign(SHEETS, {
       ${SERVICE_CONFIG.recipeEndpoint ? `<div class="divider"></div><div class="row"><input class="input grow" id="rs-q" placeholder="Search more recipes online" aria-label="Search recipes online"><button class="btn soft" data-act="rs-search">${icon('search', 18)}</button></div><div id="rs-results"></div>` : ''}`;
   },
 });
+function kidCaloriesHtml(d) {
+  const rec = kidRecommended(d), [lo, hi] = kidAdjustBounds(rec), adj = Math.min(hi, Math.max(lo, d.adjust || 0));
+  return `<div class="grid2"><div class="field"><span class="label">Age</span><div class="stepper"><button data-act="hh-age" data-v="-1" aria-label="Younger">−</button><div class="input big" aria-live="polite">${d.age}</div><button data-act="hh-age" data-v="1" aria-label="Older">+</button></div></div>
+      <div class="field"><span class="label">Sex</span><div class="seg" style="grid-auto-flow:row;grid-template-columns:1fr 1fr"><button data-act="hh-sex" data-v="girl" aria-pressed="${d.sex === 'girl'}">Girl</button><button data-act="hh-sex" data-v="boy" aria-pressed="${d.sex === 'boy'}">Boy</button><button data-act="hh-sex" data-v="any" aria-pressed="${d.sex !== 'girl' && d.sex !== 'boy'}" style="grid-column:span 2">Not specified</button></div></div></div>
+    <div class="stack"><span class="label">How active are they?</span><div class="opts">${KID_ACTIVITY.map(([k, l, b]) => `<button class="opt" data-act="hh-act" data-v="${k}" aria-pressed="${d.activity === k}" style="padding:10px 12px"><span class="grow"><span class="t">${l}</span><br><span class="d">${b}</span></span><span class="check">${icon('check', 16)}</span></button>`).join('')}</div></div>
+    <div class="card fuel" style="box-shadow:none;gap:8px">
+      <div class="row between"><span class="small muted">Recommended for age ${d.age}</span><b class="num">${fmtInt(rec)} kcal</b></div>
+      <div class="row between"><span class="label">Daily calories</span><div class="row" style="gap:6px"><button class="btn sm ghost" data-act="hh-adj" data-v="-50" aria-label="50 fewer calories" ${adj <= lo ? 'disabled' : ''}>−50</button><span class="mid-num" style="min-width:76px;text-align:center">${fmtInt(rec + adj)}</span><button class="btn sm ghost" data-act="hh-adj" data-v="50" aria-label="50 more calories" ${adj >= hi ? 'disabled' : ''}>+50</button></div></div>
+      <div class="row between tiny"><span class="faint">${adj ? `${adj > 0 ? '+' : ''}${adj} kcal from recommended · adjust up to ±${hi}` : `Adjust up to ±${hi} kcal for appetite or growth spurts`}</span>${adj ? `<button class="link" data-act="hh-adj-reset">Reset</button>` : ''}</div>
+      <p class="tiny faint">From the U.S. Dietary Guidelines for Americans 2020–2025. Kids' plans never include a weight-loss deficit. For larger changes, check with your child's pediatrician.</p>
+    </div>`;
+}
 function recipeAmount(g, q) {
   if (g.unit === 'oz') return `${niceQty(q)} oz`;
   if (['cup', 'tbsp', 'tsp'].includes(g.unit)) return `${niceQty(q)} ${g.unit === 'cup' && q > 1 ? 'cups' : g.unit}`;
@@ -237,6 +249,8 @@ function mpCount(p) {
   RECIPES.forEach(r => { if (!recipeAllowed(r, p)) return; if (r.meals.includes('breakfast')) n.b++; if (r.meals.includes('lunch') || r.meals.includes('dinner')) n.l++; if (r.meals.includes('snack')) n.s++; });
   return `${n.b} breakfasts, ${n.l} lunches and dinners, ${n.s} snacks match these preferences.`;
 }
+
+function clampAdj(d) { const [lo, hi] = kidAdjustBounds(kidRecommended(d)); return Math.min(hi, Math.max(lo, Math.round((d.adjust || 0) / 50) * 50)); }
 
 /* ================= actions ================= */
 function rebuildMealPlan(keepLocked) {
@@ -264,13 +278,23 @@ Object.assign(ACT, {
   'mp-save': () => { S.mealPrefs = UI.sheet.draft; rebuildMealPlan(!!S.mealPlan); closeAll(); UI.foodSeg = 'plan'; toast('Meal plan updated'); },
   'hh-add': () => pushSheet({ type: 'member', draft: { name: '', group: 'adult_f', kcal: 1900, meals: ['breakfast', 'lunch', 'dinner'], avoid: [], avoidText: '' } }),
   'hh-edit': t => { const m = household(S).find(x => x.id === t.dataset.id); if (m) pushSheet({ type: 'member', id: m.id, draft: JSON.parse(JSON.stringify({ avoidText: '', avoid: [], ...m })) }); },
-  'hh-group': t => { const d = UI.sheet.draft, g = HOUSEHOLD_GROUPS.find(x => x[0] === t.dataset.v); d.group = g[0]; d.kcal = g[2]; render(); },
+  'hh-group': t => {
+    const d = UI.sheet.draft, g = HOUSEHOLD_GROUPS.find(x => x[0] === t.dataset.v); d.group = g[0];
+    if (g[0] === 'child') { d.age = d.age || 8; d.sex = d.sex || 'any'; d.activity = d.activity || 'mod'; d.adjust = d.adjust || 0; } else d.kcal = g[2];
+    render();
+  },
+  'hh-age': t => { const d = UI.sheet.draft; d.age = Math.min(17, Math.max(1, (d.age || 8) + Number(t.dataset.v))); d.adjust = clampAdj(d); render(); },
+  'hh-sex': t => { const d = UI.sheet.draft; d.sex = t.dataset.v; d.adjust = clampAdj(d); render(); },
+  'hh-act': t => { const d = UI.sheet.draft; d.activity = t.dataset.v; d.adjust = clampAdj(d); render(); },
+  'hh-adj': t => { const d = UI.sheet.draft; d.adjust = clampAdj({ ...d, adjust: (d.adjust || 0) + Number(t.dataset.v) }); render(); },
+  'hh-adj-reset': () => { UI.sheet.draft.adjust = 0; render(); },
   'hh-meal': t => { const d = UI.sheet.draft, v = t.dataset.v; d.meals = d.meals.includes(v) ? d.meals.filter(x => x !== v) : d.meals.concat([v]); render(); },
   'hh-avoid': t => { const d = UI.sheet.draft, v = t.dataset.v; d.avoid = d.avoid.includes(v) ? d.avoid.filter(x => x !== v) : d.avoid.concat([v]); render(); },
   'hh-save': () => {
     const s = UI.sheet, d = s.draft;
     d.name = (d.name || '').trim() || 'Family member';
-    d.kcal = Math.min(4500, Math.max(600, Math.round(Number(d.kcal) || 1800)));
+    if (d.group === 'child') { d.adjust = clampAdj(d); delete d.kcal; }
+    else { d.kcal = Math.min(4500, Math.max(1000, Math.round(Number(d.kcal) || 1900))); ['age', 'sex', 'activity', 'adjust'].forEach(k => delete d[k]); }
     S.household = household(S).slice();
     if (s.id) S.household = S.household.map(m => m.id === s.id ? { ...d, id: s.id } : m);
     else S.household.push({ ...d, id: uid() });

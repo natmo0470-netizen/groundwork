@@ -21,11 +21,36 @@ const MEAL_SLOTS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', m
 /* ---------- household ----------
    Family members share the same recipes; each gets a portion sized to their own calorie needs.
    Default calories are typical daily needs (U.S. Dietary Guidelines, moderately active), editable per person. */
-const HOUSEHOLD_GROUPS = [
-  ['adult_m', 'Adult (man)', 2400], ['adult_f', 'Adult (woman)', 1900], ['teen', 'Teen, 14–18', 2200],
-  ['child_9', 'Child, 9–13', 1800], ['child_4', 'Child, 4–8', 1400], ['toddler', 'Toddler, 1–3', 1000],
-];
-function household(state) { return state.household || []; }
+const HOUSEHOLD_GROUPS = [['adult_m', 'Adult (man)', 2400], ['adult_f', 'Adult (woman)', 1900], ['child', 'Child or teen (under 18)', null]];
+
+/* Children and teens: estimated calories per day from the Dietary Guidelines for Americans 2020–2025
+   (Appendix 2), by age, sex and activity: [less active, moderately active, active].
+   Age 1 uses the guidelines' 12–23 month range (about 700–1,000 kcal). */
+const KID_KCAL = {
+  girl: { 1: [800, 900, 1000], 2: [1000, 1000, 1000], 3: [1000, 1200, 1400], 4: [1200, 1400, 1400], 5: [1200, 1400, 1600], 6: [1200, 1400, 1600], 7: [1200, 1600, 1800], 8: [1400, 1600, 1800], 9: [1400, 1600, 1800], 10: [1400, 1800, 2000], 11: [1600, 1800, 2000], 12: [1600, 2000, 2200], 13: [1600, 2000, 2200], 14: [1800, 2000, 2400], 15: [1800, 2000, 2400], 16: [1800, 2000, 2400], 17: [1800, 2000, 2400] },
+  boy: { 1: [800, 900, 1000], 2: [1000, 1000, 1000], 3: [1000, 1400, 1400], 4: [1200, 1400, 1600], 5: [1200, 1400, 1600], 6: [1400, 1600, 1800], 7: [1400, 1600, 1800], 8: [1400, 1600, 2000], 9: [1600, 1800, 2000], 10: [1600, 1800, 2200], 11: [1800, 2000, 2200], 12: [1800, 2200, 2400], 13: [2000, 2200, 2600], 14: [2000, 2400, 2800], 15: [2200, 2600, 3000], 16: [2400, 2800, 3200], 17: [2400, 2800, 3200] },
+};
+const KID_ACTIVITY = [['low', 'Less active', 'Mostly sitting, little active play'], ['mod', 'Moderately active', 'Regular play or some sport'], ['high', 'Very active', 'Daily sport or lots of running around']];
+const KID_ADJUST_LIMIT = 0.2; // adjustments up to ±20% of the recommendation; bigger changes are a pediatrician conversation
+function kidRecommended(m) {
+  const age = Math.min(17, Math.max(1, Math.round(m.age || 8)));
+  const i = { low: 0, mod: 1, high: 2 }[m.activity] ?? 1;
+  const g = KID_KCAL.girl[age][i], b = KID_KCAL.boy[age][i];
+  return m.sex === 'girl' ? g : m.sex === 'boy' ? b : Math.round((g + b) / 2 / 50) * 50;
+}
+function kidAdjustBounds(rec) { const lim = Math.round(rec * KID_ADJUST_LIMIT / 50) * 50; return [-lim, lim]; }
+function memberKcal(m) {
+  if (m.group !== 'child') return m.kcal || 2000;
+  const rec = kidRecommended(m), [lo, hi] = kidAdjustBounds(rec);
+  return rec + Math.min(hi, Math.max(lo, m.adjust || 0));
+}
+/* Members saved by earlier versions used fixed age groups; convert them to the age-based model. */
+function migrateMember(m) {
+  const legacy = { teen: 15, child_9: 11, child_4: 6, toddler: 2 };
+  if (legacy[m.group]) return { ...m, group: 'child', age: legacy[m.group], sex: m.sex || 'any', activity: m.activity || 'mod', adjust: 0 };
+  return m;
+}
+function household(state) { return (state.household || []).map(migrateMember); }
 /* Restrictions for shared meals: your own preferences plus every family member's foods to avoid. */
 function effectivePrefs(state, prefs) {
   const p = Object.assign(defaultMealPrefs(), prefs || state.mealPrefs || {});
@@ -43,7 +68,7 @@ function slotShareFor(state, slot) {
 function memberPortion(state, member, meal) {
   if (!(member.meals || []).includes(meal.slot)) return 0;
   const r = findRecipe(meal.recipeId, state.extraRecipes); if (!r || !r.kcal) return 0;
-  const raw = (member.kcal * slotShareFor(state, meal.slot)) / r.kcal;
+  const raw = (memberKcal(member) * slotShareFor(state, meal.slot)) / r.kcal;
   return Math.min(3, Math.max(0.25, Math.round(raw * 4) / 4));
 }
 function familyServings(state, meal) { return household(state).reduce((s, m) => s + memberPortion(state, m, meal), 0); }
