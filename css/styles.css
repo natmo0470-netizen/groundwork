@@ -284,6 +284,7 @@ p { margin: 0; }
 .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 50; animation: fade .15s ease; }
 .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; max-width: 480px; margin: 0 auto; max-height: 92%; overflow-y: auto; overscroll-behavior: contain; background: var(--bg); border-radius: 22px 22px 0 0; padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; animation: up .22s cubic-bezier(.2,.8,.2,1); }
 .sheet.tall { height: 92%; }
+.sheet > * { flex-shrink: 0; }
 .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--surface-3); margin: 2px auto 0; flex: none; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: -8px; background: var(--bg); padding: 6px 0; z-index: 2; }
 @keyframes up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }

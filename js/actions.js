@@ -75,22 +75,55 @@ const ACT = {
   'start-today': () => { const w = workoutForDate(S, todayKey()); if (w) startWorkout(w.id); },
   'open-logger': () => { UI.loggerOpen = true; UI.sheet = null; UI.stack = []; render(); },
   'min-logger': () => { UI.loggerOpen = false; render(); toast('Workout still running. Resume from Today.'); },
-  'swap': t => pushSheet({ type: 'swap', scope: t.dataset.scope, idx: Number(t.dataset.idx), wid: t.dataset.wid }),
-  'do-swap': t => {
-    const s = UI.sheet, id = t.dataset.id;
+  'swap': t => pushSheet({ type: 'pick', mode: 'swap', scope: t.dataset.scope, idx: Number(t.dataset.idx), wid: t.dataset.wid, group: 'Similar', q: '', mine: true, tall: true }),
+  'add-ex': t => pushSheet({ type: 'pick', mode: 'add', scope: t.dataset.scope, wid: t.dataset.wid, group: 'All', q: '', mine: true, tall: true }),
+  'pick-group': t => { UI.sheet.group = t.dataset.v; UI.sheet.q = ''; render(); },
+  'pick-mine': () => { UI.sheet.mine = !UI.sheet.mine; render(); },
+  'pick-ex': t => {
+    const s = UI.sheet, ex = EX_BY_ID[t.dataset.id];
+    const fresh = isMain => ({ exId: ex.id, slot: ex.pattern, ...prescribe(S.profile.goal, S.profile.experience, ex, isMain, S.schedule.minutes) });
+    const rowsFor = it => { const sug = suggestion(S, it); return [...Array(it.sets)].map(() => ({ weightKg: sug.weightKg, reps: null, done: false, _auto: true })); };
     if (s.scope === 'active') {
-      const it = S.activeWorkout.items[s.idx]; it.exId = id;
-      const ex = EX_BY_ID[id];
-      if (ex.unit !== EX_BY_ID[id].unit) { /* same pattern keeps unit */ }
-      const sug = suggestion(S, it);
-      it.rows = it.rows.map(() => ({ weightKg: sug.weightKg, reps: null, done: false, _auto: true }));
-      save(); closeAll(); toast('Swapped to ' + ex.name);
-    } else {
-      const w = S.plan.workouts.find(x => x.id === s.wid); const it = w.items[s.idx];
-      const ex = EX_BY_ID[id];
-      if (ex.unit !== EX_BY_ID[it.exId].unit) Object.assign(it, prescribe(S.profile.goal, S.profile.experience, ex, s.idx < 2, S.schedule.minutes));
-      it.exId = id; save(); popSheet(); toast('Plan updated');
+      const items = S.activeWorkout.items;
+      if (s.mode === 'add') {
+        const it = fresh(false); it.rows = rowsFor(it); items.push(it);
+        save(); closeAll(); toast(`Added ${ex.name}`);
+        setTimeout(() => { const el = document.getElementById('ex-' + (items.length - 1)); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60);
+        return;
+      }
+      const old = items[s.idx], oldEx = EX_BY_ID[old.exId];
+      const same = oldEx.pattern === ex.pattern && oldEx.unit === ex.unit;
+      const it = same ? { ...old, exId: ex.id } : { ...fresh(s.idx < 2 && COMPOUND.includes(ex.pattern)), slot: old.slot === 'finisher' ? 'finisher' : ex.pattern, note: old.note };
+      it.rows = rowsFor(it);
+      const doneRows = old.rows.filter(r => r.done);
+      if (doneRows.length) { old.rows = doneRows; items.splice(s.idx + 1, 0, it); }  // keep the sets already logged
+      else items[s.idx] = it;
+      save(); closeAll(); toast(`Swapped to ${ex.name}${doneRows.length ? '. Logged sets kept.' : ''}`);
+      return;
     }
+    const w = S.plan.workouts.find(x => x.id === s.wid);
+    if (s.mode === 'add') w.items.push(fresh(false));
+    else {
+      const old = w.items[s.idx], oldEx = EX_BY_ID[old.exId];
+      if (oldEx.pattern === ex.pattern && oldEx.unit === ex.unit) old.exId = ex.id;
+      else w.items[s.idx] = { ...fresh(s.idx < 2 && COMPOUND.includes(ex.pattern)), slot: old.slot === 'finisher' ? 'finisher' : ex.pattern, note: old.note };
+    }
+    w.focus = [...new Set(w.items.filter(i => i.slot !== 'finisher').map(i => EX_BY_ID[i.exId].group))].slice(0, 4).join(' · ');
+    save(); popSheet(); toast(s.mode === 'add' ? `Added ${ex.name} to ${w.name}` : 'Plan updated');
+  },
+  'remove-ex': t => {
+    const idx = Number(t.dataset.idx);
+    if (t.dataset.scope === 'active') {
+      const it = S.activeWorkout.items[idx];
+      const doit = () => { S.activeWorkout.items.splice(idx, 1); save(); };
+      if (it.rows.some(r => r.done)) confirmSheet(`Remove ${EX_BY_ID[it.exId].name}?`, 'Sets you already logged for it will be deleted.', 'Remove', doit, true);
+      else { doit(); render(); toast('Exercise removed'); }
+      return;
+    }
+    const w = S.plan.workouts.find(x => x.id === t.dataset.wid);
+    if (w.items.length <= 1) return;
+    const name = EX_BY_ID[w.items[idx].exId].name;
+    w.items.splice(idx, 1); save(); render(); toast(`Removed ${name} from ${w.name}`);
   },
   'toggle-set': t => {
     const it = S.activeWorkout.items[Number(t.dataset.i)], r = it.rows[Number(t.dataset.j)];
@@ -347,6 +380,8 @@ document.addEventListener('input', e => {
   } else if (t.id === 'food-q') {
     UI.food.q = t.value; UI.food.err = '';
     clearTimeout(refreshFoodResults._t); refreshFoodResults._t = setTimeout(refreshFoodResults, 120);
+  } else if (t.id === 'pick-q' && UI.sheet) {
+    UI.sheet.q = t.value; const el = document.getElementById('pick-list'); if (el) el.innerHTML = pickRows(UI.sheet);
   } else if (t.dataset.fb && UI.sheet && UI.sheet.draft) {
     UI.sheet.draft[t.dataset.fb] = t.value;
   } else if (t.id === 'serv-n') {

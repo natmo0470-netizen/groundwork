@@ -91,21 +91,28 @@ const SHEETS = {
       ${s.ctx != null && S.activeWorkout ? `<button class="btn ghost block" data-act="swap" data-scope="active" data-idx="${s.ctx}">${icon('swap', 18)} Swap for another exercise</button>` : ''}`;
   },
 
-  swap(s) {
-    const src = s.scope === 'active' ? S.activeWorkout.items[s.idx] : S.plan.workouts.find(w => w.id === s.wid).items[s.idx];
-    const cur = EX_BY_ID[src.exId];
-    const pattern = src.slot === 'finisher' ? 'cardio' : cur.pattern;
-    const opts = EXERCISES.filter(e => e.pattern === pattern && e.id !== cur.id && exerciseAvailable(e, equipList(S)));
-    return sheetHead('Swap exercise', `Replacing ${esc(cur.name)} with another ${esc((SLOT_LABEL[pattern] || pattern).toLowerCase())} exercise that fits your equipment`)
-      + (opts.length ? `<div class="list">${opts.map(e => `<button class="li" data-act="do-swap" data-id="${e.id}"><span class="thumb sm">${Demo.staticSvg(e.anim, e.prop, e.name)}</span><span class="grow"><span class="t">${esc(e.name)}</span><br><span class="d">${esc(e.muscles.join(', '))} · ${['', 'Easy', 'Moderate', 'Advanced'][e.diff]}</span></span></button>`).join('')}</div>`
-        : `<div class="empty">No alternatives with your current equipment.</div>`);
+  pick(s) {
+    let sub;
+    if (s.mode === 'swap') {
+      const cur = EX_BY_ID[pickSource(s).exId];
+      sub = `Replacing ${esc(cur.name)}`;
+    } else {
+      sub = s.scope === 'active' ? 'Adds it to the end of today\'s workout' : `Adds it to ${esc(S.plan.workouts.find(w => w.id === s.wid).name)} from now on`;
+    }
+    const groups = (s.mode === 'swap' ? ['Similar'] : []).concat(['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core', 'Cardio']);
+    return sheetHead(s.mode === 'swap' ? 'Swap exercise' : 'Add an exercise', sub)
+      + `<div class="input-suffix"><input class="input" id="pick-q" type="text" inputmode="search" placeholder="Search all exercises" value="${esc(s.q || '')}" autocomplete="off" aria-label="Search exercises"><span>${icon('search', 18)}</span></div>
+      <div class="chips scroll">${groups.map(g => `<button class="chip" data-act="pick-group" data-v="${g}" aria-pressed="${s.group === g}">${g === 'Similar' ? 'Similar movement' : g}</button>`).join('')}</div>
+      <div class="toggle" style="padding:0"><span class="small"><b>Only my equipment</b></span><button class="switch" role="switch" aria-checked="${s.mine}" data-act="pick-mine" aria-label="Only my equipment"></button></div>
+      <div class="list" id="pick-list">${pickRows(s)}</div>`;
   },
 
   preview(s) {
     const w = S.plan.workouts.find(x => x.id === s.id);
     return sheetHead(esc(w.name), esc(w.focus))
-      + `<div class="list">${w.items.map((it, i) => exRow(it, `data-act="open-ex" data-id="${it.exId}"`, `<span class="icon-btn" role="button" tabindex="0" data-act="swap" data-scope="plan" data-wid="${w.id}" data-idx="${i}" aria-label="Swap ${esc(EX_BY_ID[it.exId].name)}">${icon('swap', 18)}</span>`)).join('')}</div>
-      <p class="small faint">Swaps here change your plan going forward.</p>
+      + `<div class="list">${w.items.map((it, i) => exRow(it, `data-act="open-ex" data-id="${it.exId}"`, `<span class="row" style="gap:0;flex:none"><span class="icon-btn" role="button" tabindex="0" data-act="swap" data-scope="plan" data-wid="${w.id}" data-idx="${i}" aria-label="Swap ${esc(EX_BY_ID[it.exId].name)}">${icon('swap', 18)}</span>${w.items.length > 1 ? `<span class="icon-btn" role="button" tabindex="0" data-act="remove-ex" data-scope="plan" data-wid="${w.id}" data-idx="${i}" aria-label="Remove ${esc(EX_BY_ID[it.exId].name)}">${icon('trash', 18)}</span>` : ''}</span>`)).join('')}</div>
+      <button class="btn ghost block" data-act="add-ex" data-scope="plan" data-wid="${w.id}">${icon('plus', 18)} Add an exercise</button>
+      <p class="small faint">Changes here apply to this workout from now on. To change just today's session, start the workout and edit it there.</p>
       <button class="btn train block" data-act="start-workout" data-id="${w.id}">${icon('play', 18)} Start this workout</button>`;
   },
 
@@ -314,6 +321,26 @@ const SHEETS = {
       <button class="btn train block" data-act="do-import">Restore</button>`;
   },
 };
+
+function pickSource(s) {
+  return s.scope === 'active' ? S.activeWorkout.items[s.idx] : S.plan.workouts.find(w => w.id === s.wid).items[s.idx];
+}
+function pickRows(s) {
+  const equip = equipList(S);
+  const inWorkout = new Set((s.scope === 'active' ? S.activeWorkout.items : S.plan.workouts.find(w => w.id === s.wid).items).map(i => i.exId));
+  let pattern = null;
+  if (s.mode === 'swap') { const src = pickSource(s); pattern = src.slot === 'finisher' ? 'cardio' : EX_BY_ID[src.exId].pattern; }
+  const q = (s.q || '').trim().toLowerCase();
+  const list = EXERCISES.filter(e => !inWorkout.has(e.id)
+    && (q ? (e.name.toLowerCase().includes(q) || e.muscles.join(' ').toLowerCase().includes(q))
+          : s.group === 'Similar' ? e.pattern === pattern : (s.group === 'All' || e.group === s.group))
+    && (!s.mine || exerciseAvailable(e, equip)));
+  if (!list.length) return `<div class="empty">${s.mine ? 'Nothing here fits your equipment. Turn off "Only my equipment" or try another group.' : 'No exercises match.'}</div>`;
+  return list.map(e => {
+    const missing = e.req.filter(r => !equip.includes(r));
+    return `<button class="li" data-act="pick-ex" data-id="${e.id}"><span class="thumb sm">${Demo.staticSvg(e.anim, e.prop, e.name)}</span><span class="grow"><span class="t">${esc(e.name)}</span><br><span class="d">${esc(e.muscles.join(', '))} · ${['', 'Easy', 'Moderate', 'Advanced'][e.diff]}</span></span>${missing.length ? `<span class="tag">Needs ${esc(EQUIPMENT.find(x => x.id === missing[0]).short)}</span>` : `<span class="tag train">${esc(e.group)}</span>`}</button>`;
+  }).join('');
+}
 
 function installRow() {
   const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;

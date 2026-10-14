@@ -270,7 +270,7 @@ function viewPlan() {
     ${P.workouts.filter((w, i, a) => a.findIndex(x => x.id === w.id) === i).map(w => `<div class="card">
       <div class="card-head"><div><div class="h3">${esc(w.name)}</div><div class="small muted">${esc(w.focus)}</div></div><button class="btn sm train" data-act="start-workout" data-id="${w.id}">Start</button></div>
       <div class="list">${w.items.map((it, i) => exRow(it, `data-act="open-ex" data-id="${it.exId}"`)).join('')}</div>
-      <button class="link muted" data-act="preview-workout" data-id="${w.id}" style="align-self:flex-start">${icon('swap', 16)} Swap exercises</button>
+      <button class="link muted" data-act="preview-workout" data-id="${w.id}" style="align-self:flex-start">${icon('swap', 16)} Swap, add or remove exercises</button>
     </div>`).join('')}
     <p class="small faint">Progression: when you hit the top of the rep range on every set, the logger suggests adding weight next time.</p>`;
 }
@@ -339,6 +339,7 @@ function viewLogger() {
     <div class="progress"><i style="width:${totalSets ? (doneSets / totalSets) * 100 : 0}%"></i></div>
     ${a.deload ? `<div class="banner">${icon('info', 18)}<span><b>Deload week.</b> Fewer sets at about 90% of your usual weight. Stop 3–4 reps short of failure. This lets you come back stronger next block.</span></div>` : ''}
     ${a.items.map((it, i) => loggerCard(it, i)).join('')}
+    <button class="btn ghost block" data-act="add-ex" data-scope="active">${icon('plus', 18)} Add an exercise</button>
     <button class="btn danger block" data-act="cancel-workout">Discard workout</button>
   </div></div>`;
 }
@@ -364,7 +365,7 @@ function loggerCard(it, i) {
         <span class="${r.done ? 'done-row' : ''}"><input inputmode="numeric" aria-label="Set ${j + 1} ${unitHead.toLowerCase()}" data-set="r" data-i="${i}" data-j="${j}" value="${r.reps != null ? r.reps : ''}" placeholder="${ex.unit === 'reps' ? (sug.reps || it.min) : it.max}"></span>
         <button class="ok" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-pressed="${r.done}" aria-label="Mark set ${j + 1} done">${icon('check', 20)}</button>`).join('')}
     </div>
-    <div class="row"><button class="link" data-act="add-set" data-i="${i}">${icon('plus', 16)} Add set</button>${it.rows.length > 1 ? `<button class="link muted" data-act="remove-set" data-i="${i}">Remove last</button>` : ''}</div>
+    <div class="row"><button class="link" data-act="add-set" data-i="${i}">${icon('plus', 16)} Add set</button>${it.rows.length > 1 ? `<button class="link muted" data-act="remove-set" data-i="${i}">Remove last</button>` : ''}<span class="grow"></span>${S.activeWorkout.items.length > 1 ? `<button class="link danger" data-act="remove-ex" data-scope="active" data-idx="${i}">Remove exercise</button>` : ''}</div>
   </div>`;
 }
 function elapsedText(start) { const s = Math.floor((Date.now() - start) / 1000); const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; }

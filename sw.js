@@ -1,6 +1,6 @@
 /* Groundwork — offline support. Caches the app shell so it opens without a connection.
    Bump VERSION whenever app files change so phones pick up the update. */
-const VERSION = 'groundwork-v1.1.1';
+const VERSION = 'groundwork-v1.1.2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/styles.css',
   './js/exercises.js', './js/videos.js', './js/foods.js', './js/scanner.js', './js/anim.js', './js/store.js',
