@@ -50,7 +50,7 @@ function computeReminders(state, now) {
   if (!state.onboarded || !R.enabled) return [];
   const today = dateKey(now), hour = now.getHours();
   const out = [];
-  const T = calcTargets(state);
+  const T = calcTargets(state, todayKey());
   const totals = foodTotals(state, today);
 
   // Workout today
@@ -66,7 +66,7 @@ function computeReminders(state, now) {
     const ws = weekStart(today);
     let missed = 0;
     for (let k = ws; k < today; k = addDays(k, 1)) {
-      if (k < state.startDate) continue;
+      if (k < state.startDate || k < state.plan.createdAt) continue; // a plan started mid-week doesn't count earlier days
       if (workoutForDate(state, k) && !workoutDoneOn(state, k)) missed++;
     }
     if (missed >= 1) out.push({ id: 'missed', level: missed >= 2 ? 'high' : 'normal', title: `${missed} missed session${missed > 1 ? 's' : ''} this week`, body: 'You can make one up on a rest day. Any session counts.', action: 'tab-train', actionLabel: 'See schedule', icon: 'calendar' });

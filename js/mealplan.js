@@ -8,6 +8,9 @@ const SERVICE_CONFIG = {
   instacartEndpoint: '',
   // URL of your server function that searches a recipe service such as Spoonacular (server/recipes-function.js)
   recipeEndpoint: '',
+  // USDA FoodData Central key for verified food search. DEMO_KEY works for light use;
+  // get a free key at https://fdc.nal.usda.gov/api-key-signup.html before launch.
+  usdaKey: 'DEMO_KEY',
 };
 
 const DIETS = [

@@ -381,3 +381,41 @@ details.pantry summary::-webkit-details-marker { display: none; }
 .fw-item.done { opacity: 1; }
 .fw-item.done .fw-check { background: var(--train); border-color: var(--train); }
 .fw-item.done .t { text-decoration: line-through; color: var(--ink-3); }
+
+/* Advanced logger */
+.sets.adv { grid-template-columns: 30px minmax(0, .9fr) minmax(0, 1fr) minmax(0, .85fr) 44px 44px; }
+.sets.adv.nowt { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 44px 44px; }
+.sets button.sn { border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 13px; }
+.sets .sn.warm { background: color-mix(in srgb, var(--fuel) 18%, transparent); color: var(--fuel); }
+.sets .sn.drop { background: color-mix(in srgb, var(--train) 18%, transparent); color: var(--train); }
+.sets select.rir { width: 100%; min-height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-align: center; font: 600 15px var(--font-body); padding: 0 2px; -webkit-appearance: none; appearance: none; text-align-last: center; }
+/* Weekly volume */
+.vol { display: grid; gap: 8px; }
+.vol-row { display: grid; grid-template-columns: 84px 1fr 52px; align-items: center; gap: 10px; }
+.vol-k { font-size: 13px; color: var(--ink-2); }
+.vol-v { font-size: 13px; text-align: right; font-weight: 700; }
+.vol-bar { position: relative; height: 12px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.vol-bar i { position: absolute; top: 0; bottom: 0; }
+.vol-bar .band { background: color-mix(in srgb, var(--train) 16%, transparent); }
+.vol-bar .fill { left: 0; border-radius: 6px; background: var(--ink-3); }
+.vol-bar .fill.ok { background: var(--train); }
+.vol-bar .fill.hi { background: var(--fuel); }
+.vol-bar .plan { width: 2px; background: var(--ink); opacity: .55; }
+/* Plates */
+.plates-viz { display: flex; align-items: center; gap: 3px; height: 120px; padding: 0 6px; }
+.plates-viz .bar-end { width: 14px; height: 26px; border-radius: 3px; background: var(--ink-3); }
+.plates-viz .plate { width: 16px; border-radius: 4px; border: 1px solid rgba(0,0,0,.15); }
+.plates-viz .bar-shaft { flex: 1; height: 12px; border-radius: 3px; background: var(--ink-3); opacity: .6; }
+/* Photos */
+.ph { margin: 0; display: grid; gap: 4px; }
+.ph img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 12px; background: var(--surface-2); }
+.ph figcaption { font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; align-items: center; }
+.ph-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+/* Food source badges */
+.src { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; padding: 1px 6px; border-radius: 6px; margin-right: 6px; background: var(--surface-2); color: var(--ink-3); vertical-align: 1px; }
+.src.ok { background: color-mix(in srgb, var(--train) 16%, transparent); color: var(--train); }
+.src.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+/* Coach */
+.tabs-inner:has(> .tab:nth-child(5)) { grid-template-columns: repeat(5, 1fr); }
+button.card { font: inherit; color: inherit; text-align: left; width: 100%; cursor: pointer; }
+.client-card .stats { margin: 0; }

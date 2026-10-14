@@ -1,4 +1,4 @@
-# Groundwork — v1.6
+# Groundwork — v1.7
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -15,6 +15,10 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | --- | --- |
 | Onboarding | 5 steps: body stats (lb/ft or kg/cm), goal, experience + activity, training days (2–7) + session length, equipment (pick your gym chain, "Full gym", or individual items) |
 | Experience views | Guided (beginners: screen tips, first-week checklist, 11 guides, calories + protein first, plain-language labels, logger helpers), Standard and Advanced; set from experience level, switchable in Settings |
+| Advanced tools | Advanced view: reps in reserve per set (bigger weight jumps when sets were easy), warm-up and drop sets, supersets (rest after the pair), weekly sets per muscle vs. target ranges, more carbs on training days, refeed days, diet breaks (check-ins pause). Standard + Advanced: create your own workouts, edit sets/reps/rest on any exercise, plate calculator, strength trend per exercise, body measurements with estimated body fat, progress photos (on-device only) |
+| Coach tools | Coach mode adds a Clients tab: seat limit by plan (10/30/75), invite clients, assign a program, your own workouts and macro targets with a note, read client updates (adherence, weight trend, workouts with sets and RIR, daily food totals, measurements, pain reports, flags). Clients send weekly updates. All by shared files; after the invite they're encrypted (AES-256-GCM) with a key only coach and client hold |
+| Safety | Health check (PAR-Q-based) with a doctor-clearance prompt; joint issues or pregnancy leave out high-impact moves; no deficit when pregnant or breastfeeding and a gentler one under 18; "Something hurts?" in the logger swaps the exercise and can rule it out of future plans; repeated-pain and low-intake warnings |
+| Data accuracy and privacy | Food search shows USDA results first (verified) with source badges, and flags online foods whose calories don't match their macros; password-protected (encrypted) backups; "Something wrong with this demo?" on every exercise, plus a coach review page for all demos |
 | Calorie calculator | Mifflin-St Jeor BMR × activity, goal adjustment, safety floor (1,200 / 1,500 kcal) |
 | Macros | Recommended protein/carbs/fat per goal; switch to custom grams any time; reset to recommended |
 | Food log | 167 built-in foods, online search of Open Food Facts, servings, 4 meals, quick add, custom foods, recents |
@@ -54,6 +58,9 @@ js/calc.js          calorie/macro math and units
 js/planner.js       plan builder, day switching, progression, personal records
 js/programs.js      ready-made programs
 js/guide.js         experience views, tips, first-week checklist, guides
+js/advanced.js      advanced lifter tools
+js/safety.js        health check, pain reports, encrypted backups, food-data checks
+js/coach.js         coach mode and client linking (file-based)
 js/native.js        phone features (no-op on the website)
 privacy.html        privacy policy (linked from the stores and Settings)
 store/              store screenshot script and Play feature graphic

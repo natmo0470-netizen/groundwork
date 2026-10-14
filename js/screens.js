@@ -2,7 +2,7 @@
 
 /* ================= nutrition ================= */
 function viewFoodLog() {
-  const k = UI.foodDate, T = calcTargets(S), tot = foodTotals(S, k);
+  const k = UI.foodDate, T = calcTargets(S, k), tot = foodTotals(S, k);
   const items = S.foodLog[k] || [];
   const left = T.calories - tot.kcal;
   const isToday = k === todayKey();
@@ -349,7 +349,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Groundwork v1.6 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
+      <p class="tiny faint">Groundwork v1.7 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
   },
 
   feedback(s) {
@@ -430,7 +430,7 @@ function foodResults() {
   out += `<div class="divider" style="margin:10px 0"></div>`;
   if (F.loading) out += `<p class="small muted">Searching Open Food Facts…</p>`;
   else if (F.err) out += `<p class="small muted">${esc(F.err)}</p><button class="btn sm soft" data-act="quick-add">Quick add instead</button>`;
-  else if (F.online.length && F.onlineQ === q) out += `<span class="eyebrow">Online · Open Food Facts</span><div class="list">${F.online.map(foodPick).join('')}</div>`;
+  else if (F.online.length && F.onlineQ === q) out += `<span class="eyebrow">Online · USDA and Open Food Facts</span><div class="list">${F.online.map(foodPick).join('')}</div>`;
   else out += `<button class="btn sm ghost" data-act="food-online">${icon('search', 16)} Search 3M+ branded foods online</button>`;
   return out;
 }

@@ -139,11 +139,7 @@ const Native = (() => {
   const _fw = finishWorkout;
   finishWorkout = function () { const n = S.workouts.length; const res = _fw.apply(this, arguments); const w = S.workouts[S.workouts.length - 1]; if (S.workouts.length > n) Native.haptic(w && w.prs && w.prs.length ? 'success' : 'medium'); return res; };
   if (!Native.isNative) return;
-  // Backups go through the share sheet (a web download doesn't work inside the app).
-  ACT['download-backup'] = async () => {
-    try { await Native.shareFile(`groundwork-backup-${todayKey()}.json`, JSON.stringify(S, null, 1), 'Groundwork backup'); S.lastBackup = todayKey(); save(); render(); }
-    catch (e) { toast('Couldn\'t open the share sheet. Use "Copy as text" instead.'); }
-  };
+  // Backups go through the share sheet inside the app (handled in safety.js 'download-backup').
   // Phone notifications replace browser notifications.
   ACT['notif-toggle'] = async () => {
     if (S.reminders.browser) { S.reminders.browser = false; save(); await Native.clearReminders(); render(); toast('Phone reminders off'); return; }

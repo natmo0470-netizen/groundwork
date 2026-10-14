@@ -43,7 +43,8 @@ function equipList(state) {
 
 function candidates(pattern, equip, experience) {
   const maxDiff = (EXPERIENCE[experience] || EXPERIENCE.beginner).maxDiff;
-  const list = EXERCISES.filter(e => e.pattern === pattern && exerciseAvailable(e, equip));
+  const avoid = (typeof S !== 'undefined' && S && S.avoidEx) || [];
+  const list = EXERCISES.filter(e => e.pattern === pattern && exerciseAvailable(e, equip) && !avoid.includes(e.id));
   const ok = list.filter(e => e.diff <= maxDiff), hard = list.filter(e => e.diff > maxDiff);
   if (experience === 'beginner') ok.sort((a, b) => a.diff - b.diff);
   return ok.concat(hard);
@@ -93,7 +94,7 @@ function buildWorkout(key, variant, state, equip, block) {
   // Fat-loss finisher: short intervals on whatever cardio option is available.
   if (p.goal === 'lose' && !T.cardio && minutes >= 45) {
     const pick = ['bike', 'rower', 'jump_rope', 'incline_walk', 'elliptical', 'stair_climber', 'mountain_climber', 'jump_squat']
-      .map(id => EX_BY_ID[id]).find(e => e && exerciseAvailable(e, equip) && !used.has(e.id));
+      .map(id => EX_BY_ID[id]).find(e => e && exerciseAvailable(e, equip) && !used.has(e.id) && !(typeof isBlockedEx === 'function' && isBlockedEx(e)));
     if (pick) items.push({ exId: pick.id, slot: 'finisher', sets: pick.unit === 'min' ? 1 : 4, min: pick.unit === 'min' ? 8 : 20, max: pick.unit === 'min' ? 10 : 30, rest: pick.unit === 'min' ? 0 : 40, note: 'Finisher: 30 s hard, 30 s easy' });
   }
   const groups = [...new Set(items.filter(i => i.slot !== 'finisher').map(i => EX_BY_ID[i.exId].group))];
@@ -216,7 +217,7 @@ function workoutDoneOn(state, key) { return state.workouts.find(w => w.date === 
 /* ---------- progression (double progression) ---------- */
 function lastSessionFor(state, exId) {
   for (let i = state.workouts.length - 1; i >= 0; i--) {
-    const sets = state.workouts[i].sets.filter(s => s.exId === exId && s.done);
+    const sets = state.workouts[i].sets.filter(s => s.exId === exId && s.done && s.type !== 'warm');
     if (sets.length) return { date: state.workouts[i].date, sets };
   }
   return null;
@@ -252,8 +253,12 @@ function suggestion(state, item) {
   const incDisp = increment(state, ex);
   const lastTxt = `${kgToDisp(state, top)} ${wUnit(state)} × ${atTop.map(s => s.reps).join(', ')}`;
   if (allHit) {
-    const nextKg = dispToKg(state, kgToDisp(state, top) + incDisp);
-    return { weightKg: nextKg, reps: item.min, text: `Last: ${lastTxt}. You hit the top of the range, so add ${incDisp} ${wUnit(state)}.` };
+    // Advanced: if the top sets were easy (3+ reps in reserve on average), take a bigger jump.
+    const rirs = atTop.map(s => s.rir).filter(x => x != null);
+    const easy = rirs.length && rirs.reduce((a, b) => a + b, 0) / rirs.length >= 3;
+    const jump = easy ? incDisp * 2 : incDisp;
+    const nextKg = dispToKg(state, kgToDisp(state, top) + jump);
+    return { weightKg: nextKg, reps: item.min, text: `Last: ${lastTxt}. You hit the top of the range${easy ? ' with reps to spare' : ''}, so add ${jump} ${wUnit(state)}.` };
   }
   if (anyLow) return { weightKg: top, reps: item.min, text: `Last: ${lastTxt}. Stay at this weight and aim for ${item.min}+ reps on every set.` };
   return { weightKg: top, reps: Math.min(item.max, Math.max(...atTop.map(s => s.reps)) + 1), text: `Last: ${lastTxt}. Same weight, beat it by one rep.` };
@@ -266,7 +271,7 @@ function bestsFor(state, exId, excludeWorkoutId) {
   state.workouts.forEach(w => {
     if (w.id === excludeWorkoutId) return;
     w.sets.forEach(s => {
-      if (s.exId !== exId || !s.done) return;
+      if (s.exId !== exId || !s.done || s.type === 'warm') return;
       const kg = s.weightKg || 0;
       if (kg > maxW || (kg === maxW && s.reps > maxWReps)) { maxW = kg; maxWReps = s.reps; }
       if (kg > 0) best1 = Math.max(best1, e1rm(kg, s.reps));
@@ -282,7 +287,7 @@ function detectPRs(state, workout) {
     const before = bestsFor(state, id, workout.id);
     const hadHistory = state.workouts.some(w => w.id !== workout.id && w.sets.some(s => s.exId === id && s.done));
     if (!hadHistory) return;
-    const sets = workout.sets.filter(s => s.exId === id && s.done);
+    const sets = workout.sets.filter(s => s.exId === id && s.done && s.type !== 'warm');
     const ex = EX_BY_ID[id];
     let best = null;
     sets.forEach(s => {

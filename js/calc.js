@@ -20,13 +20,21 @@ const EXPERIENCE = {
   advanced:     { label: 'Advanced',     blurb: 'Several years of structured training',      maxDiff: 3 },
 };
 
-function calcTargets(state) {
+/* Daily targets. Pass a date key to get that day's targets: diet breaks, refeed days and
+   training-day / rest-day carb cycling (Advanced nutrition) change individual days while the
+   weekly average stays on plan. */
+function calcTargets(state, key) {
   const p = state.profile;
   const g = GOALS[p.goal] || GOALS.general;
   const bmr = 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age + (p.sex === 'female' ? -161 : 5);
   const tdee = bmr * (ACTIVITY[p.activity] || ACTIVITY.light).mult;
   let goalAdj = tdee * g.adj;
   if (goalAdj < -750) goalAdj = -750;
+  // Safety: no deficit during pregnancy or breastfeeding; a gentler cap for under-18s.
+  const sf = state.safety || {};
+  let safetyNote = '';
+  if (sf.pregnant && goalAdj < 0) { goalAdj = 0; safetyNote = 'Pregnant or breastfeeding: targets are set at maintenance, not a deficit.'; }
+  if (p.age < 18 && goalAdj < -tdee * 0.1) { goalAdj = -tdee * 0.1; safetyNote = 'Under 18: the deficit is kept small to support growth.'; }
   const floor = p.sex === 'female' ? 1200 : 1500;
   let calories = Math.round((tdee + goalAdj + (state.calorieAdjust || 0)) / 10) * 10;
   let floorApplied = false;
@@ -47,7 +55,29 @@ function calcTargets(state) {
     active = { protein: c.protein, carbs: c.carbs, fat: c.fat, calories: Math.round(c.protein * 4 + c.carbs * 4 + c.fat * 9) };
     custom = true;
   }
-  return { bmr: Math.round(bmr), tdee: Math.round(tdee), goalAdj: Math.round(goalAdj), adjust: state.calorieAdjust || 0, floor, floorApplied, rec, ...active, custom };
+  const out = { bmr: Math.round(bmr), tdee: Math.round(tdee), goalAdj: Math.round(goalAdj), adjust: state.calorieAdjust || 0, floor, floorApplied, rec, ...active, custom, safetyNote, dayType: null, dayDelta: 0 };
+  return key ? dayTargets(state, out, key) : out;
+}
+function dayTargets(state, T, key) {
+  const maint = Math.round(T.tdee / 10) * 10;
+  const setCal = (cal, type) => {
+    const delta = cal - T.calories;
+    const carbs = Math.max(50, Math.round(T.carbs + delta / 4));
+    return Object.assign({}, T, { calories: Math.round(T.protein * 4 + carbs * 4 + T.fat * 9), carbs, dayType: type, dayDelta: Math.round(delta) });
+  };
+  const brk = state.dietBreak;
+  if (brk && key >= brk.start && key <= brk.end && T.calories < maint) return setCal(maint, 'break');
+  if (state.refeeds && state.refeeds[key] && T.calories < maint) return setCal(maint, 'refeed');
+  if (state.macros && state.macros.cycle && state.plan && typeof workoutForDate === 'function') {
+    const n = state.schedule.days.length;
+    if (n > 0 && n < 7) {
+      const shift = Math.round(T.calories * 0.1 / 10) * 10;          // training days: +10%, all from carbs
+      const restShift = Math.round(shift * n / (7 - n) / 10) * 10;    // rest days give it back
+      const w = workoutForDate(state, key);
+      return w ? setCal(T.calories + shift, 'training') : setCal(Math.max(T.floor, T.calories - restShift), 'rest');
+    }
+  }
+  return T;
 }
 
 /* Expected weekly change as a fraction of body weight, used by the weekly check-in. */

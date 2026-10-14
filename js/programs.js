@@ -455,7 +455,7 @@ function buildProgramSession(prog, idx, state, equip) {
   const p = state.profile, sess = prog.sessions[idx];
   const used = new Set(), items = [];
   sess.items.forEach(([slot, prefs, sets, min, max, rest, unit]) => {
-    let ex = prefs.map(id => EX_BY_ID[id]).find(e => e && exerciseAvailable(e, equip) && !used.has(e.id));
+    let ex = prefs.map(id => EX_BY_ID[id]).find(e => e && exerciseAvailable(e, equip) && !used.has(e.id) && !(typeof isBlockedEx === 'function' && isBlockedEx(e)));
     if (!ex) ex = candidates(slot, equip, p.experience).find(e => !used.has(e.id));
     if (!ex) return;
     used.add(ex.id);

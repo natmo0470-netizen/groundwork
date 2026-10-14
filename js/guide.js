@@ -9,7 +9,7 @@
 const MODES = {
   guided:   { label: 'Guided',   desc: 'Simpler screens, tips and step-by-step guides. Great for your first months.' },
   standard: { label: 'Standard', desc: 'Everything visible: full macros, programs and progress details, no tips.' },
-  advanced: { label: 'Advanced', desc: 'For experienced lifters. Same as Standard for now; advanced tools are on the way.' },
+  advanced: { label: 'Advanced', desc: 'For experienced lifters: reps in reserve, warm-up and drop sets, supersets, weekly sets per muscle, carb cycling, refeeds and diet breaks.' },
 };
 const MODE_FOR_EXP = { beginner: 'guided', intermediate: 'standard', advanced: 'advanced' };
 

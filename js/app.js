@@ -22,7 +22,7 @@ function render() {
   if (!S.onboarded) {
     root.innerHTML = viewOnboarding();
   } else {
-    const views = { today: viewToday, train: viewTrain, food: viewFood, progress: viewProgress };
+    const views = { today: viewToday, train: viewTrain, food: viewFood, progress: viewProgress, clients: typeof viewClients === 'function' ? viewClients : viewToday };
     root.innerHTML = `<div class="app">${header()}<main class="view" id="view">${typeof tipBanner === 'function' ? tipBanner(UI.tab) : ''}${views[UI.tab]()}</main>${tabBar()}</div>`
       + (S.activeWorkout && UI.loggerOpen ? viewLogger() : '')
       + (UI.rest && S.activeWorkout && UI.loggerOpen ? restBar() : '')
@@ -171,7 +171,7 @@ function viewOnboarding() {
 function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
 function viewToday() {
   const today = todayKey();
-  const T = calcTargets(S);
+  const T = calcTargets(S, today);
   const tot = foodTotals(S, today);
   const rems = computeReminders(S);
   const planned = workoutForDate(S, today);
@@ -386,6 +386,10 @@ function viewLogger() {
 function loggerCard(it, i) {
   const ex = EX_BY_ID[it.exId];
   const weighted = ex.unit === 'reps' && ex.req.length > 0;
+  const adv = typeof isAdvanced === 'function' && isAdvanced() && ex.unit === 'reps';
+  const items = S.activeWorkout.items, prev = items[i - 1];
+  const ssTag = it.superset ? `<span class="tag train" style="font-size:11px;padding:1px 6px">Superset ${icon('chevD', 12)}</span>` : prev && prev.superset ? `<span class="tag train" style="font-size:11px;padding:1px 6px">Superset ↑</span>` : '';
+  const barbell = ex.req.includes('barbell') || ex.req.includes('smith');
   const unitHead = ex.unit === 'min' ? 'Min' : ex.unit === 'sec' ? 'Sec' : 'Reps';
   const sug = suggestion(S, it);
   const deload = S.activeWorkout && S.activeWorkout.deload && ex.unit === 'reps';
@@ -394,18 +398,20 @@ function loggerCard(it, i) {
   if (deload) sug.reps = it.min;
   return `<div class="card" id="ex-${i}">
     <div class="row"><button class="thumb" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" aria-label="How to do ${esc(ex.name)}" style="border:0;padding:0">${Demo.staticSvg(ex.anim, ex.prop, ex.name)}</button>
-      <div class="grow"><button class="link" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" style="color:var(--ink);font-size:16px;text-align:left">${esc(ex.name)}</button><div class="small muted">${it.slot === 'finisher' ? esc(it.note) + ' · ' : ''}${rxText(it, false)}</div>${loggerHelp(it, ex, i)}</div>
+      <div class="grow">${ssTag}<button class="link" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" style="color:var(--ink);font-size:16px;text-align:left;display:block">${esc(ex.name)}</button><div class="small muted">${it.slot === 'finisher' ? esc(it.note) + ' · ' : ''}${rxText(it, false)}</div>${loggerHelp(it, ex, i)}</div>
       <button class="icon-btn" data-act="swap" data-scope="active" data-idx="${i}" aria-label="Swap exercise">${icon('swap', 20)}</button></div>
     <div class="tip">${icon('target', 16)}<span>${esc(deloadTip || sug.text)}</span></div>
-    <div class="sets ${weighted ? '' : 'nowt'}">
-      <span class="h">Set</span><span class="h">Previous</span>${weighted ? `<span class="h">${wUnit(S)}</span>` : ''}<span class="h">${unitHead}</span><span class="h"></span>
+    <div class="sets ${weighted ? '' : 'nowt'} ${adv ? 'adv' : ''}">
+      <span class="h">Set</span><span class="h">${adv ? 'Prev' : 'Previous'}</span>${weighted ? `<span class="h">${wUnit(S)}</span>` : ''}<span class="h">${unitHead}</span>${adv ? '<span class="h" title="Reps in reserve">RIR</span>' : ''}<span class="h"></span>
       ${it.rows.map((r, j) => `
-        <span class="sn">${j + 1}</span><span class="prev">${prevText(ex.id, j)}</span>
+        ${adv ? `<button class="sn ${r.type || ''}" data-act="set-type" data-i="${i}" data-j="${j}" aria-label="Set ${j + 1} type: ${r.type === 'warm' ? 'warm-up' : r.type === 'drop' ? 'drop set' : 'working'}. Tap to change">${setLabel(r, j)}</button>` : `<span class="sn">${j + 1}</span>`}<span class="prev">${prevText(ex.id, j)}</span>
         ${weighted ? `<span class="${r.done ? 'done-row' : ''}"><input inputmode="decimal" aria-label="Set ${j + 1} weight" data-set="w" data-i="${i}" data-j="${j}" value="${r.weightKg != null ? kgToDisp(S, r.weightKg) : ''}" placeholder="${sug.weightKg != null ? kgToDisp(S, sug.weightKg) : '–'}"></span>` : ''}
         <span class="${r.done ? 'done-row' : ''}"><input inputmode="numeric" aria-label="Set ${j + 1} ${unitHead.toLowerCase()}" data-set="r" data-i="${i}" data-j="${j}" value="${r.reps != null ? r.reps : ''}" placeholder="${ex.unit === 'reps' ? (sug.reps || it.min) : it.max}"></span>
+        ${adv ? `<select class="rir" data-rir data-i="${i}" data-j="${j}" aria-label="Set ${j + 1} reps in reserve">${RIR_OPTIONS.map(v => `<option value="${v}" ${String(r.rir == null ? '' : r.rir) === v ? 'selected' : ''}>${v === '' ? '–' : v === '5' ? '5+' : v}</option>`).join('')}</select>` : ''}
         <button class="ok" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-pressed="${r.done}" aria-label="Mark set ${j + 1} done">${icon('check', 20)}</button>`).join('')}
     </div>
-    <div class="row"><button class="link" data-act="add-set" data-i="${i}">${icon('plus', 16)} Add set</button>${it.rows.length > 1 ? `<button class="link muted" data-act="remove-set" data-i="${i}">Remove last</button>` : ''}<span class="grow"></span>${S.activeWorkout.items.length > 1 ? `<button class="link danger" data-act="remove-ex" data-scope="active" data-idx="${i}">Remove exercise</button>` : ''}</div>
+    <div class="row" style="flex-wrap:wrap;row-gap:4px"><button class="link" data-act="add-set" data-i="${i}">${icon('plus', 16)} Add set</button>${adv ? `<button class="link" data-act="add-drop" data-i="${i}">Drop set</button>` : ''}${it.rows.length > 1 ? `<button class="link muted" data-act="remove-set" data-i="${i}">Remove last</button>` : ''}<span class="grow"></span>${S.activeWorkout.items.length > 1 ? `<button class="link danger" data-act="remove-ex" data-scope="active" data-idx="${i}">Remove exercise</button>` : ''}</div>
+    <div class="row" style="flex-wrap:wrap;gap:14px">${barbell && weighted && !(typeof isGuided === 'function' && isGuided()) ? `<button class="link muted small" data-act="plates" data-i="${i}">Plate calculator</button>` : ''}${adv && i < items.length - 1 ? `<button class="link muted small" data-act="superset" data-i="${i}" aria-pressed="${!!it.superset}">${it.superset ? 'Unlink superset' : 'Superset with next'}</button>` : ''}<button class="link muted small" data-act="pain-report" data-i="${i}">Something hurts?</button></div>
   </div>`;
 }
 function elapsedText(start) { const s = Math.floor((Date.now() - start) / 1000); const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; }
@@ -418,7 +424,7 @@ function restBar() {
 function finishWorkout() {
   const a = S.activeWorkout;
   const sets = [];
-  a.items.forEach(it => it.rows.forEach((r, j) => { if (r.done) sets.push({ exId: it.exId, set: j + 1, weightKg: r.weightKg || 0, reps: r.reps || 0, done: true }); }));
+  a.items.forEach(it => it.rows.forEach((r, j) => { if (r.done) { const s = { exId: it.exId, set: j + 1, weightKg: r.weightKg || 0, reps: r.reps || 0, done: true }; if (r.rir != null) s.rir = r.rir; if (r.type) s.type = r.type; sets.push(s); } }));
   const rec = { id: a.id, date: a.date, workoutId: a.workoutId, name: a.name, startedAt: a.startedAt, durationMin: Math.max(1, Math.round((Date.now() - a.startedAt) / 60000)), sets };
   const before = S.workouts.slice();
   S.workouts = before.concat([rec]);
