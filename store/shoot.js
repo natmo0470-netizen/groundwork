@@ -34,7 +34,7 @@ const SHOTS = [
     await p.clock.install({ time: new Date('2026-10-16T09:30:00') });
     await p.goto(page); await p.waitForTimeout(500);
     await p.evaluate(() => { seedDemo(); S.demo = false; S.mode = 'standard'; S.dismissed = {}; save(); UI.toast = null; render(); });
-    await p.evaluate(() => { for (const id of ['weighin', 'meals', 'protein', 'missed', 'checkin', 'over']) S.dismissed[id] = todayKey(); save(); });
+    await p.evaluate(() => { for (const id of ['workout', 'weighin', 'meals', 'protein', 'missed', 'checkin', 'over']) S.dismissed[id] = todayKey(); save(); });
     for (const [shot, fn] of SHOTS) {
       await fn(p); await p.waitForTimeout(500);
       await p.evaluate(() => { UI.toast = null; const t = document.querySelector('.toast'); if (t) t.remove(); window.scrollTo(0, 0); });

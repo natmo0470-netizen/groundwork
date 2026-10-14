@@ -18,8 +18,10 @@ jobs:
       - run: npm run build:web
       - run: npx cap add ios
       - run: npx @capacitor/assets generate --ios --iconBackgroundColor '#111A17' --splashBackgroundColor '#F3F5F4'
-      - name: Camera permission text (barcode scanning)
-        run: /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Groundwork uses the camera to scan food barcodes.'" ios/App/App/Info.plist
+      - name: Camera permission text (barcode scanning) and export compliance
+        run: |
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Groundwork uses the camera to scan food barcodes.'" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist
       - run: npx cap sync ios
       - name: Build for the iPhone simulator
         run: |
