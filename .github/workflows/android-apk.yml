@@ -1,6 +1,8 @@
 # Builds a test APK in GitHub's cloud. Run it from the Actions tab ("Run workflow"),
 # then download "groundwork-test-apk" from the finished run.
 name: Build Android test APK
+permissions:
+  contents: write
 on:
   workflow_dispatch:
   push:
@@ -25,7 +27,24 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk groundwork-test.apk
       - uses: actions/upload-artifact@v4
         with:
           name: groundwork-test-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: groundwork-test.apk
+      # Latest test build, downloadable from the repo's Releases page (or straight on an Android phone).
+      - name: Publish to the "test-build" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete test-build --yes --cleanup-tag || true
+          gh release create test-build groundwork-test.apk --prerelease --title "Test build (latest)" \
+            --notes "Debug APK for testing, built from ${GITHUB_SHA::7}. On Android: open this page, download groundwork-test.apk, allow installs from this source when asked."
+      # Keep a copy on the apk-builds branch as well.
+      - name: Save to apk-builds branch
+        run: |
+          mkdir out && cp groundwork-test.apk out/ && cd out
+          git init -q && git checkout -q -b apk-builds
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com add . 
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -q -m "Test APK from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" apk-builds
