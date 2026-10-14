@@ -48,6 +48,7 @@ function defaultState() {
     mealPlan: null,
     grocery: { checked: {}, extra: [], store: 'instacart', range: 'week' },
     extraRecipes: [],
+    household: [],
     startDate: todayKey(),
     reminders: { enabled: true, workout: true, meals: true, protein: true, weighin: true, checkin: true, missed: true, browser: false },
     dismissed: {},

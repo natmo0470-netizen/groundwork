@@ -18,6 +18,54 @@ const AVOID_OPTIONS = [
 ];
 const MEAL_SLOTS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', meal4: 'Fourth meal', snack: 'Snack' };
 
+/* ---------- household ----------
+   Family members share the same recipes; each gets a portion sized to their own calorie needs.
+   Default calories are typical daily needs (U.S. Dietary Guidelines, moderately active), editable per person. */
+const HOUSEHOLD_GROUPS = [
+  ['adult_m', 'Adult (man)', 2400], ['adult_f', 'Adult (woman)', 1900], ['teen', 'Teen, 14–18', 2200],
+  ['child_9', 'Child, 9–13', 1800], ['child_4', 'Child, 4–8', 1400], ['toddler', 'Toddler, 1–3', 1000],
+];
+function household(state) { return state.household || []; }
+/* Restrictions for shared meals: your own preferences plus every family member's foods to avoid. */
+function effectivePrefs(state, prefs) {
+  const p = Object.assign(defaultMealPrefs(), prefs || state.mealPrefs || {});
+  const flags = new Set(p.avoidFlags || []);
+  const words = [p.avoidText || ''];
+  household(state).forEach(m => { (m.avoid || []).forEach(f => flags.add(f)); if (m.avoidText) words.push(m.avoidText); });
+  return { ...p, avoidFlags: [...flags], avoidText: words.filter(Boolean).join(', ') };
+}
+function slotShareFor(state, slot) {
+  const prefs = state.mealPrefs || defaultMealPrefs();
+  const slots = slotList(prefs), shares = slotShares(slots);
+  const i = slots.indexOf(slot);
+  return i < 0 ? 0.3 : shares[i];
+}
+function memberPortion(state, member, meal) {
+  if (!(member.meals || []).includes(meal.slot)) return 0;
+  const r = findRecipe(meal.recipeId, state.extraRecipes); if (!r || !r.kcal) return 0;
+  const raw = (member.kcal * slotShareFor(state, meal.slot)) / r.kcal;
+  return Math.min(3, Math.max(0.25, Math.round(raw * 4) / 4));
+}
+function familyServings(state, meal) { return household(state).reduce((s, m) => s + memberPortion(state, m, meal), 0); }
+function totalServings(state, meal) { return meal.servings + familyServings(state, meal); }
+function householdCost(state, days) {
+  return (days || (state.mealPlan ? state.mealPlan.days : [])).reduce((s, d) => s + d.meals.reduce((t, m) => { const r = findRecipe(m.recipeId, state.extraRecipes); return t + (r ? r.cost * totalServings(state, m) : 0); }, 0), 0);
+}
+/* After household restrictions change, replace only the planned meals that now conflict. */
+function replaceConflicts(state) {
+  if (!state.mealPlan) return 0;
+  const prefs = effectivePrefs(state);
+  let n = 0;
+  state.mealPlan.days.forEach((d, di) => d.meals.forEach((m, mi) => {
+    const r = findRecipe(m.recipeId, state.extraRecipes);
+    if (r && !recipeAllowed(r, prefs)) {
+      const opt = swapOptions(state, di, mi)[0];
+      if (opt) { d.meals[mi] = { slot: m.slot, recipeId: opt.r.id, servings: opt.s }; n++; }
+    }
+  }));
+  return n;
+}
+
 function defaultMealPrefs() {
   return { diets: [], avoidFlags: [], avoidText: '', meals: 3, snacks: 1, quick: false, batch: true, budget: false };
 }
@@ -78,7 +126,7 @@ function allRecipes(extra) { return RECIPES.concat(extra || []); }
 
 function generateMealPlan(state, opts) {
   opts = opts || {};
-  const prefs = state.mealPrefs || defaultMealPrefs();
+  const prefs = effectivePrefs(state);
   const T = calcTargets(state);
   const slots = slotList(prefs), shares = slotShares(slots);
   const seed = opts.seed || Math.floor(Math.random() * 1e9);
@@ -108,7 +156,7 @@ function generateMealPlan(state, opts) {
         }
       }
       let cands = candidatesFor(slot, prefs, extra);
-      if (!cands.length) cands = candidatesFor(slot, { ...prefs, quick: false, avoidText: '' }, extra);
+      if (!cands.length) cands = candidatesFor(slot, { ...prefs, quick: false }, extra);
       if (!cands.length) return;
       const ranked = cands.map(r => scoreRecipe(r, kcalT, protT, { usedToday, recent, prefs, rand })).sort((a, b) => a.score - b.score);
       const pick = ranked[0];
@@ -131,7 +179,7 @@ function dayTotals(day, extra) {
   return day.meals.reduce((t, m) => { const x = mealMacros(m, extra); return { kcal: t.kcal + x.kcal, p: t.p + x.p, c: t.c + x.c, f: t.f + x.f, cost: t.cost + x.cost }; }, { kcal: 0, p: 0, c: 0, f: 0, cost: 0 });
 }
 function swapOptions(state, dayIdx, mealIdx) {
-  const plan = state.mealPlan, prefs = state.mealPrefs || defaultMealPrefs();
+  const plan = state.mealPlan, prefs = effectivePrefs(state);
   const day = plan.days[dayIdx], m = day.meals[mealIdx];
   const slots = day.meals.map(x => x.slot), shares = slotShares(slotList(prefs));
   const T = calcTargets(state);
@@ -151,7 +199,8 @@ function groceryList(state, fromDate) {
   const totals = {};
   plan.days.filter(d => !fromDate || d.date >= fromDate).forEach(d => d.meals.forEach(m => {
     const r = findRecipe(m.recipeId, extra); if (!r) return;
-    r.ingredients.forEach(([k, q]) => { totals[k] = (totals[k] || 0) + q * m.servings; });
+    const sv = totalServings(state, m);
+    r.ingredients.forEach(([k, q]) => { totals[k] = (totals[k] || 0) + q * sv; });
   }));
   const items = Object.entries(totals).map(([k, qty]) => {
     const g = INGR[k] || { key: k, name: k, aisle: 'Other', unit: '', price: 0, q: k, pantry: false };

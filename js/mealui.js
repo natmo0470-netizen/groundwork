@@ -26,12 +26,15 @@ function viewFood() {
 function prefsSummary() {
   const p = S.mealPrefs || defaultMealPrefs();
   const bits = [];
+  const hh = household(S);
+  if (hh.length) bits.push(`For you + ${hh.length} (${hh.map(m => m.name).join(', ')})`);
   bits.push(p.diets.length ? p.diets.map(d => DIETS.find(x => x[0] === d)[1]).join(', ') : 'No diet restrictions');
   bits.push(`${p.meals} meals${p.snacks ? ` + ${p.snacks} snack${p.snacks > 1 ? 's' : ''}` : ''}`);
   if (p.quick) bits.push('quick meals');
   if (p.batch) bits.push('leftovers for lunch');
   if (p.budget) bits.push('budget-friendly');
-  const avoid = (p.avoidFlags || []).map(a => AVOID_OPTIONS.find(x => x[0] === a)[1]).concat(p.avoidText ? [p.avoidText] : []);
+  const ep = effectivePrefs(S, p);
+  const avoid = (ep.avoidFlags || []).map(a => AVOID_OPTIONS.find(x => x[0] === a)[1]).concat(ep.avoidText ? [ep.avoidText] : []);
   if (avoid.length) bits.push('avoiding ' + avoid.join(', ').toLowerCase());
   return bits.join(' · ');
 }
@@ -48,7 +51,7 @@ function viewMealPlan() {
   }
   const p = S.mealPlan, di = planDayIndex(), day = p.days[di];
   const tot = dayTotals(day, S.extraRecipes);
-  const week = p.days.reduce((s, d) => s + dayTotals(d, S.extraRecipes).cost, 0);
+  const week = householdCost(S);
   return `<div class="card fuel">
       <div class="card-head"><span class="eyebrow">Week of ${shortDate(p.start)}</span><span class="tag fuel">~${money(week)} groceries</span></div>
       <p class="small muted">${esc(prefsSummary())}</p>
@@ -56,7 +59,8 @@ function viewMealPlan() {
     </div>
     <div class="daychips" role="tablist">${p.days.map((d, i) => { const dt = parseKey(d.date); return `<button role="tab" data-act="plan-day" data-v="${i}" aria-selected="${i === di}" class="${d.date === todayKey() ? 'is-today' : ''}"><span>${DOW[dt.getDay()]}</span><b>${dt.getDate()}</b></button>`; }).join('')}</div>
     <div class="card" style="gap:10px">
-      <div class="row between"><b>${day.date === todayKey() ? 'Today' : prettyDate(day.date)}</b><span class="small faint num">${money(tot.cost)}</span></div>
+      <div class="row between"><b>${day.date === todayKey() ? 'Today' : prettyDate(day.date)}</b><span class="small faint num">${money(householdCost(S, [day]))}${household(S).length ? ' household' : ''}</span></div>
+      ${household(S).length ? `<div class="tiny faint">Bars show your portions. Everyone else's are sized to their own needs.</div>` : ''}
       ${targetBar('Calories', tot.kcal, T.calories, 'kcal', 'var(--fuel)')}
       ${targetBar('Protein', tot.p, T.protein, 'g', 'var(--protein)')}
     </div>
@@ -74,7 +78,8 @@ function mealCard(m, di, mi) {
   return `<div class="card meal-card">
     <div class="row between"><span class="eyebrow">${MEAL_SLOTS[m.slot]}</span><span class="row" style="gap:6px">${m.leftover ? '<span class="tag">Leftovers</span>' : ''}${m.locked ? `<span class="tag fuel">${icon('check', 12)} Locked</span>` : ''}</span></div>
     <button class="meal-main" data-act="recipe-open" data-d="${di}" data-m="${mi}">
-      <span class="grow"><span class="h3">${esc(r.name)}</span><br><span class="small muted">${r.minutes} min · ${fmtServings(m.servings)} · ${fmtInt(x.kcal)} kcal</span><br>
+      <span class="grow"><span class="h3">${esc(r.name)}</span><br><span class="small muted">${r.minutes} min · ${household(S).length ? 'Your portion ' + niceQty(m.servings) : fmtServings(m.servings)} · ${fmtInt(x.kcal)} kcal</span><br>
+      ${household(S).length ? `<span class="small" style="color:var(--fuel);font-weight:700">Cook ${niceQty(totalServings(S, m))} servings for ${1 + household(S).filter(h => memberPortion(S, h, m) > 0).length}</span><br>` : ''}
       <span class="pcf"><b class="p">P ${r0(x.p)}</b> <b class="c">C ${r0(x.c)}</b> <b class="f">F ${r0(x.f)}</b></span></span>
       <span class="chev">${icon('chevR', 18)}</span></button>
     <div class="row wrap" style="gap:8px">
@@ -155,8 +160,16 @@ Object.assign(SHEETS, {
   mealPrefs(s) {
     const p = s.draft;
     const sw = (k, label, sub) => `<div class="toggle"><span class="small"><b>${label}</b><br><span class="faint">${sub}</span></span><button class="switch" role="switch" aria-checked="${!!p[k]}" data-act="mp-toggle" data-k="${k}" aria-label="${label}"></button></div>`;
+    const hh = household(S);
     return sheetHead('Meal plan preferences', 'Your plan only uses recipes that fit these')
-      + `<div class="stack"><span class="label">Diet</span><div class="chips">${DIETS.map(([k, l]) => `<button class="chip" data-act="mp-diet" data-v="${k}" aria-pressed="${p.diets.includes(k)}">${l}</button>`).join('')}</div><span class="tiny faint">Leave all off to eat anything.</span></div>
+      + `<div class="stack"><span class="label">Who's eating</span>
+        <div class="list">
+          <div class="li"><span class="ni">${icon('user', 20)}</span><span class="grow"><span class="t">You</span><br><span class="d">${fmtInt(calcTargets(S).calories)} kcal · your targets</span></span></div>
+          ${hh.map(m => `<button class="li" data-act="hh-edit" data-id="${m.id}"><span class="ni">${icon('user', 20)}</span><span class="grow"><span class="t">${esc(m.name)}</span><br><span class="d">${fmtInt(m.kcal)} kcal · ${m.meals.map(x => MEAL_SLOTS[x]).join(', ') || 'no meals'}${(m.avoid || []).length || m.avoidText ? ' · avoids ' + (m.avoid || []).map(a => AVOID_OPTIONS.find(o => o[0] === a)[1].toLowerCase()).concat(m.avoidText ? [m.avoidText] : []).join(', ') : ''}</span></span><span class="chev">${icon('chevR', 18)}</span></button>`).join('')}
+        </div>
+        <button class="btn ghost sm" data-act="hh-add" style="align-self:flex-start">${icon('plus', 16)} Add a family member</button>
+        <span class="tiny faint">Everyone eats the same recipes in their own portion size. Anyone's foods to avoid apply to shared meals.</span></div>
+      <div class="stack"><span class="label">Diet</span><div class="chips">${DIETS.map(([k, l]) => `<button class="chip" data-act="mp-diet" data-v="${k}" aria-pressed="${p.diets.includes(k)}">${l}</button>`).join('')}</div><span class="tiny faint">Leave all off to eat anything.</span></div>
       <div class="stack"><span class="label">Foods to avoid</span><div class="chips">${AVOID_OPTIONS.map(([k, l]) => `<button class="chip" data-act="mp-avoid" data-v="${k}" aria-pressed="${p.avoidFlags.includes(k)}">${l}</button>`).join('')}</div>
         <input class="input" id="mp-avoid-text" placeholder="Anything else? e.g. mushrooms, avocado" value="${esc(p.avoidText)}" aria-label="Other foods to avoid"></div>
       <div class="grid2"><div class="field"><span class="label">Meals a day</span><div class="seg">${[2, 3, 4].map(n => `<button data-act="mp-set" data-k="meals" data-v="${n}" aria-pressed="${p.meals === n}">${n}</button>`).join('')}</div></div>
@@ -164,14 +177,29 @@ Object.assign(SHEETS, {
       ${sw('quick', 'Quick meals', '20 minutes or less where possible')}
       ${sw('batch', 'Cook once, eat twice', 'Dinner leftovers become the next day\'s lunch')}
       ${sw('budget', 'Budget-friendly', 'Favors lower-cost recipes')}
-      <p class="small faint" id="mp-count">${mpCount(p)}</p>
+      <p class="small faint" id="mp-count">${mpCount(effectivePrefs(S, p))}</p>
       <button class="btn fuel block" data-act="mp-save">${S.mealPlan && planIsCurrent() ? 'Save and rebuild plan' : 'Save and create plan'}</button>`;
+  },
+
+  member(s) {
+    const d = s.draft;
+    return sheetHead(s.id ? 'Edit family member' : 'Add a family member', 'Used only to size portions and shape shared meals')
+      + `<div class="field"><label for="hh-name">Name</label><input class="input" id="hh-name" data-hh="name" value="${esc(d.name)}" placeholder="e.g. Sam"></div>
+      <div class="stack"><span class="label">Who are they?</span><div class="chips">${HOUSEHOLD_GROUPS.map(([k, l]) => `<button class="chip" data-act="hh-group" data-v="${k}" aria-pressed="${d.group === k}">${l}</button>`).join('')}</div></div>
+      <div class="field"><label for="hh-kcal">Daily calories</label><div class="input-suffix"><input class="input" id="hh-kcal" data-hh="kcal" inputmode="numeric" value="${d.kcal}"><span>kcal</span></div><span class="tiny faint">A typical amount for this group. Adjust it if they eat more or less.</span></div>
+      <div class="stack"><span class="label">Meals they eat from the plan</span><div class="chips">${['breakfast', 'lunch', 'dinner'].map(x => `<button class="chip" data-act="hh-meal" data-v="${x}" aria-pressed="${d.meals.includes(x)}">${MEAL_SLOTS[x]}</button>`).join('')}</div><span class="tiny faint">Turn off meals they eat elsewhere, like school lunch.</span></div>
+      <div class="stack"><span class="label">Foods they avoid</span><div class="chips">${AVOID_OPTIONS.map(([k, l]) => `<button class="chip" data-act="hh-avoid" data-v="${k}" aria-pressed="${d.avoid.includes(k)}">${l}</button>`).join('')}</div>
+        <input class="input" id="hh-avoid-text" data-hh="avoidText" value="${esc(d.avoidText || '')}" placeholder="Anything else? e.g. spicy, mushrooms" aria-label="Other foods they avoid"></div>
+      <button class="btn fuel block" data-act="hh-save">${s.id ? 'Save' : 'Add to household'}</button>
+      ${s.id ? `<button class="btn danger block" data-act="hh-del">${icon('trash', 18)} Remove ${esc(d.name || 'member')}</button>` : ''}`;
   },
 
   recipe(s) {
     const ref = s.d != null ? S.mealPlan.days[s.d].meals[s.m] : null;
     const r = findRecipe(ref ? ref.recipeId : s.id, S.extraRecipes);
     const sv = ref ? ref.servings : (s.servings || 1);
+    const hh = ref ? household(S).map(h => ({ name: h.name, s: memberPortion(S, h, ref) })).filter(x => x.s > 0) : [];
+    const cookSv = ref ? totalServings(S, ref) : sv;
     const flags = r.flags || '';
     const tags = [];
     if (!/[mfhpb]/.test(flags)) tags.push('Vegetarian');
@@ -179,9 +207,10 @@ Object.assign(SHEETS, {
     if (!flags.includes('g')) tags.push('Gluten-free');
     return sheetHead(esc(r.name), `${ref ? MEAL_SLOTS[ref.slot] + ' · ' + prettyDate(S.mealPlan.days[s.d].date) + ' · ' : ''}${r.minutes} min · about ${money(r.cost * sv)}`)
       + `<div class="stats"><div class="stat"><div class="v">${fmtInt(r.kcal * sv)}</div><div class="k">kcal</div></div><div class="stat"><div class="v">${r0(r.p * sv)}<span class="unit">g</span></div><div class="k">Protein</div></div><div class="stat"><div class="v">${r0(r.c * sv)}/${r0(r.f * sv)}</div><div class="k">Carbs/fat (g)</div></div></div>
-      ${ref ? `<div class="field"><span class="label">Servings</span><div class="stepper"><button data-act="recipe-serv" data-v="-0.25" aria-label="Fewer">−</button><div class="input big" aria-live="polite">${niceQty(sv)}</div><button data-act="recipe-serv" data-v="0.25" aria-label="More">+</button></div></div>` : ''}
+      ${ref ? `<div class="field"><span class="label">${hh.length ? 'Your servings' : 'Servings'}</span><div class="stepper"><button data-act="recipe-serv" data-v="-0.25" aria-label="Fewer">−</button><div class="input big" aria-live="polite">${niceQty(sv)}</div><button data-act="recipe-serv" data-v="0.25" aria-label="More">+</button></div></div>` : ''}
       ${tags.length ? `<div class="chips">${tags.map(t => `<span class="tag train">${t}</span>`).join('')}${r.batch ? '<span class="tag">Good for leftovers</span>' : ''}</div>` : ''}
-      <div class="stack"><span class="eyebrow">Ingredients${sv !== 1 ? ` for ${niceQty(sv)} servings` : ''}</span><ul class="ingr">${r.ingredients.map(([k, q]) => { const g = INGR[k]; return `<li><span>${esc(g ? g.name : k)}</span><span class="faint num">${g ? esc(recipeAmount(g, q * sv)) : ''}</span></li>`; }).join('')}</ul></div>
+      ${hh.length ? `<div class="card" style="box-shadow:none;gap:6px"><span class="eyebrow">Cooking for ${hh.length + 1}: ${niceQty(cookSv)} servings</span><div class="list">${[{ name: 'You', s: sv }].concat(hh).map(x => `<div class="li" style="padding:6px 0"><span class="grow">${esc(x.name)}</span><span class="num small">${niceQty(x.s)} serving${x.s === 1 ? '' : 's'} · ${fmtInt(r.kcal * x.s)} kcal</span></div>`).join('')}</div></div>` : ''}
+      <div class="stack"><span class="eyebrow">Ingredients${cookSv !== 1 ? ` for ${niceQty(cookSv)} servings${hh.length ? ' (everyone)' : ''}` : ''}</span><ul class="ingr">${r.ingredients.map(([k, q]) => { const g = INGR[k]; return `<li><span>${esc(g ? g.name : k)}</span><span class="faint num">${g ? esc(recipeAmount(g, q * cookSv)) : ''}</span></li>`; }).join('')}</ul></div>
       <div class="stack"><span class="eyebrow">Steps</span><ol class="cues">${r.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${r.note ? `<p class="small muted">${esc(r.note)}</p>` : ''}</div>
       ${ref ? `<div class="grid2">${ref.logged ? `<span class="tag train" style="justify-content:center">${icon('check', 12)} Logged</span>` : S.mealPlan.days[s.d].date > todayKey() ? `<span class="tag" style="justify-content:center">Log on ${DOW[parseKey(S.mealPlan.days[s.d].date).getDay()]}</span>` : `<button class="btn fuel" data-act="meal-log" data-d="${s.d}" data-m="${s.m}">Log it</button>`}<button class="btn ghost" data-act="meal-swap" data-d="${s.d}" data-m="${s.m}">Swap</button></div>` : ''}`;
   },
@@ -198,8 +227,10 @@ Object.assign(SHEETS, {
 function recipeAmount(g, q) {
   if (g.unit === 'oz') return `${niceQty(q)} oz`;
   if (['cup', 'tbsp', 'tsp'].includes(g.unit)) return `${niceQty(q)} ${g.unit === 'cup' && q > 1 ? 'cups' : g.unit}`;
-  const n = niceQty(q);
-  return `${n} ${q > 1 ? (PLURAL[g.unit] || g.unit + 's') : g.unit}`;
+  // whole items (eggs, slices, tortillas…) round up; produce can stay fractional (½ avocado)
+  const whole = ['egg', 'slice', 'tortilla', 'muffin', 'pita', 'cake', 'link', 'bar', 'stick'].includes(g.unit);
+  const v = whole ? Math.max(1, Math.ceil(q - 0.1)) : q;
+  return `${whole ? v : niceQty(v)} ${v > 1 ? (PLURAL[g.unit] || g.unit + 's') : g.unit}`;
 }
 function mpCount(p) {
   const n = { b: 0, l: 0, s: 0 };
@@ -231,6 +262,22 @@ Object.assign(ACT, {
   'mp-set': t => { UI.sheet.draft[t.dataset.k] = Number(t.dataset.v); render(); },
   'mp-toggle': t => { const d = UI.sheet.draft; d[t.dataset.k] = !d[t.dataset.k]; render(); },
   'mp-save': () => { S.mealPrefs = UI.sheet.draft; rebuildMealPlan(!!S.mealPlan); closeAll(); UI.foodSeg = 'plan'; toast('Meal plan updated'); },
+  'hh-add': () => pushSheet({ type: 'member', draft: { name: '', group: 'adult_f', kcal: 1900, meals: ['breakfast', 'lunch', 'dinner'], avoid: [], avoidText: '' } }),
+  'hh-edit': t => { const m = household(S).find(x => x.id === t.dataset.id); if (m) pushSheet({ type: 'member', id: m.id, draft: JSON.parse(JSON.stringify({ avoidText: '', avoid: [], ...m })) }); },
+  'hh-group': t => { const d = UI.sheet.draft, g = HOUSEHOLD_GROUPS.find(x => x[0] === t.dataset.v); d.group = g[0]; d.kcal = g[2]; render(); },
+  'hh-meal': t => { const d = UI.sheet.draft, v = t.dataset.v; d.meals = d.meals.includes(v) ? d.meals.filter(x => x !== v) : d.meals.concat([v]); render(); },
+  'hh-avoid': t => { const d = UI.sheet.draft, v = t.dataset.v; d.avoid = d.avoid.includes(v) ? d.avoid.filter(x => x !== v) : d.avoid.concat([v]); render(); },
+  'hh-save': () => {
+    const s = UI.sheet, d = s.draft;
+    d.name = (d.name || '').trim() || 'Family member';
+    d.kcal = Math.min(4500, Math.max(600, Math.round(Number(d.kcal) || 1800)));
+    S.household = household(S).slice();
+    if (s.id) S.household = S.household.map(m => m.id === s.id ? { ...d, id: s.id } : m);
+    else S.household.push({ ...d, id: uid() });
+    const n = replaceConflicts(S); save(); popSheet();
+    toast(`${s.id ? 'Saved' : 'Added'} ${d.name}${n ? `. Swapped ${n} meal${n > 1 ? 's' : ''} to fit their foods to avoid.` : ''}`);
+  },
+  'hh-del': () => { const s = UI.sheet; S.household = household(S).filter(m => m.id !== s.id); save(); popSheet(); toast('Removed from household'); },
   'recipe-open': t => pushSheet({ type: 'recipe', d: Number(t.dataset.d), m: Number(t.dataset.m), key: t.dataset.d + '-' + t.dataset.m }),
   'recipe-serv': t => { const m = S.mealPlan.days[UI.sheet.d].meals[UI.sheet.m]; m.servings = Math.max(0.25, Math.min(4, m.servings + Number(t.dataset.v))); save(); render(); },
   'meal-log': t => {
@@ -280,9 +327,10 @@ Object.assign(ACT, {
 
 document.addEventListener('input', e => {
   const t = e.target;
+  if (t.dataset.hh && UI.sheet && UI.sheet.type === 'member') { UI.sheet.draft[t.dataset.hh] = t.value; return; }
   if (t.id === 'mp-avoid-text' && UI.sheet && UI.sheet.draft) {
     UI.sheet.draft.avoidText = t.value;
-    const c = document.getElementById('mp-count'); if (c) c.textContent = mpCount(UI.sheet.draft);
+    const c = document.getElementById('mp-count'); if (c) c.textContent = mpCount(effectivePrefs(S, UI.sheet.draft));
   }
 });
 document.addEventListener('keydown', e => {
