@@ -1,0 +1,8 @@
+{
+  "appId": "app.groundwork.fitness",
+  "appName": "Groundwork",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#F3F5F4"
+  }
+}
