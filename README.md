@@ -1,4 +1,4 @@
-# Groundwork — v1.1 (Phase 1.5)
+# Groundwork — v1.2
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -26,6 +26,8 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Training blocks | 6-week blocks (8 for beginners). The last week is a deload with fewer sets at about 90% weight. A new block keeps the main lifts and rotates accessories |
 | Install + offline | App icon, home-screen install, offline cache (when hosted on https) |
 | Tester feedback | Settings → Send feedback: ease rating, area, what's confusing or missing; copy all to send |
+| Meal plans | 7-day plans from 71 built-in recipes, servings scaled to hit calorie and protein targets; diet styles, foods to avoid, meals and snacks per day, quick meals, cook-once-eat-twice leftovers, budget mode; swap, lock and log any meal |
+| Grocery list | Built from the plan, grouped by aisle, amounts rounded to what you'd buy, cost estimate, pantry check, add your own items, copy/share, one-tap search links for Instacart, Walmart, Kroger and Amazon Fresh; whole-list Instacart hand-off ready to switch on (see server/README.md) |
 | Data | Download a backup file or copy it as text; restore from file or text on another device; erase all |
 
 ## Files
@@ -37,6 +39,10 @@ js/exercises.js     exercise library + equipment list
 js/scanner.js       barcode scanning (built-in detector or ZXing from a CDN)
 manifest.webmanifest, sw.js, icons/   install-as-app and offline support
 js/foods.js         built-in food list + Open Food Facts search
+js/recipes.js       ingredient catalog (nutrition, price, diet flags) + recipe library
+js/mealplan.js      meal plan generator, grocery list, store links, optional services config
+js/mealui.js        meal plan + grocery screens
+server/             optional Instacart and recipe-service functions (Cloudflare Workers)
 js/anim.js          animated exercise demos (stick-figure poses solved with inverse kinematics)
 js/store.js         storage adapter (swap for a cloud database in Phase 5)
 js/calc.js          calorie/macro math and units

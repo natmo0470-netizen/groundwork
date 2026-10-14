@@ -211,6 +211,7 @@ function viewToday() {
       <div class="macros">${macroBar('p', 'Protein', tot.p, T.protein)}${macroBar('c', 'Carbs', tot.c, T.carbs)}${macroBar('f', 'Fat', tot.f, T.fat)}</div>
       <button class="btn fuel block" data-act="add-food" data-meal="${mealForNow()}">${icon('plus', 18)} Log food</button>
     </div>
+    ${typeof todayMealsCard === 'function' ? todayMealsCard() : ''}
     <div class="card"><div class="card-head"><span class="eyebrow">This week</span><span class="small faint">${weekDoneCount()} of ${weekPlannedCount()} sessions</span></div>${weekStrip()}</div>
     <div class="card">
       <div class="card-head"><span class="eyebrow">Body weight</span><button class="link" data-act="log-weight">Log weight</button></div>

@@ -1,13 +1,12 @@
 /* Groundwork — nutrition and progress screens, and all bottom sheets. */
 
 /* ================= nutrition ================= */
-function viewFood() {
+function viewFoodLog() {
   const k = UI.foodDate, T = calcTargets(S), tot = foodTotals(S, k);
   const items = S.foodLog[k] || [];
   const left = T.calories - tot.kcal;
   const isToday = k === todayKey();
-  return `<div class="stack" style="gap:2px"><span class="eyebrow">Nutrition</span><h1 class="h1">Food log</h1></div>
-    <div class="datenav"><button class="icon-btn" data-act="food-day" data-v="-1" aria-label="Previous day">${icon('chevL', 20)}</button>
+  return `<div class="datenav"><button class="icon-btn" data-act="food-day" data-v="-1" aria-label="Previous day">${icon('chevL', 20)}</button>
       <b>${isToday ? 'Today' : k === addDays(todayKey(), -1) ? 'Yesterday' : prettyDate(k)}</b>
       <button class="icon-btn" data-act="food-day" data-v="1" aria-label="Next day" ${isToday ? 'disabled style="opacity:.35"' : ''}>${icon('chevR', 20)}</button></div>
     <div class="card fuel">

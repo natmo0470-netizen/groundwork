@@ -10,7 +10,8 @@ function addRecent(f) {
   S.recentFoods = [f].concat(S.recentFoods.filter(x => x.name !== f.name)).slice(0, 20);
 }
 function logFood(f, servings, meal, date) {
-  const k = date || UI.foodDate;
+  date = date || UI.foodDate;
+  const k = date;
   (S.foodLog[k] = S.foodLog[k] || []).push({ id: uid(), meal, name: f.name, serving: f.serving, servings, kcal: f.kcal, p: f.p, c: f.c, f: f.f, source: f.source || '' });
   addRecent({ id: 'r_' + f.name, name: f.name, serving: f.serving, kcal: f.kcal, p: f.p, c: f.c, f: f.f, source: f.source || '' });
 }
@@ -518,8 +519,10 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/cla
   navigator.serviceWorker.register('sw.js').catch(() => { /* offline mode unavailable here */ });
 }
 
-(function init() {
+// Start once every script (including add-on screens loaded after this file) is ready.
+function init() {
   if (S.activeWorkout) UI.loggerOpen = false;
   render();
   if (S.onboarded) { const list = computeReminders(S); if (maybeNotify(S, list)) save(); }
-})();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else setTimeout(init, 0);
