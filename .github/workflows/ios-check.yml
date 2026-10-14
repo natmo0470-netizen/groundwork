@@ -1,0 +1,30 @@
+# Checks that the iOS app builds, on a GitHub-hosted Mac. No Apple account needed:
+# it builds for the iPhone simulator without signing. Store builds (TestFlight) are added
+# once the Apple Developer account exists.
+name: iOS build check
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build:web
+      - run: npx cap add ios
+      - run: npx @capacitor/assets generate --ios --iconBackgroundColor '#111A17' --splashBackgroundColor '#F3F5F4'
+      - name: Camera permission text (barcode scanning)
+        run: /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Groundwork uses the camera to scan food barcodes.'" ios/App/App/Info.plist
+      - run: npx cap sync ios
+      - name: Build for the iPhone simulator
+        run: |
+          cd ios/App
+          if [ -d App.xcworkspace ]; then TARGET="-workspace App.xcworkspace"; else TARGET="-project App.xcodeproj"; fi
+          xcodebuild $TARGET -scheme App -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build | tail -40
+          exit ${PIPESTATUS[0]}

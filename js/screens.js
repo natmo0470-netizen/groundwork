@@ -334,18 +334,22 @@ const SHEETS = {
         ${sw('enabled', 'Reminders on', 'Show nudges on the Today screen')}
         ${sw('workout', 'Workout days')}${sw('missed', 'Missed sessions')}${sw('meals', 'Food logging')}${sw('protein', 'Protein check')}${sw('weighin', 'Weigh-ins')}${sw('checkin', 'Weekly check-in')}
         <div class="divider"></div>
-        <div class="toggle"><span class="small"><b>Phone or desktop notifications</b><br><span class="faint">Status: ${esc(notifState)}. In this version they arrive while Groundwork is open.</span></span><button class="switch" role="switch" aria-checked="${!!R.browser}" data-act="notif-toggle" aria-label="Browser notifications"></button></div>
+        ${typeof Native !== 'undefined' && Native.isNative ? `<div class="toggle"><span class="small"><b>Reminders on this phone</b><br><span class="faint">Arrive even when Groundwork is closed.</span></span><button class="switch" role="switch" aria-checked="${!!R.browser}" data-act="notif-toggle" aria-label="Phone reminders"></button></div>
+        ${R.browser ? `<div class="grid2"><div class="field"><label for="rt-w">Workout reminder</label><select class="input" id="rt-w" data-remtime="workoutTime">${['06:00', '07:00', '08:00', '09:00', '12:00', '16:00', '17:00'].map(v => `<option value="${v}" ${(R.workoutTime || '08:00') === v ? 'selected' : ''}>${fmtClock(v)}</option>`).join('')}</select></div>
+          <div class="field"><label for="rt-f">Food log reminder</label><select class="input" id="rt-f" data-remtime="foodTime">${['18:00', '19:00', '20:00', '21:00'].map(v => `<option value="${v}" ${(R.foodTime || '20:00') === v ? 'selected' : ''}>${fmtClock(v)}</option>`).join('')}</select></div></div>` : ''}`
+        : `<div class="toggle"><span class="small"><b>Phone or desktop notifications</b><br><span class="faint">Status: ${esc(notifState)}. In this version they arrive while Groundwork is open.</span></span><button class="switch" role="switch" aria-checked="${!!R.browser}" data-act="notif-toggle" aria-label="Browser notifications"></button></div>`}
       </div>
       <div class="card" style="box-shadow:none"><span class="eyebrow">App</span>
         ${installRow()}
         <button class="li" data-act="open-feedback"><span class="ni">${icon('chat', 20)}</span><span class="grow"><span class="t">Send feedback</span><br><span class="d">Tell us what's confusing or missing</span></span><span class="chev">${icon('chevR', 18)}</span></button>
+        <a class="li" href="https://natmo0470-netizen.github.io/groundwork/privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="ni">${icon('info', 20)}</span><span class="grow"><span class="t">Privacy policy</span><br><span class="d">Your data stays on this device</span></span><span class="chev">${icon('external', 18)}</span></a>
       </div>
       <div class="card" style="box-shadow:none"><span class="eyebrow">Your data</span>
         <p class="small muted">Everything is stored on this device${Store.available() ? '' : ' (browser storage is blocked here, so data lasts only until you close this page)'}. Back it up to move to another device.</p>
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Groundwork v1.5 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
+      <p class="tiny faint">Groundwork v1.6 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
   },
 
   feedback(s) {

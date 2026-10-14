@@ -1,0 +1,28 @@
+# Takes the App Store and Google Play screenshots from the current app, with the real fonts.
+# Results land on the store-assets branch (store/out/...).
+name: Store screenshots
+permissions:
+  contents: write
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['js/**', 'css/**', 'index.html', 'store/**']
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install && npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - run: npm run build:web
+      - run: node store/shoot.js
+      - name: Save to store-assets branch
+        run: |
+          mkdir pub && cp -r store/out pub/ && cd pub
+          git init -q && git checkout -q -b store-assets
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com add .
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -q -m "Store screenshots from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" store-assets

@@ -1,5 +1,7 @@
-# Builds a test APK in GitHub's cloud. Run it from the Actions tab ("Run workflow"),
-# then download "groundwork-test-apk" from the finished run.
+# Builds the Android app in GitHub's cloud on every push to main:
+# - a debug APK for testers (the "test-build" release and the apk-builds branch)
+# - a signed release bundle (.aab) for Google Play, when the upload-key secrets are set
+#   (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD)
 name: Build Android test APK
 permissions:
   contents: write
@@ -10,6 +12,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,6 +27,13 @@ jobs:
       - run: npm run build:web
       - run: npx cap add android
       - run: npx @capacitor/assets generate --android --iconBackgroundColor '#111A17' --splashBackgroundColor '#F3F5F4'
+      - name: Camera permission (barcode scanning), notification icon and version numbers
+        run: |
+          cp -r native/android/res/. android/app/src/main/res/
+          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n</manifest>#' android/app/src/main/AndroidManifest.xml
+          VER=$(node -p "require('./package.json').version")
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VER\"/" android/app/build.gradle
+          grep -n "versionCode\|versionName" android/app/build.gradle
       - run: npx cap sync android
       - name: Build debug APK
         working-directory: android
@@ -40,6 +51,25 @@ jobs:
           gh release delete test-build --yes --cleanup-tag || true
           gh release create test-build groundwork-test.apk --prerelease --title "Test build (latest)" \
             --notes "Debug APK for testing, built from ${GITHUB_SHA::7}. On Android: open this page, download groundwork-test.apk, allow installs from this source when asked."
+      - name: Build signed release bundle (.aab) for Google Play
+        if: env.KS != ''
+        working-directory: android
+        run: |
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/upload.jks" \
+            -Pandroid.injected.signing.store.password='${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' \
+            -Pandroid.injected.signing.key.alias='${{ secrets.ANDROID_KEY_ALIAS }}' \
+            -Pandroid.injected.signing.key.password='${{ secrets.ANDROID_KEY_PASSWORD }}'
+          cp app/build/outputs/bundle/release/app-release.aab ../groundwork-release.aab
+      - name: Publish the release bundle
+        if: env.KS != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete play-bundle --yes --cleanup-tag || true
+          gh release create play-bundle groundwork-release.aab --prerelease --title "Google Play bundle (latest)" \
+            --notes "Signed release bundle for the Play Console, version $(node -p "require('./package.json').version") (build ${{ github.run_number }}), from ${GITHUB_SHA::7}."
       # Keep a copy on the apk-builds branch as well.
       - name: Save to apk-builds branch
         run: |

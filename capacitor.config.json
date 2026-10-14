@@ -4,5 +4,15 @@
   "webDir": "www",
   "android": {
     "backgroundColor": "#F3F5F4"
+  },
+  "ios": {
+    "backgroundColor": "#F3F5F4",
+    "contentInset": "never"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_groundwork",
+      "iconColor": "#0E7A62"
+    }
   }
 }

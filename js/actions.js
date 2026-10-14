@@ -552,7 +552,7 @@ function seedDemo() {
 /* ---------- start ---------- */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); UI.installPrompt = e; });
 window.addEventListener('appinstalled', () => { UI.installPrompt = null; });
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent/.test(location.hostname)) {
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent/.test(location.hostname) && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* offline mode unavailable here */ });
 }
 

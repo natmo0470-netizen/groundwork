@@ -1,4 +1,4 @@
-# Groundwork — v1.5
+# Groundwork — v1.6
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -29,6 +29,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Barcode scan | Camera scan (or photo, or typed number) looks the product up in Open Food Facts; unknown products can be saved with their barcode so they scan instantly next time |
 | Training blocks | 6-week blocks (8 for beginners). The last week is a deload with fewer sets at about 90% weight. A new block keeps the main lifts and rotates accessories |
 | Install + offline | App icon, home-screen install, offline cache (when hosted on https) |
+| Phone app (Phase 2) | Android and iOS via Capacitor: reminders scheduled on the phone (arrive with the app closed; choose workout and food-log times), haptics, screen kept awake during workouts, backups through the share sheet, Android back button, bundled fonts, camera for barcode scanning |
 | Tester feedback | Settings → Send feedback: ease rating, area, what's confusing or missing; copy all to send |
 | Meal plans | Household: add family members (adults with editable calories; children and teens get a U.S. Dietary Guidelines recommendation by age, sex and activity, adjustable ±20%; which meals they eat, foods they avoid); everyone shares recipes in their own portion, grocery list covers all. 7-day plans from 71 built-in recipes, servings scaled to hit calorie and protein targets; diet styles, foods to avoid, meals and snacks per day, quick meals, cook-once-eat-twice leftovers, budget mode; swap, lock and log any meal |
 | Grocery list | Built from the plan, grouped by aisle, amounts rounded to what you'd buy, cost estimate, pantry check, add your own items, copy/share, one-tap search links for Instacart, Walmart, Kroger and Amazon Fresh; whole-list Instacart hand-off ready to switch on (see server/README.md) |
@@ -53,6 +54,11 @@ js/calc.js          calorie/macro math and units
 js/planner.js       plan builder, day switching, progression, personal records
 js/programs.js      ready-made programs
 js/guide.js         experience views, tips, first-week checklist, guides
+js/native.js        phone features (no-op on the website)
+privacy.html        privacy policy (linked from the stores and Settings)
+store/              store screenshot script and Play feature graphic
+native/             Android resources copied into the app build (notification icon)
+.github/workflows/  Android APK + signed Play bundle, iOS build check, store screenshots
 js/reminders.js     reminder rules and weekly check-in
 js/ui.js, app.js, screens.js, actions.js   screens and interactions
 ```

@@ -50,6 +50,7 @@ function icon(name, size, extra) {
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 const r0 = n => Math.round(n);
+function fmtClock(hhmm) { const [h, m] = hhmm.split(':').map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; }
 const fmtInt = n => Math.round(n).toLocaleString();
 
 function ring(value, target, color, size) {
