@@ -58,7 +58,7 @@ const Native = (() => {
   function plannedNotifications() {
     if (!S.onboarded || !S.reminders.enabled) return [];
     const R = S.reminders, out = [], now = Date.now(), today = todayKey();
-    const push = (date, title, body, act) => { if (date.getTime() > now + 60000) out.push({ id: ID_BASE + out.length, title, body, schedule: { at: date, allowWhileIdle: true }, extra: { act } }); };
+    const push = (date, title, body, act) => { if (date.getTime() > now + 60000) out.push({ id: ID_BASE + out.length, title, body, schedule: { at: date, allowWhileIdle: true }, extra: { act }, actionTypeId: act === 'today' ? 'GW_WORKOUT' : act === 'food' ? 'GW_FOOD' : undefined }); };
     for (let i = 0; i < 14; i++) {
       const k = addDays(today, i);
       const w = workoutForDate(S, k);
@@ -87,6 +87,19 @@ const Native = (() => {
       if (list.length) await call('LocalNotifications', 'schedule', { notifications: list });
     } catch (e) { /* reminders are best effort */ }
   }
+  /* Rest timer: a notification when rest ends, so a phone in your pocket (and a paired watch) buzzes. */
+  const REST_ID = 7990, SNOOZE_ID = 7950;
+  let restAt = 0;
+  async function syncRest(rest, label) {
+    if (!isNative || !S.reminders || !S.reminders.browser) return;
+    const end = rest ? Math.round(rest.end / 1000) * 1000 : 0;
+    if (end === restAt) return;
+    restAt = end;
+    try {
+      await call('LocalNotifications', 'cancel', { notifications: [{ id: REST_ID }] });
+      if (end && end - Date.now() > 3000) await call('LocalNotifications', 'schedule', { notifications: [{ id: REST_ID, title: 'Rest is over', body: label || 'Time for your next set.', schedule: { at: new Date(end), allowWhileIdle: true }, extra: { act: 'rest' } }] });
+    } catch (e) { /* best effort */ }
+  }
   async function clearReminders() {
     try {
       const pend = await call('LocalNotifications', 'getPending');
@@ -110,8 +123,17 @@ const Native = (() => {
       quiet(call('App', 'exitApp'));
     });
     listen('App', 'appStateChange', st => { if (st && st.isActive) { render(); queueSync(); } });
+    quiet(call('LocalNotifications', 'registerActionTypes', { types: [
+      { id: 'GW_WORKOUT', actions: [{ id: 'open', title: 'Open workout', foreground: true }, { id: 'snooze', title: 'Remind me in 1 hour' }] },
+      { id: 'GW_FOOD', actions: [{ id: 'open', title: 'Log food', foreground: true }, { id: 'snooze', title: 'Remind me in 1 hour' }] },
+    ] }));
     listen('LocalNotifications', 'localNotificationActionPerformed', ev => {
-      const act = ev && ev.notification && ev.notification.extra && ev.notification.extra.act;
+      const n = ev && ev.notification, act = n && n.extra && n.extra.act;
+      if (ev && ev.actionId === 'snooze' && n) {
+        quiet(call('LocalNotifications', 'schedule', { notifications: [{ id: SNOOZE_ID, title: n.title, body: n.body, schedule: { at: new Date(Date.now() + 3600e3), allowWhileIdle: true }, extra: n.extra, actionTypeId: n.actionTypeId }] }));
+        return;
+      }
+      if (act === 'rest') { if (S.activeWorkout) { UI.loggerOpen = true; render(); } return; }
       UI.sheet = null; UI.stack = [];
       if (act === 'food') { UI.tab = 'food'; UI.foodDate = todayKey(); }
       else if (act === 'weight') { UI.tab = 'today'; render(); pushSheet({ type: 'weight' }); return; }
@@ -122,7 +144,7 @@ const Native = (() => {
     queueSync();
   }
 
-  return { isNative, platform, available, haptic, setAwake, shareFile, notifPermission, queueSync, syncReminders, clearReminders, plannedNotifications, boot };
+  return { isNative, platform, available, call, syncRest, haptic, setAwake, shareFile, notifPermission, queueSync, syncReminders, clearReminders, plannedNotifications, boot };
 })();
 
 /* ---------- hooks into the app ---------- */
@@ -132,7 +154,15 @@ const Native = (() => {
   save = function () { _save(); Native.queueSync(); };
   // Keep the screen on while a workout is open.
   const _render = render;
-  render = function () { _render(); Native.setAwake(!!(S.activeWorkout && UI.loggerOpen)); };
+  render = function () { _render(); Native.setAwake(!!(S.activeWorkout && UI.loggerOpen)); restSync(); };
+  // Rest-over notification follows the in-app rest timer.
+  function restSync() {
+    if (!Native.isNative) return;
+    let label = '';
+    if (UI.rest && S.activeWorkout) { const it = S.activeWorkout.items.find(x => x.rows.some(r => !r.done)); if (it) { const j = it.rows.findIndex(r => !r.done); label = `Next: ${EX_BY_ID[it.exId].name}, set ${j + 1}`; } }
+    Native.syncRest(S.activeWorkout ? UI.rest : null, label);
+  }
+  ['rest-add', 'rest-skip'].forEach(k => { const f = ACT[k]; if (f) ACT[k] = t => { f(t); restSync(); }; });
   // Haptics.
   const tog = ACT['toggle-set'];
   if (tog) ACT['toggle-set'] = t => { tog(t); const it = S.activeWorkout && S.activeWorkout.items[Number(t.dataset.i)]; const r = it && it.rows[Number(t.dataset.j)]; if (r && r.done) Native.haptic('light'); };

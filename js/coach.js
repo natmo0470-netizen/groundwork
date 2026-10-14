@@ -148,6 +148,7 @@ Object.assign(SHEETS, {
         ${d.note ? `<div class="banner">${icon('chat', 18)}<span><b>${esc(c.name)}:</b> ${esc(d.note)}</span></div>` : ''}
         <div class="stats"><div class="stat"><div class="v">${d.adherence.done}/${d.adherence.planned}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${d.weights.length ? kgToDisp(S, d.weights[d.weights.length - 1].kg) : '—'}</div><div class="k">Weight (${wUnit(S)})</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">3-wk change</div></div></div>
         ${weightChart(pseudo, 60) || '<p class="small faint">Not enough weigh-ins for a chart yet.</p>'}
+        ${d.activity ? `<p class="small muted" style="margin:0">From their phone/watch: ${d.activity.stepsAvg != null ? `<b>${fmtInt(d.activity.stepsAvg)}</b> steps/day` : ''}${d.activity.sleepAvg != null ? ` · <b>${Math.floor(d.activity.sleepAvg / 60)}h ${String(d.activity.sleepAvg % 60).padStart(2, '0')}m</b> sleep` : ''} (7-day average)</p>` : ''}
         ${d.measurements.length ? `<p class="small muted">Waist: ${d.measurements.filter(m => m.waist).map(m => `${cmToDisp(m.waist)} ${lenUnit()} (${shortDate(m.date)})`).slice(-3).join(' → ') || '—'}</p>` : ''}
         ${d.pain.length ? `<div class="stack" style="gap:4px"><span class="label">Pain reports</span>${d.pain.map(p => `<span class="small">${shortDate(p.date)} · ${esc(p.area)} · ${p.kind === 'sharp' ? 'sharp' : 'ache'} · ${esc((EX_BY_ID[p.exId] || {}).name || '')}</span>`).join('')}</div>` : ''}
         <div class="field"><label for="cl-notes">Private notes</label><textarea class="input" id="cl-notes" rows="3" data-clnotes="${c.id}" placeholder="Only you see these">${esc(c.notes || '')}</textarea></div>`;
@@ -332,6 +333,7 @@ Object.assign(ACT, {
 });
 SHEETS.clientSend = () => sheetHead(`Update for ${esc(S.coach.name)}`, 'Your last 4 weeks of training, food totals, weigh-ins and measurements')
   + `<div class="field"><label for="cs-note">Note to your coach (optional)</label><textarea class="input" id="cs-note" rows="3" placeholder="How did the week feel?"></textarea></div>
+  ${S.health && S.health.on ? `<p class="small muted" style="margin:0">Includes your 7-day step and sleep averages from ${typeof HealthSync !== 'undefined' ? HealthSync.name() : 'your phone'}.</p>` : ''}
   <p class="tiny faint">Encrypted so only your coach can open it. Progress photos are never included.</p>
   <button class="btn train block" data-act="client-send-go">${icon('share', 18)} Send update</button>`;
 

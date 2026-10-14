@@ -349,7 +349,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Groundwork v1.7 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
+      <p class="tiny faint">Groundwork v1.8 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
   },
 
   feedback(s) {

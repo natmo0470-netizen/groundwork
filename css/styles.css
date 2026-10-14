@@ -419,3 +419,4 @@ details.pantry summary::-webkit-details-marker { display: none; }
 .tabs-inner:has(> .tab:nth-child(5)) { grid-template-columns: repeat(5, 1fr); }
 button.card { font: inherit; color: inherit; text-align: left; width: 100%; cursor: pointer; }
 .client-card .stats { margin: 0; }
+.chart .bar.steps { fill: var(--train); }

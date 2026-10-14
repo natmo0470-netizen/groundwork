@@ -1,4 +1,4 @@
-# Groundwork — v1.7
+# Groundwork — v1.8
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -16,6 +16,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Onboarding | 5 steps: body stats (lb/ft or kg/cm), goal, experience + activity, training days (2–7) + session length, equipment (pick your gym chain, "Full gym", or individual items) |
 | Experience views | Guided (beginners: screen tips, first-week checklist, 11 guides, calories + protein first, plain-language labels, logger helpers), Standard and Advanced; set from experience level, switchable in Settings |
 | Advanced tools | Advanced view: reps in reserve per set (bigger weight jumps when sets were easy), warm-up and drop sets, supersets (rest after the pair), weekly sets per muscle vs. target ranges, more carbs on training days, refeed days, diet breaks (check-ins pause). Standard + Advanced: create your own workouts, edit sets/reps/rest on any exercise, plate calculator, strength trend per exercise, body measurements with estimated body fat, progress photos (on-device only) |
+| Phone and watch data (Phase 3) | Apple Health / Health Connect: reads steps, active calories, sleep, resting heart rate, weigh-ins and workouts from other apps and watches; writes your logged weight. Today shows an activity card with a step goal and a low-recovery warning (short sleep or raised resting heart rate); Progress shows 7-day steps, average sleep and other apps' workouts. Reminders have Open / Remind me in 1 hour buttons, and the rest timer sends a notification when rest ends; both appear on a paired watch. Garmin, Fitbit and Strava come later |
 | Coach tools | Coach mode adds a Clients tab: seat limit by plan (10/30/75), invite clients, assign a program, your own workouts and macro targets with a note, read client updates (adherence, weight trend, workouts with sets and RIR, daily food totals, measurements, pain reports, flags). Clients send weekly updates. All by shared files; after the invite they're encrypted (AES-256-GCM) with a key only coach and client hold |
 | Safety | Health check (PAR-Q-based) with a doctor-clearance prompt; joint issues or pregnancy leave out high-impact moves; no deficit when pregnant or breastfeeding and a gentler one under 18; "Something hurts?" in the logger swaps the exercise and can rule it out of future plans; repeated-pain and low-intake warnings |
 | Data accuracy and privacy | Food search shows USDA results first (verified) with source badges, and flags online foods whose calories don't match their macros; password-protected (encrypted) backups; "Something wrong with this demo?" on every exercise, plus a coach review page for all demos |
@@ -62,6 +63,8 @@ js/advanced.js      advanced lifter tools
 js/safety.js        health check, pain reports, encrypted backups, food-data checks
 js/coach.js         coach mode and client linking (file-based)
 js/native.js        phone features (no-op on the website)
+js/health.js        Apple Health / Health Connect (phone app only)
+scripts/android-config.js  Android project settings applied in the cloud build
 privacy.html        privacy policy (linked from the stores and Settings)
 store/              store screenshot script and Play feature graphic
 native/             Android resources copied into the app build (notification icon)
