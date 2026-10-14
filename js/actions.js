@@ -27,7 +27,7 @@ const ACT = {
   'open-notifs': () => pushSheet({ type: 'notifs' }),
   'dismiss': t => { S.dismissed[t.dataset.id] = todayKey(); save(); render(); },
   'open-settings': t => {
-    const d = { days: S.schedule.days.slice(), minutes: S.schedule.minutes, fullGym: S.equipment.fullGym, items: S.equipment.items.slice() };
+    const d = { days: S.schedule.days.slice(), minutes: S.schedule.minutes, fullGym: S.equipment.fullGym, items: S.equipment.items.slice(), gym: S.equipment.gym || null };
     UI.stack = []; UI.sheet = { type: 'settings', draft: d, tall: true }; render();
     if (t.dataset.key) { const el = document.getElementById('set-' + t.dataset.key); if (el) el.scrollIntoView({ block: 'start' }); }
   },
@@ -47,12 +47,12 @@ const ACT = {
   'ob-day': t => {
     const o = obDraft(), d = Number(t.dataset.d);
     if (o.days.includes(d)) o.days = o.days.filter(x => x !== d);
-    else if (o.days.length >= 6) { toast('Keep at least one rest day each week'); return; }
     else o.days.push(d);
     render();
   },
   'ob-fullgym': () => { equipToggleAll(obDraft()); render(); },
   'ob-item': t => { equipToggleItem(obDraft(), t.dataset.id); render(); },
+  'ob-gym': t => { equipSetGym(obDraft(), t.dataset.id); render(); },
   'ob-finish': () => {
     S = obToState(UI.ob);
     S.onboarded = true; S.startDate = todayKey();
@@ -66,7 +66,43 @@ const ACT = {
 
   // training
   'train-seg': t => { UI.trainSeg = t.dataset.v; render(); },
-  'new-block': () => { const n = ((S.plan && S.plan.block) || 1) + 1; S.plan = buildPlan(S, n); save(); closeAll(); toast(`Block ${n} started. Main lifts stay; accessories are new.`); },
+  'new-block': () => { const n = ((S.plan && S.plan.block) || 1) + 1; S.plan = buildPlan(S, n); save(); closeAll(); toast(S.plan.program ? `Round ${n} started. Keep adding weight where you can.` : `Block ${n} started. Main lifts stay; accessories are new.`); },
+
+  // quick day changes
+  'day-swap': t => pushSheet({ type: 'daySwap', date: t.dataset.date, scope: t.dataset.scope || 'once', tall: true }),
+  'day-scope': t => { UI.sheet.scope = t.dataset.v; render(); },
+  'day-set': t => {
+    const s = UI.sheet, k = s.date;
+    let id = t.dataset.id;
+    if (id.startsWith('tpl:')) id = ensureSession(S, id.slice(4)).id;
+    setDaySession(S, k, id, s.scope);
+    save(); closeAll();
+    const w = id === 'rest' ? null : S.plan.workouts.find(x => x.id === id);
+    toast(`${s.scope === 'once' ? (k === todayKey() ? 'Today' : prettyDate(k)) : 'Every ' + DOW_LONG[parseKey(k).getDay()]} is now ${w ? w.name : 'a rest day'}`);
+  },
+  'day-trade': t => {
+    const s = UI.sheet, a = s.date, b = t.dataset.date;
+    tradeDays(S, a, b, s.scope); save(); closeAll();
+    toast(`Swapped ${DOW[parseKey(a).getDay()]} and ${DOW[parseKey(b).getDay()]}${s.scope === 'once' ? ' this week' : ''}`);
+  },
+
+  // programs
+  'open-programs': () => pushSheet({ type: 'programs', filter: 'all', tall: true }),
+  'prog-filter': t => { UI.sheet.filter = t.dataset.v; render(); },
+  'open-program': t => {
+    const prog = PROGRAM_BY_ID[t.dataset.id];
+    const days = S.schedule.days.length === prog.days ? S.schedule.days.slice() : RECOMMENDED_DAYS[prog.days].slice();
+    pushSheet({ type: 'program', id: prog.id, draft: { days }, tall: true });
+  },
+  'prog-day': t => { const d = UI.sheet.draft, x = Number(t.dataset.d); d.days = d.days.includes(x) ? d.days.filter(y => y !== x) : d.days.concat([x]); render(); },
+  'prog-start': () => {
+    const s = UI.sheet, prog = PROGRAM_BY_ID[s.id];
+    S.program = prog.id; S.schedule.days = s.draft.days.slice();
+    S.plan = buildPlan(S, 1); save(); closeAll();
+    UI.tab = 'train'; UI.trainSeg = 'plan'; render(); window.scrollTo(0, 0);
+    toast(`${prog.name} started`);
+  },
+  'prog-leave': () => { S.program = null; S.plan = buildPlan(S, 1); save(); closeAll(); toast('Back on your custom plan'); },
   'lib-group': t => { UI.libGroup = t.dataset.v; render(); },
   'lib-mine': () => { UI.libMine = !UI.libMine; render(); },
   'open-ex': t => pushSheet({ type: 'exercise', id: t.dataset.id, ctx: t.dataset.ctx != null ? Number(t.dataset.ctx) : null, key: t.dataset.id }),
@@ -246,16 +282,17 @@ const ACT = {
   'set-prof': t => { S.profile[t.dataset.k] = t.dataset.v; save(); render(); },
   'set-day': t => {
     const d = UI.sheet.draft, x = Number(t.dataset.d);
-    if (d.days.includes(x)) d.days = d.days.filter(y => y !== x); else if (d.days.length >= 6) { toast('Keep at least one rest day each week'); return; } else d.days.push(x);
+    if (d.days.includes(x)) d.days = d.days.filter(y => y !== x); else d.days.push(x);
     render();
   },
   'set-min': t => { UI.sheet.draft.minutes = Number(t.dataset.v); render(); },
   'set-fullgym': () => { equipToggleAll(UI.sheet.draft); render(); },
   'set-item': t => { equipToggleItem(UI.sheet.draft, t.dataset.id); render(); },
+  'set-gym': t => { equipSetGym(UI.sheet.draft, t.dataset.id); render(); },
   'set-rebuild': () => {
     const d = UI.sheet.draft;
     S.schedule = { days: d.days.slice(), minutes: d.minutes };
-    S.equipment = { fullGym: d.fullGym, items: d.items.slice() };
+    S.equipment = { fullGym: d.fullGym, items: d.items.slice(), gym: d.gym || null };
     rebuildPlan(); closeAll(); toast('Plan rebuilt');
   },
   'rem-toggle': t => { const k = t.dataset.k; S.reminders[k] = !S.reminders[k]; save(); render(); },

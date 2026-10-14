@@ -1,4 +1,4 @@
-# Groundwork — v1.3
+# Groundwork — v1.4
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -13,12 +13,15 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 
 | Area | What it does |
 | --- | --- |
-| Onboarding | 5 steps: body stats (lb/ft or kg/cm), goal, experience + activity, training days + session length, equipment ("Full gym" or pick items) |
+| Onboarding | 5 steps: body stats (lb/ft or kg/cm), goal, experience + activity, training days (2–7) + session length, equipment (pick your gym chain, "Full gym", or individual items) |
 | Calorie calculator | Mifflin-St Jeor BMR × activity, goal adjustment, safety floor (1,200 / 1,500 kcal) |
 | Macros | Recommended protein/carbs/fat per goal; switch to custom grams any time; reset to recommended |
 | Food log | 167 built-in foods, online search of Open Food Facts, servings, 4 meals, quick add, custom foods, recents |
-| Workout plan | Split chosen from days/week (2–6) and goal; exercises filtered by equipment and experience; swap any exercise |
-| Exercise guides | 234 exercises (chest, back, shoulders, arms, legs, glutes, calves, core, traps, forearms, cardio), each with an animated demo, step-by-step form cues and muscles worked |
+| Workout plan | Split chosen from days/week (2–7) and goal; exercises filtered by equipment and experience; swap any exercise |
+| Programs | 12 ready-made programs (beginner full body, 5×5, power/size upper-lower, push/pull/legs, 5-day split, dumbbell-only, bodyweight, fat loss, glute focus, minimalist 2-day, old-school 6-day, 7-day hybrid); exercises adapt to your equipment; any number of days (sessions rotate) |
+| Quick day switch | Tap any day (or Switch on Today) to change it to another session, a new session type, or rest, for just that date or every week; or trade two days |
+| Gym presets | Typical equipment for 10 gym chains plus hotel, home-dumbbell and garage setups; adjust per club |
+| Exercise guides | 358 exercises (chest, back, shoulders, arms, legs, glutes, calves, core, traps, forearms, cardio), each with an animated demo, step-by-step form cues and muscles worked |
 | Logger | Weight × reps per set, previous-session column, rest timer, suggested next weight (double progression), PR detection |
 | Progress | Weight trend (7-day average), weekly check-in that adjusts calories, 7-day calorie chart, PR board, history |
 | Reminders | Workout day, missed sessions, food logging, protein behind, weigh-in, weekly check-in; optional browser notifications while open |
@@ -46,7 +49,8 @@ server/             optional Instacart and recipe-service functions (Cloudflare 
 js/anim.js          animated exercise demos (stick-figure poses solved with inverse kinematics)
 js/store.js         storage adapter (swap for a cloud database in Phase 5)
 js/calc.js          calorie/macro math and units
-js/planner.js       plan builder, progression, personal records
+js/planner.js       plan builder, day switching, progression, personal records
+js/programs.js      ready-made programs
 js/reminders.js     reminder rules and weekly check-in
 js/ui.js, app.js, screens.js, actions.js   screens and interactions
 ```

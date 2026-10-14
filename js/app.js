@@ -60,7 +60,7 @@ function tabBar() {
 
 /* ================= onboarding ================= */
 function obDraft() {
-  if (!UI.ob) UI.ob = { name: '', sex: 'male', age: '', units: 'imperial', ft: '5', inch: '10', cm: '178', weight: '', goal: null, experience: null, activity: null, days: [1, 3, 5], minutes: 45, fullGym: false, items: [] };
+  if (!UI.ob) UI.ob = { name: '', sex: 'male', age: '', units: 'imperial', ft: '5', inch: '10', cm: '178', weight: '', goal: null, experience: null, activity: null, days: [1, 3, 5], minutes: 45, fullGym: false, items: [], gym: null };
   return UI.ob;
 }
 function obToState(o) {
@@ -69,7 +69,7 @@ function obToState(o) {
   const kg = o.units === 'metric' ? Number(o.weight) : Number(o.weight) * KG_PER_LB;
   st.profile = { name: o.name.trim(), sex: o.sex, age: Number(o.age), heightCm: cm, weightKg: kg, goal: o.goal || 'general', experience: o.experience || 'beginner', activity: o.activity || 'light', units: o.units };
   st.schedule = { days: o.days.slice(), minutes: o.minutes };
-  st.equipment = { fullGym: o.fullGym, items: o.items.slice() };
+  st.equipment = { fullGym: o.fullGym, items: o.items.slice(), gym: o.gym || null };
   return st;
 }
 function obValid(step) {
@@ -134,12 +134,13 @@ function viewOnboarding() {
     const rec = o.experience === 'beginner' ? 3 : 4;
     body = `<div class="stack"><span class="eyebrow">Step 4 of 5</span><h1 class="h1">When can you train?</h1><p class="muted">Pick your training days. ${o.experience === 'beginner' ? 'Three days a week is a great start for beginners.' : `Most people progress well on ${rec} days.`}</p></div>
       <div class="daypick" role="group" aria-label="Training days">${order.map(d => `<button data-act="ob-day" data-d="${d}" aria-pressed="${o.days.includes(d)}" aria-label="${DOW_LONG[d]}">${DOW[d].slice(0, 2)}</button>`).join('')}</div>
-      <p class="small faint">${o.days.length} day${o.days.length === 1 ? '' : 's'} a week · ${splitFor(Math.max(2, Math.min(6, o.days.length)), o.goal).name}${o.days.length > 6 ? ' (6 max; one day stays as rest)' : ''}${o.days.length < 2 ? ' · pick at least 2' : ''}</p>
+      <p class="small faint">${o.days.length} day${o.days.length === 1 ? '' : 's'} a week · ${splitFor(Math.max(2, o.days.length), o.goal).name}${o.days.length < 2 ? ' · pick at least 2' : ''}</p>${o.days.length === 7 ? `<p class="small muted">${DAYS7_NOTE}</p>` : ''}
       <div class="field"><span class="label">Time per workout</span><div class="seg">${[30, 45, 60, 75].map(m => `<button data-act="ob-set" data-k="minutes" data-v="${m}" aria-pressed="${o.minutes === m}">${m} min</button>`).join('')}</div></div>`;
   } else if (step === 5) {
     const groups = {};
     EQUIPMENT.forEach(e => (groups[e.group] = groups[e.group] || []).push(e));
     body = `<div class="stack"><span class="eyebrow">Step 5 of 5</span><h1 class="h1">What equipment do you have?</h1><p class="muted">Every exercise in your plan will use only what you pick. Bodyweight moves are always included.</p></div>
+      ${gymPicker(o, 'ob-gym')}
       <button class="opt" data-act="ob-fullgym" aria-pressed="${o.fullGym}"><span class="opt-icon">${icon('dumbbell', 22)}</span><span class="grow"><span class="t">Full gym</span><br><span class="d">Gym membership: selects everything below in one tap</span></span><span class="check">${icon('check', 16)}</span></button>
       <p class="small muted">Or pick exactly what you have at home or at your gym:</p>
       ${Object.entries(groups).map(([g, list]) => `<div class="stack"><span class="label">${g}</span><div class="chips">${list.map(e => `<button class="chip" data-act="ob-item" data-id="${e.id}" aria-pressed="${o.fullGym || o.items.includes(e.id)}">${e.label}</button>`).join('')}</div></div>`).join('')}<p class="small faint" role="status">${equipStatus(o)}</p>`;
@@ -187,14 +188,15 @@ function viewToday() {
   } else if (planned) {
     const bi = blockInfo(S);
     trainCard = `<div class="card train"><div class="card-head"><span class="eyebrow">Today's training</span><span class="tag train">${bi && bi.deload ? 'Deload week' : `~${S.schedule.minutes} min`}</span></div>
-      <div><div class="h2">${esc(planned.name)}</div><div class="small muted">${esc(planned.focus)}</div></div>
+      <div class="row between" style="align-items:flex-start"><div><div class="h2">${esc(planned.name)}</div><div class="small muted">${esc(planned.focus)}</div></div><button class="btn ghost sm" data-act="day-swap" data-date="${today}" data-scope="once">${icon('swap', 16)} Switch</button></div>
       <div class="ex-mini">${planned.items.map((it, i) => `<div class="row"><span class="n">${i + 1}</span><span class="grow">${esc(EX_BY_ID[it.exId].name)}</span><span class="small faint num">${rxText(it, true)}</span></div>`).join('')}</div>
       <button class="btn train block" data-act="start-workout" data-id="${planned.id}">${icon('play', 18)} Start workout</button></div>`;
   } else {
     const next = nextPlanned(today);
     trainCard = `<div class="card train"><div class="card-head"><span class="eyebrow">Rest day</span>${next ? `<span class="tag">${next.when}</span>` : ''}</div>
       <div class="h2">Recover and recharge</div><p class="small muted">Muscles grow between sessions. A 20–30 minute walk and a good night's sleep count as training today.</p>
-      ${next ? `<div class="row"><span class="small muted grow">Next: <b>${esc(next.w.name)}</b> · ${next.when}</span><button class="link" data-act="preview-workout" data-id="${next.w.id}">Preview</button></div>` : ''}</div>`;
+      ${next ? `<div class="row"><span class="small muted grow">Next: <b>${esc(next.w.name)}</b> · ${next.when}</span><button class="link" data-act="preview-workout" data-id="${next.w.id}">Preview</button></div>` : ''}
+      <button class="btn ghost sm" data-act="day-swap" data-date="${today}" data-scope="once" style="align-self:flex-start">${icon('plus', 16)} Train today instead</button></div>`;
   }
 
   const left = T.calories - tot.kcal;
@@ -240,8 +242,9 @@ function weekStrip() {
 function rxText(it, compact) {
   const ex = EX_BY_ID[it.exId];
   const u = ex.unit === 'min' ? ' min' : ex.unit === 'sec' ? ' s' : '';
-  if (ex.unit === 'min') return `${it.min}–${it.max} min`;
-  return compact ? `${it.sets}×${it.min}–${it.max}${u}` : `${it.sets} sets × ${it.min}–${it.max}${u || ' reps'}${it.rest ? ` · rest ${it.rest >= 120 ? (it.rest / 60) + ' min' : it.rest + ' s'}` : ''}`;
+  const r = it.min === it.max ? `${it.min}` : `${it.min}–${it.max}`;
+  if (ex.unit === 'min') return `${r} min`;
+  return compact ? `${it.sets}×${r}${u}` : `${it.sets === 1 ? '1 set' : it.sets + ' sets'} × ${r}${u || ' reps'}${it.rest ? ` · rest ${it.rest >= 120 ? (it.rest / 60) + ' min' : it.rest + ' s'}` : ''}`;
 }
 
 /* ================= train ================= */
@@ -262,26 +265,43 @@ function equipStatus(d) {
   if (!d.items.length) return 'Nothing selected: you\'ll get bodyweight workouts. Bodyweight moves are always included.';
   return `${d.items.length} selected. Bodyweight moves are always included.`;
 }
+const DAYS7_NOTE = 'Seven days means no full rest day, so two of them are lighter cardio and core sessions. Swap any day to rest whenever you need it.';
+function gymPicker(d, act) {
+  const g = d.gym && GYM_BY_ID[d.gym];
+  const adjusted = g && !(g.items.length === d.items.length && g.items.every(x => d.items.includes(x)));
+  return `<div class="stack" style="gap:8px"><span class="label">Where do you train?</span>
+    <div class="chips scroll">${GYM_PRESETS.map(x => `<button class="chip" data-act="${act}" data-id="${x.id}" aria-pressed="${d.gym === x.id}">${esc(x.name)}</button>`).join('')}</div>
+    ${g ? `<p class="small muted">${esc(g.note)} ${adjusted ? '<b>Adjusted for your club.</b>' : 'Untick anything your club doesn\'t have.'}</p>` : `<p class="tiny faint">Pick your gym to load its typical equipment. Not listed? Use Full gym or tick items below.</p>`}</div>`;
+}
+function equipSetGym(d, id) {
+  if (d.gym === id) { d.gym = null; return; }
+  const g = GYM_BY_ID[id]; if (!g) return;
+  d.gym = id; d.items = g.items.slice(); d.fullGym = FULL_GYM.every(x => d.items.includes(x));
+}
 function equipSummary() {
+  const g = S.equipment.gym && GYM_BY_ID[S.equipment.gym];
+  if (g) { const items = equipList(S); const same = g.items.length === items.length && g.items.every(x => items.includes(x)); return g.name + (same ? '' : ' (adjusted)'); }
   if (S.equipment.fullGym) return 'Full gym';
   if (!S.equipment.items.length) return 'Bodyweight only';
   return S.equipment.items.map(id => EQUIPMENT.find(e => e.id === id).label).join(', ');
 }
 function viewPlan() {
-  const P = S.plan, today = todayKey(), order = [1, 2, 3, 4, 5, 6, 0];
+  const P = S.plan, today = todayKey(), ws = weekStart(today);
+  const prog = P.program && PROGRAM_BY_ID[P.program];
   return `<div class="card train">
-      <div class="card-head"><span class="eyebrow">${GOALS[S.profile.goal].label} · ${EXPERIENCE[S.profile.experience].label}</span></div>
+      <div class="card-head"><span class="eyebrow">${prog ? 'Program' : `${GOALS[S.profile.goal].label} · ${EXPERIENCE[S.profile.experience].label}`}</span>${prog ? `<span class="tag train">${prog.weeks} weeks</span>` : ''}</div>
       <div class="h2">${esc(P.split)}</div>
       <div class="small muted">${S.schedule.days.length} days a week · ${S.schedule.minutes} min · ${esc(equipSummary())}</div>
       ${blockCard()}
-      <button class="btn ghost sm" data-act="open-settings" data-key="training" style="align-self:flex-start">Change days, time or equipment</button>
+      <div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn ghost sm" data-act="open-programs">${icon('calendar', 16)} ${prog ? 'Change program' : 'Browse programs'}</button><button class="btn ghost sm" data-act="open-settings" data-key="training">Days, time or equipment</button></div>
     </div>
-    <div class="card"><span class="eyebrow">Weekly schedule</span><div class="list">${order.map(d => {
-      const w = P.dayMap[d] ? P.workouts.find(x => x.id === P.dayMap[d]) : null;
-      const isToday = parseKey(today).getDay() === d;
-      return `<button class="li" ${w ? `data-act="preview-workout" data-id="${w.id}"` : 'disabled'}><span class="tag ${isToday ? 'train' : ''}" style="width:44px;justify-content:center">${DOW[d]}</span><span class="grow"><span class="t">${w ? esc(w.name) : '<span class="faint">Rest</span>'}</span>${w ? `<br><span class="d">${esc(w.focus)}</span>` : ''}</span>${w ? `<span class="chev">${icon('chevR', 18)}</span>` : ''}</button>`;
+    <div class="card"><div class="card-head"><span class="eyebrow">This week</span><span class="tiny faint">Tap a day to switch it</span></div><div class="list">${[...Array(7)].map((_, i) => {
+      const k = addDays(ws, i), d = parseKey(k).getDay();
+      const w = workoutForDate(S, k), done = workoutDoneOn(S, k), isToday = k === today, past = k < today;
+      const once = P.overrides && P.overrides[k];
+      return `<button class="li" data-act="day-swap" data-date="${k}" data-scope="always" ${past && !done ? 'style="opacity:.6"' : ''}><span class="tag ${isToday ? 'train' : ''}" style="width:44px;justify-content:center">${DOW[d]}</span><span class="grow"><span class="t">${w ? esc(w.name) : '<span class="faint">Rest</span>'}</span>${once ? ' <span class="tag fuel" style="font-size:11px;padding:1px 6px">This week</span>' : ''}<br><span class="d">${done ? `${icon('check', 12)} Done · ` : ''}${shortDate(k)}${w ? ' · ' + esc(w.focus) : ''}</span></span><span class="chev">${icon('swap', 16)}</span></button>`;
     }).join('')}</div></div>
-    ${P.workouts.filter((w, i, a) => a.findIndex(x => x.id === w.id) === i).map(w => `<div class="card">
+    ${workoutsInUse(S).map(w => `<div class="card">
       <div class="card-head"><div><div class="h3">${esc(w.name)}</div><div class="small muted">${esc(w.focus)}</div></div><button class="btn sm train" data-act="start-workout" data-id="${w.id}">Start</button></div>
       <div class="list">${w.items.map((it, i) => exRow(it, `data-act="open-ex" data-id="${it.exId}"`)).join('')}</div>
       <button class="link muted" data-act="preview-workout" data-id="${w.id}" style="align-self:flex-start">${icon('swap', 16)} Swap, add or remove exercises</button>

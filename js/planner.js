@@ -23,7 +23,7 @@ const COMPOUND = ['squat', 'hinge', 'lunge', 'hpush', 'vpush', 'hpull', 'vpull',
 
 function splitFor(days, goal) {
   if (goal === 'endurance') {
-    const m = { 2: ['fbA', 'cardio'], 3: ['fbA', 'cardio', 'fbB'], 4: ['fbA', 'cardio', 'fbB', 'cardio'], 5: ['fbA', 'cardio', 'fbB', 'cardio', 'fbC'], 6: ['fbA', 'cardio', 'fbB', 'cardio', 'fbC', 'cardio'] };
+    const m = { 2: ['fbA', 'cardio'], 3: ['fbA', 'cardio', 'fbB'], 4: ['fbA', 'cardio', 'fbB', 'cardio'], 5: ['fbA', 'cardio', 'fbB', 'cardio', 'fbC'], 6: ['fbA', 'cardio', 'fbB', 'cardio', 'fbC', 'cardio'], 7: ['fbA', 'cardio', 'fbB', 'cardio', 'fbC', 'cardio', 'cardio'] };
     return { name: 'Strength + cardio', keys: m[days] || m[3] };
   }
   const m = {
@@ -32,6 +32,7 @@ function splitFor(days, goal) {
     4: { name: 'Upper / Lower', keys: ['upA', 'loA', 'upB', 'loB'] },
     5: { name: 'Upper / Lower + Push / Pull / Legs', keys: ['upA', 'loA', 'push', 'pull', 'legs'] },
     6: { name: 'Push / Pull / Legs, twice a week', keys: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] },
+    7: { name: 'Push / Pull / Legs + Upper / Lower, with 2 lighter days', keys: ['push', 'pull', 'legs', 'cardio', 'upA', 'loA', 'cardio'] },
   };
   return m[days] || m[3];
 }
@@ -101,6 +102,8 @@ function buildWorkout(key, variant, state, equip, block) {
 
 function buildPlan(state, block) {
   block = block || 1;
+  const prog = state.program && typeof PROGRAM_BY_ID !== 'undefined' && PROGRAM_BY_ID[state.program];
+  if (prog) return buildProgramPlan(state, prog, block);
   const days = state.schedule.days.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
   const split = splitFor(days.length, state.profile.goal);
   const equip = equipList(state);
@@ -108,7 +111,7 @@ function buildPlan(state, block) {
   const workouts = split.keys.map(k => { seen[k] = (seen[k] || 0); const w = buildWorkout(k, seen[k], state, equip, block); seen[k]++; return w; });
   const dayMap = {};
   days.forEach((d, i) => { dayMap[d] = workouts[i % workouts.length].id; });
-  return { split: split.name, createdAt: todayKey(), workouts, dayMap, week: 1, block };
+  return { split: split.name, createdAt: todayKey(), workouts, dayMap, week: 1, block, overrides: {}, pinned: {} };
 }
 
 /* ---------- training blocks and deloads ----------
@@ -117,7 +120,7 @@ function buildPlan(state, block) {
 function blockInfo(state, key) {
   const P = state.plan;
   if (!P) return null;
-  const len = state.profile.experience === 'beginner' ? 8 : 6;
+  const len = P.weeks || (state.profile.experience === 'beginner' ? 8 : 6);
   const week = Math.floor(daysBetween(P.createdAt, key || todayKey()) / 7) + 1;
   return { len, week: Math.min(week, len), rawWeek: week, deload: week === len, done: week > len, block: P.block || 1 };
 }
@@ -127,10 +130,86 @@ function roundLoad(state, kg) {
   return dispToKg(state, Math.round(kgToDisp(state, kg, 2) / step) * step);
 }
 
+/* What's planned on a date. Order of precedence:
+   1. a one-off change for that date (overrides)  2. a weekday the user pinned to a session
+   3. a rotating program (cycle) across training days  4. the weekly dayMap. */
 function workoutForDate(state, key) {
-  if (!state.plan) return null;
-  const id = state.plan.dayMap[parseKey(key).getDay()];
-  return id ? state.plan.workouts.find(w => w.id === id) : null;
+  const P = state.plan;
+  if (!P) return null;
+  const find = id => P.workouts.find(w => w.id === id) || null;
+  const ov = P.overrides && P.overrides[key];
+  if (ov === 'rest') return null;
+  if (ov && find(ov)) return find(ov);
+  return naturalWorkout(state, key);
+}
+function naturalWorkout(state, key) {
+  const P = state.plan, dow = parseKey(key).getDay();
+  const find = id => P.workouts.find(w => w.id === id) || null;
+  const pinned = P.pinned || {};
+  if (P.cycle && P.cycle.length && !pinned[dow]) {
+    const order = state.schedule.days.filter(d => !pinned[d]).sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+    const pos = order.indexOf(dow);
+    if (pos < 0) return null;
+    const weeks = Math.floor(daysBetween(weekStart(P.createdAt), weekStart(key)) / 7);
+    const n = P.cycle.length, i = (((weeks * order.length + pos) % n) + n) % n;
+    return find(P.cycle[i]);
+  }
+  const id = P.dayMap[dow];
+  return id ? find(id) : null;
+}
+
+/* ---------- quick day changes ---------- */
+const SESSION_TYPES = [
+  ['upA', 'Upper body', 'Chest, back, shoulders, arms'],
+  ['loA', 'Lower body', 'Quads, hamstrings, glutes, calves'],
+  ['push', 'Push', 'Chest, shoulders, triceps'],
+  ['pull', 'Pull', 'Back, biceps, rear delts'],
+  ['legs', 'Legs', 'Squats, hinges, calves'],
+  ['fbA', 'Full body', 'A bit of everything'],
+  ['cardio', 'Cardio + core', 'Lighter day'],
+];
+/* Find a session of this template type in the plan, or build one with the user's equipment. */
+function ensureSession(state, key) {
+  const P = state.plan;
+  const have = P.workouts.find(w => w.key === key && !w.program);
+  if (have) return have;
+  const w = buildWorkout(key, 0, state, equipList(state), P.block || 1);
+  if (P.workouts.some(x => x.id === w.id)) w.id = w.id + '_' + uid().slice(0, 4);
+  P.workouts.push(w);
+  return w;
+}
+/* id: a workout id or 'rest'. scope: 'once' (this date) or 'always' (every week on that weekday). */
+function setDaySession(state, key, id, scope) {
+  const P = state.plan, dow = parseKey(key).getDay();
+  P.overrides = P.overrides || {}; P.pinned = P.pinned || {};
+  if (scope === 'once') {
+    const nat = naturalWorkout(state, key);
+    if ((id === 'rest' && !nat) || (nat && nat.id === id)) delete P.overrides[key];
+    else P.overrides[key] = id;
+    return;
+  }
+  delete P.overrides[key];
+  if (id === 'rest') {
+    delete P.dayMap[dow]; delete P.pinned[dow];
+    state.schedule.days = state.schedule.days.filter(d => d !== dow);
+  } else {
+    P.dayMap[dow] = id;
+    if (!state.schedule.days.includes(dow)) state.schedule.days.push(dow);
+    if (P.cycle) P.pinned[dow] = true;
+  }
+}
+function tradeDays(state, a, b, scope) {
+  const wa = workoutForDate(state, a), wb = workoutForDate(state, b);
+  setDaySession(state, a, wb ? wb.id : 'rest', scope);
+  setDaySession(state, b, wa ? wa.id : 'rest', scope);
+}
+/* Workouts the schedule actually uses (so extra sessions don't clutter the plan screen). */
+function workoutsInUse(state) {
+  const P = state.plan, ids = new Set(Object.values(P.dayMap));
+  (P.cycle || []).forEach(id => ids.add(id));
+  const today = todayKey();
+  Object.entries(P.overrides || {}).forEach(([k, id]) => { if (k >= today && id !== 'rest') ids.add(id); });
+  return P.workouts.filter(w => ids.has(w.id));
 }
 function workoutDoneOn(state, key) { return state.workouts.find(w => w.date === key); }
 
@@ -158,7 +237,8 @@ function suggestion(state, item) {
   }
   const last = lastSessionFor(state, ex.id);
   if (!last) {
-    return { weightKg: null, reps: item.min, text: ex.req.length ? `First time: pick a weight you could lift for ${item.max + 2}–${item.max + 3} reps, then do ${item.min}–${item.max}.` : `Do ${item.min}–${item.max} controlled reps.` };
+    const rr = item.min === item.max ? `${item.min}` : `${item.min}–${item.max}`;
+    return { weightKg: null, reps: item.min, text: ex.req.length ? `First time: pick a weight you could lift for ${item.max + 2}–${item.max + 3} reps, then do ${rr}.` : `Do ${rr} controlled reps.` };
   }
   const weighted = last.sets.some(s => s.weightKg > 0);
   if (!weighted) {

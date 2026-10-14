@@ -114,6 +114,56 @@ const SHEETS = {
       <button class="btn train block" data-act="start-workout" data-id="${w.id}">${icon('play', 18)} Start this workout</button>`;
   },
 
+  daySwap(s) {
+    const k = s.date, dow = parseKey(k).getDay(), P = S.plan;
+    const cur = workoutForDate(S, k), ws = weekStart(k);
+    const once = s.scope === 'once';
+    const opt = (id, title, sub, current) => `<button class="li" data-act="day-set" data-id="${id}" ${current ? 'aria-current="true"' : ''}><span class="grow"><span class="t">${esc(title)}</span>${sub ? `<br><span class="d">${esc(sub)}</span>` : ''}</span>${current ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`;
+    const inPlan = workoutsInUse(S);
+    const planKeys = new Set(inPlan.map(w => w.key));
+    const extra = P.workouts.filter(w => !inPlan.includes(w));
+    const types = SESSION_TYPES.filter(([key]) => !planKeys.has(key) && !extra.some(w => w.key === key));
+    return sheetHead(`${DOW_LONG[dow]}, ${shortDate(k)}`, cur ? `Planned: ${esc(cur.name)}` : 'Rest day')
+      + `<div class="seg"><button data-act="day-scope" data-v="once" aria-pressed="${once}">Just ${shortDate(k)}</button><button data-act="day-scope" data-v="always" aria-pressed="${!once}">Every ${DOW_LONG[dow]}</button></div>
+      ${cur ? `<div class="grid2"><button class="btn ghost sm" data-act="preview-workout" data-id="${cur.id}">Preview</button><button class="btn train sm" data-act="start-workout" data-id="${cur.id}">${icon('play', 16)} Start</button></div>` : ''}
+      <span class="label">Switch to</span>
+      <div class="list">${inPlan.map(w => opt(w.id, w.name, w.focus, cur && cur.id === w.id)).join('')}
+        ${extra.map(w => opt(w.id, w.name, w.focus, cur && cur.id === w.id)).join('')}
+        ${types.map(([key, title, sub]) => opt('tpl:' + key, title, sub, false)).join('')}
+        ${opt('rest', 'Rest day', 'Recover; a walk counts', !cur)}</div>
+      <span class="label">Or trade with another day</span>
+      <div class="chips">${[...Array(7)].map((_, i) => addDays(ws, i)).filter(x => x !== k).map(x => { const w = workoutForDate(S, x); return `<button class="chip" data-act="day-trade" data-date="${x}">${DOW[parseKey(x).getDay()]} · ${w ? esc(w.name) : 'Rest'}</button>`; }).join('')}</div>
+      <p class="tiny faint">${once ? `Only ${prettyDate(k)} changes; the rest of your plan stays the same.` : `Changes every ${DOW_LONG[dow]} from now on.`}</p>`;
+  },
+
+  programs(s) {
+    const f = s.filter || 'all', cur = S.plan && S.plan.program;
+    const list = PROGRAMS.filter(p => f === 'all' || p.tags.includes(f));
+    return sheetHead('Programs', 'Ready-made plans. Exercises adjust to your equipment.')
+      + `<div class="chips scroll">${PROGRAM_FILTERS.map(([id, label]) => `<button class="chip" data-act="prog-filter" data-v="${id}" aria-pressed="${f === id}">${label}</button>`).join('')}</div>
+      ${cur ? '' : `<div class="card train" style="box-shadow:none;padding:12px 14px"><div class="small"><b>You're on a custom plan</b> built from your goal, days and equipment.</div></div>`}
+      <div class="list">${list.map(p => `<button class="li" data-act="open-program" data-id="${p.id}"><span class="grow"><span class="t">${esc(p.name)}</span>${cur === p.id ? ' <span class="tag train" style="font-size:11px;padding:1px 6px">Current</span>' : ''}<br><span class="d">${p.days} days/week · ${p.weeks} weeks · ${p.level[0].toUpperCase() + p.level.slice(1)} · ${esc(p.equip)}</span><br><span class="d">${esc(p.tagline)}</span></span><span class="chev">${icon('chevR', 18)}</span></button>`).join('')}</div>
+      ${cur ? `<button class="btn ghost block" data-act="prog-leave">Switch back to a custom plan</button>` : ''}`;
+  },
+
+  program(s) {
+    const prog = PROGRAM_BY_ID[s.id], d = s.draft, cur = S.plan && S.plan.program === prog.id;
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    const tmp = Object.assign({}, S, { schedule: { days: d.days, minutes: S.schedule.minutes } });
+    const sessions = prog.sessions.map((_, i) => buildProgramSession(prog, i, tmp, equipList(S)));
+    const fit = programFits(prog, S);
+    const n = d.days.length;
+    return sheetHead(esc(prog.name), `${prog.days} days/week · ${prog.weeks} weeks · ${prog.level[0].toUpperCase() + prog.level.slice(1)}`)
+      + `<p class="muted">${esc(prog.about)}</p>
+      ${fit.missing ? `<p class="small" style="color:var(--fuel)">${fit.missing} of ${fit.total} exercises are swapped for ones that fit your equipment (${esc(equipSummary())}).</p>` : ''}
+      <span class="label">Your training days</span>
+      <div class="daypick">${order.map(x => `<button data-act="prog-day" data-d="${x}" aria-pressed="${d.days.includes(x)}" aria-label="${DOW_LONG[x]}">${DOW[x].slice(0, 2)}</button>`).join('')}</div>
+      <p class="small faint">${n === prog.days ? (prog.cycle ? 'Sessions alternate across your training days.' : 'One session per training day.') : `Written for ${prog.days} days. With ${n}, the ${prog.sessions.length} sessions rotate in order across your days.`}</p>
+      ${sessions.map(w => `<div class="card" style="box-shadow:none"><div><div class="h3">${esc(w.name)}</div><div class="small muted">${esc(w.focus)}</div></div><div class="list">${w.items.map(it => exRow(it, `data-act="open-ex" data-id="${it.exId}"`)).join('')}</div></div>`).join('')}
+      <button class="btn train block" data-act="prog-start" ${n < 1 ? 'disabled' : ''}>${cur ? 'Restart this program' : 'Start this program'}</button>
+      <p class="tiny faint">Starting a program replaces your current plan. Your workout history and records are kept.</p>`;
+  },
+
   summary(s) {
     const w = S.workouts.find(x => x.id === s.wid);
     const vol = w.sets.reduce((v, x) => v + (x.weightKg || 0) * (x.reps || 0), 0);
@@ -267,6 +317,8 @@ const SHEETS = {
       <div class="card" style="box-shadow:none" id="set-training"><span class="eyebrow">Training schedule and equipment</span>
         <div class="daypick">${order.map(x => `<button data-act="set-day" data-d="${x}" aria-pressed="${d.days.includes(x)}" aria-label="${DOW_LONG[x]}">${DOW[x].slice(0, 2)}</button>`).join('')}</div>
         <div class="seg">${[30, 45, 60, 75].map(m => `<button data-act="set-min" data-v="${m}" aria-pressed="${d.minutes === m}">${m} min</button>`).join('')}</div>
+        ${d.days.length === 7 ? `<p class="small muted">${DAYS7_NOTE}</p>` : ''}
+        ${gymPicker(d, 'set-gym')}
         <button class="opt" data-act="set-fullgym" aria-pressed="${d.fullGym}"><span class="grow"><span class="t">Full gym</span><br><span class="d">Selects everything below</span></span><span class="check">${icon('check', 16)}</span></button>
         ${Object.entries(groups).map(([g, list]) => `<div class="stack"><span class="label">${g}</span><div class="chips">${list.map(e => `<button class="chip" data-act="set-item" data-id="${e.id}" aria-pressed="${d.fullGym || d.items.includes(e.id)}">${e.label}</button>`).join('')}</div></div>`).join('')}<p class="small faint" role="status">${equipStatus(d)}</p>
         <button class="btn train block" data-act="set-rebuild" ${d.days.length < 2 ? 'disabled' : ''}>Save and rebuild plan</button>
