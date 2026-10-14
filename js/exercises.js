@@ -3,7 +3,7 @@
    req (equipment ids ALL required; bodyweight needs none), diff (1 easy – 3 advanced),
    anim (demo animation key), prop (what the figure holds), cues (form tips),
    unit ('reps' | 'sec' | 'min'), lower (true = lower-body load increments),
-   videoId (optional YouTube id; when set, the guide links straight to that video). */
+   Every exercise is demonstrated with an animated figure (js/anim.js). */
 
 const EQUIPMENT = [
   { id: 'dumbbell', short: 'Dumbbell',   label: 'Dumbbells',        group: 'Free weights' },
@@ -33,7 +33,7 @@ const PATTERN_GROUP = {
 
 const EXERCISES = [];
 function E(id, name, pattern, muscles, req, diff, anim, prop, cues, extra) {
-  EXERCISES.push(Object.assign({ id, name, pattern, muscles, req, diff, anim, prop, cues, unit: 'reps', lower: false, videoId: '' }, extra || {}));
+  EXERCISES.push(Object.assign({ id, name, pattern, muscles, req, diff, anim, prop, cues, unit: 'reps', lower: false }, extra || {}));
 }
 const L = { lower: true };
 
@@ -306,8 +306,4 @@ EXERCISES.forEach(e => { e.group = PATTERN_GROUP[e.pattern]; });
 
 function exerciseAvailable(ex, equip) {
   return ex.req.every(r => equip.includes(r));
-}
-function videoUrl(ex) {
-  if (ex.videoId) return 'https://www.youtube.com/watch?v=' + ex.videoId;
-  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent('how to do ' + ex.name + ' proper form');
 }

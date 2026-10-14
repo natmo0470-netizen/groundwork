@@ -18,7 +18,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Macros | Recommended protein/carbs/fat per goal; switch to custom grams any time; reset to recommended |
 | Food log | 167 built-in foods, online search of Open Food Facts, servings, 4 meals, quick add, custom foods, recents |
 | Workout plan | Split chosen from days/week (2–6) and goal; exercises filtered by equipment and experience; swap any exercise |
-| Exercise guides | 118 exercises, each with an animated demo, form cues, muscles, and a YouTube tutorial link |
+| Exercise guides | 118 exercises, each with an animated demo, step-by-step form cues and muscles worked |
 | Logger | Weight × reps per set, previous-session column, rest timer, suggested next weight (double progression), PR detection |
 | Progress | Weight trend (7-day average), weekly check-in that adjusts calories, 7-day calorie chart, PR board, history |
 | Reminders | Workout day, missed sessions, food logging, protein behind, weigh-in, weekly check-in; optional browser notifications while open |
@@ -34,7 +34,6 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 index.html          page shell
 css/styles.css      design tokens (light + dark) and components
 js/exercises.js     exercise library + equipment list
-js/videos.js        <- paste YouTube links here, one line per exercise
 js/scanner.js       barcode scanning (built-in detector or ZXing from a CDN)
 manifest.webmanifest, sw.js, icons/   install-as-app and offline support
 js/foods.js         built-in food list + Open Food Facts search
@@ -51,7 +50,6 @@ js/ui.js, app.js, screens.js, actions.js   screens and interactions
 - Data lives in one browser on one device. To move it: Settings → Back up → Download backup file, send the file to the other device, then Settings → Restore there. Cloud sync arrives in Phase 5.
 - Browser notifications only fire while the app is open. Reminders with the app closed come with the Phase 2 store app.
 - Online food search needs internet access and may be blocked inside some embedded viewers. The built-in list and Quick add always work.
-- Videos open on YouTube rather than playing inside the app. Paste links into `js/videos.js` to point each button at a specific video.
 - Live barcode scanning needs a camera and a secure page (https or the file opened on your computer). The published Claude link can't use the camera or reach the food database; use the hosted or local copy for scanning.
 - Offline mode and install need the app hosted on an https address; opening `index.html` directly works but doesn't install.
 

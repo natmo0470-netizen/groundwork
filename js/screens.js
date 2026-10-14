@@ -86,7 +86,6 @@ const SHEETS = {
       + `<div class="demo"><div data-demo="${ex.anim}|${ex.prop}" data-label="${esc(ex.name)} demonstration"></div><button class="btn sm soft demo-ctrl" data-act="demo-toggle"></button></div>
       <div class="chips"><span class="tag train">${esc(ex.group)}</span><span class="tag">${esc(reqTxt)}</span><span class="tag">${['', 'Beginner-friendly', 'Intermediate', 'Advanced'][ex.diff]}</span></div>
       <div class="stack"><span class="eyebrow">How to do it</span><ol class="cues">${ex.cues.map(c => `<li>${esc(c)}</li>`).join('')}</ol></div>
-      <a class="video-link" href="${videoUrl(ex)}" target="_blank" rel="noopener"><span class="play">${icon('play', 18)}</span><span class="grow"><b>Watch a video tutorial</b><br><span class="small muted">${ex.videoId ? 'Opens on YouTube' : 'Opens YouTube with top form videos'}</span></span>${icon('external', 18)}</a>
       ${b.maxW || b.maxReps ? `<div class="card" style="box-shadow:none"><span class="eyebrow">Your best</span><div class="row"><span class="mid-num">${b.maxW ? kgToDisp(S, b.maxW) + `<span class="unit">${wUnit(S)}</span> × ${b.maxWReps}` : b.maxReps + '<span class="unit">' + (ex.unit === 'reps' ? 'reps' : ex.unit) + '</span>'}</span></div></div>` : ''}
       ${s.ctx != null && S.activeWorkout ? `<button class="btn ghost block" data-act="swap" data-scope="active" data-idx="${s.ctx}">${icon('swap', 18)} Swap for another exercise</button>` : ''}`;
   },
@@ -289,7 +288,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Groundwork v1.0 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations; video links open YouTube.</p>`;
+      <p class="tiny faint">Groundwork v1.0 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
   },
 
   feedback(s) {

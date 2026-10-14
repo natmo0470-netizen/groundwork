@@ -339,8 +339,6 @@ p { margin: 0; }
 .cues { margin: 0; padding: 0; list-style: none; counter-reset: c; display: flex; flex-direction: column; gap: 8px; }
 .cues li { counter-increment: c; display: flex; gap: 10px; }
 .cues li::before { content: counter(c); width: 22px; height: 22px; border-radius: 7px; background: var(--train-soft); color: var(--train); font-weight: 800; font-size: 12px; display: grid; place-items: center; flex: none; }
-.video-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--ink); }
-.video-link .play { width: 40px; height: 40px; border-radius: 10px; background: var(--bad); color: #fff; display: grid; place-items: center; flex: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
