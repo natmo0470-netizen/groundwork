@@ -17,7 +17,7 @@ const TEMPLATES = {
 const SLOT_LABEL = {
   squat: 'Squat', hinge: 'Hinge', lunge: 'Single leg', hpush: 'Chest press', vpush: 'Overhead press', hpull: 'Row',
   vpull: 'Pull-down', glute: 'Glutes', quad_iso: 'Quads', ham_iso: 'Hamstrings', calf: 'Calves', chest_iso: 'Chest fly',
-  side_delt: 'Side delts', rear_delt: 'Rear delts', biceps: 'Biceps', triceps: 'Triceps', core: 'Core', cardio: 'Cardio',
+  side_delt: 'Side delts', rear_delt: 'Rear delts', biceps: 'Biceps', triceps: 'Triceps', core: 'Core', cardio: 'Cardio', shrug: 'Traps', forearm: 'Forearms', adductor: 'Inner thighs',
 };
 const COMPOUND = ['squat', 'hinge', 'lunge', 'hpush', 'vpush', 'hpull', 'vpull', 'glute'];
 

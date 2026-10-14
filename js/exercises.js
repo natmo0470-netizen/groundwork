@@ -28,7 +28,7 @@ const PATTERN_GROUP = {
   squat: 'Legs', lunge: 'Legs', hinge: 'Legs', quad_iso: 'Legs', ham_iso: 'Legs', calf: 'Legs',
   glute: 'Glutes', hpush: 'Chest', chest_iso: 'Chest', vpush: 'Shoulders', side_delt: 'Shoulders',
   rear_delt: 'Shoulders', hpull: 'Back', vpull: 'Back', biceps: 'Arms', triceps: 'Arms',
-  core: 'Core', cardio: 'Cardio',
+  core: 'Core', cardio: 'Cardio', shrug: 'Back', forearm: 'Arms', adductor: 'Legs',
 };
 
 const EXERCISES = [];
@@ -300,6 +300,271 @@ E('easy_run', 'Easy Run', 'cardio', ['Cardio'], [], 2, 'run', 'none',
   ['Conversational pace', 'Land under your hips', 'Relax shoulders', 'Walk breaks are fine'], { unit: 'min' });
 E('jump_squat', 'Jump Squat', 'cardio', ['Quads', 'Cardio'], [], 2, 'jumpsquat', 'none',
   ['Squat down, arms back', 'Explode up, swing arms', 'Land softly, knees bent', 'Reset and repeat'], { unit: 'sec' });
+
+// =====================================================================
+// Expanded library (v1.3). Coverage checked against the major muscle groups in
+// Muscle & Strength's exercise database; all form cues are written for Groundwork.
+// =====================================================================
+
+// ---------- Chest: presses ----------
+E('decline_bench', 'Decline Barbell Bench Press', 'hpush', ['Lower chest', 'Triceps'], ['barbell', 'bench'], 2, 'bench', 'barbell',
+  ['Hook your feet in and lie back on the decline', 'Unrack with straight arms over your chest', 'Lower to the bottom of your chest', 'Press up in a slight arc'], {});
+E('db_decline', 'Decline Dumbbell Press', 'hpush', ['Lower chest', 'Triceps'], ['dumbbell', 'bench'], 2, 'bench', 'dumbbell',
+  ['Secure your legs on the decline bench', 'Start with dumbbells over your lower chest', 'Lower until elbows are just below the bench', 'Press up and slightly together'], {});
+E('neutral_db_press', 'Neutral-Grip Dumbbell Press', 'hpush', ['Chest', 'Triceps'], ['dumbbell', 'bench'], 1, 'bench', 'dumbbell',
+  ['Palms face each other the whole set', 'Elbows stay close, about 30° from your body', 'Lower to the sides of your chest', 'Easy on the shoulders; great for beginners'], {});
+E('db_floor_press', 'Dumbbell Floor Press', 'hpush', ['Chest', 'Triceps'], ['dumbbell'], 1, 'floorpress', 'dumbbell',
+  ['Lie on the floor, knees bent', 'Lower until your upper arms touch the floor', 'Pause briefly, no bouncing', 'Press back up over your chest'], {});
+E('smith_incline', 'Smith Machine Incline Press', 'hpush', ['Upper chest', 'Shoulders'], ['smith', 'bench'], 2, 'incline', 'smith',
+  ['Set the bench at 30° under the bar', 'Bar touches just below your collarbone', 'Keep shoulder blades squeezed', 'Press to straight arms'], {});
+E('machine_incline', 'Incline Machine Press', 'hpush', ['Upper chest', 'Triceps'], ['machines'], 1, 'seated_press', 'handle',
+  ['Seat so handles line up with upper chest', 'Press up and out', 'Don\'t let shoulders roll forward', 'Return slowly'], {});
+E('decline_pushup', 'Decline Push-Up', 'hpush', ['Upper chest', 'Shoulders', 'Triceps'], ['bench'], 2, 'pushup', 'none',
+  ['Feet on a bench, hands on the floor', 'Body in one straight line', 'Lower your chest toward the floor', 'Push all the way up'], {});
+E('wall_pushup', 'Wall Push-Up', 'hpush', ['Chest', 'Triceps'], [], 1, 'pushup', 'none',
+  ['Hands on a wall at chest height', 'Step back so you lean in', 'Bend elbows to bring your chest to the wall', 'Push back; step farther away to make it harder'], {});
+E('squeeze_press', 'Dumbbell Squeeze Press', 'hpush', ['Inner chest', 'Triceps'], ['dumbbell', 'bench'], 1, 'bench', 'dumbbell',
+  ['Press the dumbbells together hard', 'Keep them touching the whole rep', 'Lower to mid-chest', 'Press up while still squeezing'], {});
+E('chest_dip', 'Chest Dip', 'hpush', ['Lower chest', 'Triceps'], ['machines'], 2, 'dip', 'none',
+  ['Lean your torso forward about 30°', 'Let elbows flare slightly', 'Lower until you feel a chest stretch', 'Press up without locking out hard'], {});
+
+// ---------- Chest: flys and pullovers ----------
+E('incline_db_fly', 'Incline Dumbbell Fly', 'chest_iso', ['Upper chest'], ['dumbbell', 'bench'], 1, 'fly', 'dumbbell',
+  ['Bench at 30°', 'Slight bend in elbows, locked in place', 'Open wide until you feel a stretch', 'Bring the dumbbells up and together'], {});
+E('low_high_fly', 'Low-to-High Cable Fly', 'chest_iso', ['Upper chest'], ['cable'], 2, 'cable_fly', 'cable',
+  ['Pulleys set low, staggered stance', 'Sweep hands up and together to chin height', 'Squeeze for a second', 'Lower slowly'], {});
+E('high_low_fly', 'High-to-Low Cable Fly', 'chest_iso', ['Lower chest'], ['cable'], 2, 'cable_fly', 'cable',
+  ['Pulleys set high, lean slightly forward', 'Sweep hands down and together at your waist', 'Keep elbows softly bent', 'Return under control'], {});
+E('db_pullover', 'Dumbbell Pullover', 'chest_iso', ['Chest', 'Lats'], ['dumbbell', 'bench'], 2, 'pullover', 'dumbbell',
+  ['Hold one dumbbell over your chest with both hands', 'Lower it back behind your head in an arc', 'Keep a slight elbow bend', 'Pull it back over your chest'], {});
+
+// ---------- Shoulders ----------
+E('arnold_press', 'Arnold Press', 'vpush', ['Shoulders', 'Triceps'], ['dumbbell'], 2, 'ohp', 'dumbbell',
+  ['Start with palms facing you at chin height', 'Rotate palms forward as you press up', 'Finish with arms straight overhead', 'Reverse the turn on the way down'], {});
+E('seated_db_press', 'Seated Dumbbell Shoulder Press', 'vpush', ['Shoulders', 'Triceps'], ['dumbbell', 'bench'], 1, 'ohp', 'dumbbell',
+  ['Bench upright, back against the pad', 'Dumbbells start at ear height', 'Press up without arching', 'Lower to ear height'], {});
+E('seated_bb_press', 'Seated Barbell Shoulder Press', 'vpush', ['Shoulders', 'Triceps'], ['barbell', 'bench'], 2, 'ohp', 'barbell',
+  ['Sit upright with the bar at your upper chest', 'Grip just outside shoulders', 'Press straight up, moving your head back', 'Lower to chin height'], {});
+E('landmine_press', 'Half-Kneeling Landmine Press', 'vpush', ['Shoulders', 'Upper chest', 'Core'], ['barbell'], 2, 'ohp', 'barbell',
+  ['Wedge one end of a barbell in a corner', 'Kneel on the same side as the working arm', 'Press up and forward', 'Shoulder-friendly; keep ribs down'], {});
+E('seated_lateral', 'Seated Dumbbell Lateral Raise', 'side_delt', ['Side delts'], ['dumbbell', 'bench'], 1, 'raise', 'dumbbell',
+  ['Sit tall at the end of a bench', 'Raise arms out to shoulder height', 'Lead with your elbows', 'Lower slowly; no swinging'], {});
+E('db_front_raise', 'Dumbbell Front Raise', 'side_delt', ['Front delts'], ['dumbbell'], 1, 'raise', 'dumbbell',
+  ['Dumbbells in front of thighs', 'Raise straight in front to shoulder height', 'Keep a soft elbow bend', 'Lower with control'], {});
+E('plate_front_raise', 'Plate Front Raise', 'side_delt', ['Front delts'], ['barbell'], 1, 'raise', 'barbell',
+  ['Hold a weight plate at 3 and 9 o\'clock', 'Raise it to eye level', 'Keep your torso still', 'Lower slowly'], {});
+E('cable_upright_row', 'Cable Upright Row', 'side_delt', ['Side delts', 'Traps'], ['cable'], 2, 'upright_row', 'cable',
+  ['Straight bar on a low pulley, shoulder-width grip', 'Pull up along your body, elbows leading', 'Stop when elbows reach shoulder height', 'Lower slowly'], {});
+E('db_upright_row', 'Dumbbell Upright Row', 'side_delt', ['Side delts', 'Traps'], ['dumbbell'], 2, 'upright_row', 'dumbbell',
+  ['Dumbbells in front of thighs', 'Pull elbows up and out', 'Stop at shoulder height', 'Wider hands are kinder to shoulders'], {});
+E('bb_upright_row', 'Barbell Upright Row', 'side_delt', ['Side delts', 'Traps'], ['barbell'], 2, 'upright_row', 'barbell',
+  ['Grip a little wider than shoulders', 'Pull the bar up close to your body', 'Elbows go no higher than shoulders', 'Lower to full arm extension'], {});
+E('cable_rear_fly', 'Cable Reverse Fly', 'rear_delt', ['Rear delts', 'Upper back'], ['cable'], 1, 'facepull', 'cable',
+  ['Cross the cables at shoulder height', 'Pull your arms wide and back', 'Squeeze your shoulder blades', 'Return slowly'], {});
+E('incline_rear_fly', 'Chest-Supported Rear Delt Fly', 'rear_delt', ['Rear delts'], ['dumbbell', 'bench'], 1, 'row', 'dumbbell',
+  ['Lie chest-down on an incline bench', 'Arms hang straight down', 'Raise arms out to the sides', 'Pause, then lower'], {});
+E('wall_slide', 'Scapular Wall Slide', 'rear_delt', ['Upper back', 'Shoulders'], [], 1, 'ohp', 'none',
+  ['Back, head and arms against a wall', 'Arms in a W shape', 'Slide up to a Y while staying in contact', 'Slide back down slowly'], {});
+
+// ---------- Back: rows ----------
+E('bent_db_row', 'Bent-Over Dumbbell Row', 'hpull', ['Upper back', 'Lats', 'Biceps'], ['dumbbell'], 1, 'row', 'dumbbell',
+  ['Hinge forward with a flat back', 'Row both dumbbells to your hips', 'Squeeze shoulder blades together', 'Lower until arms are straight'], {});
+E('pendlay_row', 'Pendlay Row', 'hpull', ['Upper back', 'Lats'], ['barbell'], 3, 'row', 'barbell',
+  ['Torso nearly parallel to the floor', 'Bar starts on the floor each rep', 'Pull explosively to your lower chest', 'Set it down and reset'], {});
+E('tbar_row', 'T-Bar Row', 'hpull', ['Upper back', 'Lats'], ['barbell'], 2, 'row', 'barbell',
+  ['Straddle a landmined barbell with a V-handle', 'Hinge to about 45°', 'Pull the handle to your chest', 'Lower with control'], {});
+E('machine_tbar', 'Machine T-Bar Row', 'hpull', ['Upper back', 'Lats'], ['machines'], 1, 'row', 'none',
+  ['Chest on the pad, feet planted', 'Pull handles to your chest', 'Squeeze for a second', 'Let your arms stretch forward'], {});
+E('cs_db_row', 'Chest-Supported Dumbbell Row', 'hpull', ['Upper back', 'Lats'], ['dumbbell', 'bench'], 1, 'row', 'dumbbell',
+  ['Lie chest-down on an incline bench', 'Row both dumbbells up', 'No momentum: the bench holds you still', 'Lower to full stretch'], {});
+E('meadows_row', 'Meadows Row', 'hpull', ['Lats', 'Upper back'], ['barbell'], 3, 'row', 'barbell',
+  ['Stand side-on to a landmined bar', 'Grip the bar sleeve overhand', 'Row up and back toward your hip', 'Lower until your arm is straight'], {});
+E('one_arm_cable_row', 'Single-Arm Cable Row', 'hpull', ['Lats', 'Upper back'], ['cable'], 1, 'seated_row', 'cable',
+  ['Sit tall with one handle', 'Pull your elbow back past your ribs', 'Let your shoulder reach forward on the return', 'Finish all reps, then switch'], {});
+E('renegade_row', 'Renegade Row', 'hpull', ['Lats', 'Core'], ['dumbbell'], 3, 'pushup', 'dumbbell',
+  ['High plank on two dumbbells, feet wide', 'Row one dumbbell to your hip', 'Keep hips level and square', 'Alternate sides'], {});
+
+// ---------- Back: vertical pulls ----------
+E('wide_pullup', 'Wide-Grip Pull-Up', 'vpull', ['Lats', 'Upper back'], ['pullup_bar'], 3, 'pullup', 'none',
+  ['Grip well outside shoulder width', 'Pull your chest toward the bar', 'Elbows drive down and back', 'Lower all the way'], {});
+E('close_pulldown', 'Close-Grip Lat Pulldown', 'vpull', ['Lats', 'Biceps'], ['cable'], 1, 'pulldown', 'cable',
+  ['V-handle or close grip', 'Lean back slightly', 'Pull to your upper chest', 'Stretch fully at the top'], {});
+E('underhand_pulldown', 'Underhand Lat Pulldown', 'vpull', ['Lats', 'Biceps'], ['cable'], 1, 'pulldown', 'cable',
+  ['Palms facing you, shoulder-width', 'Pull the bar to your collarbone', 'Squeeze lats at the bottom', 'Control the bar up'], {});
+E('straight_arm_pulldown', 'Straight-Arm Pulldown', 'vpull', ['Lats'], ['cable'], 1, 'straightarm', 'cable',
+  ['Face a high pulley, slight hip hinge', 'Arms nearly straight', 'Sweep the bar down to your thighs', 'Let it rise slowly overhead'], {});
+E('pullup_negative', 'Pull-Up Negative', 'vpull', ['Lats', 'Biceps'], ['pullup_bar'], 2, 'pullup', 'none',
+  ['Jump or step up so your chin is over the bar', 'Lower yourself as slowly as you can', 'Aim for 3–5 seconds down', 'Builds strength toward a full pull-up'], {});
+
+// ---------- Traps ----------
+E('db_shrug', 'Dumbbell Shrug', 'shrug', ['Traps'], ['dumbbell'], 1, 'shrug', 'dumbbell',
+  ['Stand tall, dumbbells at your sides', 'Lift shoulders straight up to your ears', 'Hold for a second', 'Lower all the way; don\'t roll'], {});
+E('bb_shrug', 'Barbell Shrug', 'shrug', ['Traps'], ['barbell'], 1, 'shrug', 'barbell',
+  ['Hold the bar at your thighs, shoulder-width', 'Shrug straight up', 'Pause at the top', 'Lower slowly'], {});
+E('cable_shrug', 'Cable Shrug', 'shrug', ['Traps'], ['cable'], 1, 'shrug', 'cable',
+  ['Straight bar on a low pulley', 'Arms straight, shrug up', 'Squeeze at the top', 'Controlled lowering'], {});
+E('smith_shrug', 'Smith Machine Shrug', 'shrug', ['Traps'], ['smith'], 1, 'shrug', 'smith',
+  ['Bar at mid-thigh height', 'Shrug straight up along the rails', 'Pause at the top', 'Lower fully'], {});
+E('high_pull', 'Barbell High Pull', 'shrug', ['Traps', 'Shoulders', 'Hamstrings'], ['barbell'], 3, 'upright_row', 'barbell',
+  ['Start in a hinge with the bar at your knees', 'Drive hips forward explosively', 'Pull the bar to your chest, elbows high', 'Lower under control'], {});
+E('kb_high_pull', 'Kettlebell Sumo High Pull', 'shrug', ['Traps', 'Glutes', 'Shoulders'], ['kettlebell'], 2, 'upright_row', 'kettlebell',
+  ['Wide stance, bell between your feet', 'Stand up explosively', 'Pull the bell to chest height, elbows high', 'Lower and repeat'], {});
+
+// ---------- Biceps ----------
+E('incline_db_curl', 'Incline Dumbbell Curl', 'biceps', ['Biceps'], ['dumbbell', 'bench'], 2, 'curl', 'dumbbell',
+  ['Bench at 45–60°, arms hanging straight', 'Curl without moving your upper arms', 'Squeeze at the top', 'Lower to a full stretch'], {});
+E('concentration_curl', 'Concentration Curl', 'biceps', ['Biceps'], ['dumbbell'], 1, 'preacher', 'dumbbell',
+  ['Sit, elbow braced on your inner thigh', 'Curl the dumbbell toward your shoulder', 'Turn your pinky up at the top', 'Lower slowly'], {});
+E('ez_preacher', 'EZ-Bar Preacher Curl', 'biceps', ['Biceps'], ['barbell', 'machines'], 1, 'preacher', 'barbell',
+  ['Armpits snug over the top of the pad', 'Curl up until forearms are vertical', 'Lower until arms are almost straight', 'No bouncing at the bottom'], {});
+E('db_preacher', 'Dumbbell Preacher Curl', 'biceps', ['Biceps'], ['dumbbell', 'bench'], 1, 'preacher', 'dumbbell',
+  ['Rest your upper arm on an incline bench back', 'Curl the dumbbell up', 'Squeeze at the top', 'Lower slowly'], {});
+E('zottman_curl', 'Zottman Curl', 'biceps', ['Biceps', 'Forearms'], ['dumbbell'], 2, 'curl', 'dumbbell',
+  ['Curl up with palms facing up', 'Turn palms down at the top', 'Lower slowly palms-down', 'Turn back at the bottom'], {});
+E('rope_hammer_curl', 'Rope Hammer Curl', 'biceps', ['Biceps', 'Forearms'], ['cable'], 1, 'curl', 'cable',
+  ['Rope on a low pulley, thumbs up', 'Elbows pinned to your sides', 'Curl to your chest', 'Lower under control'], {});
+E('spider_curl', 'Spider Curl', 'biceps', ['Biceps'], ['dumbbell', 'bench'], 2, 'preacher', 'dumbbell',
+  ['Lie chest-down on an incline bench', 'Arms hang straight down', 'Curl up without swinging', 'Squeeze hard at the top'], {});
+E('cross_hammer_curl', 'Cross-Body Hammer Curl', 'biceps', ['Biceps', 'Forearms'], ['dumbbell'], 1, 'curl', 'dumbbell',
+  ['Thumbs up, dumbbells at your sides', 'Curl across your body toward the opposite shoulder', 'Lower and alternate', 'Keep your torso still'], {});
+E('machine_curl', 'Machine Biceps Curl', 'biceps', ['Biceps'], ['machines'], 1, 'preacher', 'handle',
+  ['Elbows lined up with the machine pivot', 'Curl to the top', 'Pause and squeeze', 'Lower slowly'], {});
+E('reverse_curl', 'Reverse-Grip Barbell Curl', 'biceps', ['Forearms', 'Biceps'], ['barbell'], 1, 'curl', 'barbell',
+  ['Overhand grip, shoulder-width', 'Curl without moving your elbows', 'Keep wrists straight', 'Lower slowly'], {});
+
+// ---------- Triceps ----------
+E('rope_pushdown', 'Rope Triceps Pushdown', 'triceps', ['Triceps'], ['cable'], 1, 'pushdown', 'cable',
+  ['Rope on a high pulley', 'Elbows pinned to your sides', 'Push down and spread the rope at the bottom', 'Let it rise to 90°'], {});
+E('overhead_cable_ext', 'Overhead Cable Triceps Extension', 'triceps', ['Triceps'], ['cable'], 1, 'ohext', 'cable',
+  ['Face away from the pulley, rope behind your head', 'Elbows point forward and stay still', 'Extend arms fully', 'Return to a deep stretch'], {});
+E('db_kickback', 'Dumbbell Triceps Kickback', 'triceps', ['Triceps'], ['dumbbell'], 1, 'kickback', 'dumbbell',
+  ['Hinge forward, upper arm parallel to the floor', 'Straighten your arm back', 'Squeeze for a second', 'Bend back to 90° only'], {});
+E('lying_db_ext', 'Lying Dumbbell Triceps Extension', 'triceps', ['Triceps'], ['dumbbell', 'bench'], 1, 'skull', 'dumbbell',
+  ['Lie on a bench, dumbbells over your shoulders', 'Bend elbows to lower beside your head', 'Upper arms stay still', 'Extend back up'], {});
+E('tate_press', 'Tate Press', 'triceps', ['Triceps'], ['dumbbell', 'bench'], 2, 'skull', 'dumbbell',
+  ['Dumbbells over your chest, palms facing your feet', 'Bend elbows out to the sides', 'Lower the dumbbells to your chest', 'Press back up with your triceps'], {});
+E('machine_tricep', 'Machine Triceps Extension', 'triceps', ['Triceps'], ['machines'], 1, 'pushdown', 'handle',
+  ['Elbows on the pad, aligned with the pivot', 'Extend fully', 'Squeeze at the bottom', 'Return slowly'], {});
+E('seated_db_ext', 'Seated Overhead Dumbbell Extension', 'triceps', ['Triceps'], ['dumbbell', 'bench'], 1, 'ohext', 'dumbbell',
+  ['Sit upright, one dumbbell overhead in both hands', 'Lower it behind your head', 'Keep elbows pointing up', 'Extend back to the top'], {});
+E('reverse_pushdown', 'Reverse-Grip Pushdown', 'triceps', ['Triceps'], ['cable'], 1, 'pushdown', 'cable',
+  ['Underhand grip on a straight bar', 'Elbows tight to your sides', 'Push down to straight arms', 'Lighter weight than a normal pushdown'], {});
+
+// ---------- Forearms & grip ----------
+E('wrist_curl', 'Dumbbell Wrist Curl', 'forearm', ['Forearms'], ['dumbbell', 'bench'], 1, 'wristcurl', 'dumbbell',
+  ['Forearms on your thighs or a bench, palms up', 'Let the dumbbell roll to your fingertips', 'Curl your wrists up', 'Lower slowly'], {});
+E('reverse_wrist_curl', 'Reverse Wrist Curl', 'forearm', ['Forearms'], ['dumbbell', 'bench'], 1, 'wristcurl', 'dumbbell',
+  ['Forearms supported, palms down', 'Lift the backs of your hands up', 'Small, controlled range', 'Lower slowly'], {});
+E('bb_wrist_curl', 'Barbell Wrist Curl', 'forearm', ['Forearms'], ['barbell', 'bench'], 1, 'wristcurl', 'barbell',
+  ['Kneel behind a bench, forearms on it, palms up', 'Wrists hang off the edge', 'Curl the bar up', 'Lower to a stretch'], {});
+E('farmer_carry', 'Farmer\'s Carry', 'forearm', ['Grip', 'Traps', 'Core'], ['dumbbell'], 1, 'carry', 'dumbbell',
+  ['Pick up heavy dumbbells, one in each hand', 'Stand tall, shoulders back', 'Walk with short, steady steps', 'Set them down before your grip fails'], { unit: 'sec' });
+E('kb_carry', 'Kettlebell Farmer\'s Carry', 'forearm', ['Grip', 'Traps', 'Core'], ['kettlebell'], 1, 'carry', 'kettlebell',
+  ['A kettlebell in each hand', 'Ribs down, chest up', 'Walk without letting the bells swing', 'Turn around with small steps'], { unit: 'sec' });
+E('dead_hang', 'Dead Hang', 'forearm', ['Grip', 'Lats'], ['pullup_bar'], 1, 'hang', 'none',
+  ['Grip the bar shoulder-width', 'Hang with arms straight and relaxed', 'Breathe steadily', 'Builds grip and toward pull-ups'], { unit: 'sec' });
+
+// ---------- Legs: squats & lunges ----------
+E('db_squat', 'Dumbbell Squat', 'squat', ['Quads', 'Glutes'], ['dumbbell'], 1, 'squat', 'dumbbell',
+  ['Dumbbells at your sides or on shoulders', 'Sit down and back, chest up', 'Thighs to at least parallel', 'Drive through your whole foot'], L);
+E('hack_squat', 'Hack Squat Machine', 'squat', ['Quads', 'Glutes'], ['machines'], 2, 'squat', 'none',
+  ['Back flat against the pad, shoulders under the pads', 'Feet shoulder-width, mid-platform', 'Lower until knees reach 90° or deeper', 'Press up without locking knees'], L);
+E('box_squat', 'Box Squat', 'squat', ['Quads', 'Glutes', 'Hamstrings'], ['barbell', 'bench'], 2, 'squat', 'barbell',
+  ['Set a box or bench at knee height behind you', 'Sit back until you touch the box', 'Stay tight; don\'t relax on it', 'Drive up hard'], L);
+E('prisoner_squat', 'Prisoner Squat', 'squat', ['Quads', 'Glutes'], [], 1, 'squat', 'none',
+  ['Hands behind your head, elbows wide', 'Chest stays proud', 'Squat to parallel', 'Stand up and squeeze glutes'], L);
+E('sumo_squat', 'Sumo Squat', 'squat', ['Quads', 'Inner thighs', 'Glutes'], ['dumbbell'], 1, 'squat', 'dumbbell',
+  ['Wide stance, toes turned out', 'Hold one dumbbell between your legs', 'Sit straight down, knees out', 'Stand tall'], L);
+E('walking_lunge', 'Dumbbell Walking Lunge', 'lunge', ['Quads', 'Glutes'], ['dumbbell'], 2, 'lunge', 'dumbbell',
+  ['Dumbbells at your sides', 'Step forward into a lunge', 'Push through the front heel to step through', 'Keep your torso upright'], L);
+E('bw_walking_lunge', 'Walking Lunge', 'lunge', ['Quads', 'Glutes'], [], 1, 'lunge', 'none',
+  ['Step forward with a long stride', 'Lower the back knee toward the floor', 'Bring the back foot through to the next step', 'Keep steps steady'], L);
+E('lateral_lunge', 'Lateral Lunge', 'lunge', ['Quads', 'Glutes', 'Inner thighs'], [], 1, 'lunge', 'none',
+  ['Step wide to one side', 'Sit back into that hip, other leg straight', 'Push off to return', 'Alternate sides'], L);
+E('db_lateral_lunge', 'Dumbbell Lateral Lunge', 'lunge', ['Quads', 'Glutes', 'Inner thighs'], ['dumbbell'], 2, 'lunge', 'dumbbell',
+  ['Hold a dumbbell at your chest', 'Step wide and sit into one hip', 'Keep the other leg straight', 'Drive back to center'], L);
+E('curtsy_lunge', 'Curtsy Lunge', 'lunge', ['Glutes', 'Quads'], [], 1, 'lunge', 'none',
+  ['Step one leg behind and across', 'Lower until both knees bend about 90°', 'Hips stay square', 'Return and alternate'], L);
+E('bb_reverse_lunge', 'Barbell Reverse Lunge', 'lunge', ['Quads', 'Glutes'], ['barbell'], 3, 'lunge', 'barbell',
+  ['Bar on your upper back', 'Step back into a long lunge', 'Lower the back knee under control', 'Drive through the front foot to stand'], L);
+E('step_up', 'Step-Up', 'lunge', ['Quads', 'Glutes'], ['bench'], 1, 'lunge', 'none',
+  ['Whole foot on a sturdy bench or step', 'Push through that heel to stand up', 'Lower slowly', 'Finish one side, then switch'], L);
+
+// ---------- Legs: hinges & hamstrings ----------
+E('sumo_deadlift', 'Sumo Deadlift', 'hinge', ['Glutes', 'Hamstrings', 'Inner thighs'], ['barbell'], 3, 'deadlift', 'barbell',
+  ['Wide stance, toes out, hands inside your knees', 'Push knees out over your toes', 'Stand up by spreading the floor', 'Lock out with your glutes'], L);
+E('db_deadlift', 'Dumbbell Deadlift', 'hinge', ['Hamstrings', 'Glutes', 'Back'], ['dumbbell'], 1, 'deadlift', 'dumbbell',
+  ['Dumbbells at your sides, flat back', 'Hips back and down to reach mid-shin', 'Stand up by driving through your feet', 'Squeeze glutes at the top'], L);
+E('good_morning', 'Barbell Good Morning', 'hinge', ['Hamstrings', 'Lower back', 'Glutes'], ['barbell'], 3, 'goodmorning', 'barbell',
+  ['Bar on your upper back, soft knees', 'Push hips back, chest forward', 'Stop when your back would round', 'Drive hips forward to stand'], L);
+E('kb_rdl', 'Kettlebell Romanian Deadlift', 'hinge', ['Hamstrings', 'Glutes'], ['kettlebell'], 1, 'rdl', 'kettlebell',
+  ['Hold the bell in front of your thighs', 'Push hips back, back flat', 'Lower to mid-shin', 'Snap hips forward to stand'], L);
+E('sl_db_rdl', 'Single-Leg Dumbbell RDL', 'hinge', ['Hamstrings', 'Glutes', 'Balance'], ['dumbbell'], 2, 'rdl', 'dumbbell',
+  ['Hold a dumbbell in the hand opposite your standing leg', 'Hinge as the back leg lifts', 'Keep hips level', 'Return slowly; switch sides'], L);
+E('rack_pull', 'Rack Pull', 'hinge', ['Back', 'Glutes', 'Traps'], ['barbell'], 2, 'deadlift', 'barbell',
+  ['Bar on pins at knee height', 'Set your back flat', 'Stand up by driving hips forward', 'Lower to the pins'], L);
+E('lying_leg_curl', 'Lying Leg Curl', 'ham_iso', ['Hamstrings'], ['machines'], 1, 'legcurl', 'pad',
+  ['Lie face down, pad above your heels', 'Hips stay pressed into the bench', 'Curl heels toward your glutes', 'Lower slowly'], L);
+E('sliding_leg_curl', 'Sliding Leg Curl', 'ham_iso', ['Hamstrings', 'Glutes'], [], 2, 'bridge', 'none',
+  ['Lie on your back, heels on towels or sliders', 'Lift hips into a bridge', 'Slide heels out, then pull them back in', 'Keep hips high'], L);
+E('single_leg_curl', 'Single-Leg Machine Curl', 'ham_iso', ['Hamstrings'], ['machines'], 1, 'legcurl', 'pad',
+  ['One leg at a time on the leg curl', 'Curl as far as you can', 'Pause and squeeze', 'Lower slowly'], L);
+
+// ---------- Glutes & hips ----------
+E('sl_glute_bridge', 'Single-Leg Glute Bridge', 'glute', ['Glutes', 'Hamstrings'], [], 1, 'bridge', 'none',
+  ['One foot flat, other leg straight', 'Drive through the planted heel', 'Lift until your body is straight', 'Lower slowly; switch sides'], L);
+E('bw_hip_thrust', 'Bodyweight Hip Thrust', 'glute', ['Glutes'], ['bench'], 1, 'hipthrust', 'none',
+  ['Upper back on a bench edge', 'Feet flat, about hip-width', 'Drive hips up, chin tucked', 'Squeeze glutes hard at the top'], L);
+E('sl_hip_thrust', 'Single-Leg Hip Thrust', 'glute', ['Glutes'], ['bench'], 2, 'hipthrust', 'none',
+  ['Upper back on a bench, one foot planted', 'Other knee pulled toward your chest', 'Drive up through the planted heel', 'Pause at the top'], L);
+E('marching_bridge', 'Marching Glute Bridge', 'glute', ['Glutes', 'Core'], [], 1, 'bridge', 'none',
+  ['Hold a glute bridge at the top', 'Lift one knee toward your chest', 'Keep hips level', 'Alternate legs'], L);
+E('glute_kickback_machine', 'Glute Kickback Machine', 'glute', ['Glutes'], ['machines'], 1, 'birddog', 'none',
+  ['Chest on the pad, foot on the plate', 'Push back and up with your heel', 'Squeeze glutes at the top', 'Return slowly'], L);
+E('quadruped_kickback', 'Quadruped Glute Kickback', 'glute', ['Glutes'], [], 1, 'birddog', 'none',
+  ['On hands and knees', 'Kick one heel up toward the ceiling', 'Keep your lower back neutral', 'Lower; finish the side, then switch'], L);
+E('band_walk', 'Lateral Band Walk', 'glute', ['Glutes', 'Hips'], ['bands'], 1, 'walk', 'none',
+  ['Mini band around your legs, quarter-squat', 'Step sideways, knees pushing out', 'Don\'t let feet snap together', 'Walk back the other way'], L);
+E('clamshell', 'Clamshell', 'glute', ['Glutes', 'Hips'], [], 1, 'clam', 'none',
+  ['Lie on your side, knees bent, feet together', 'Lift the top knee without rolling your hips back', 'Pause at the top', 'Add a mini band to make it harder'], L);
+E('hip_abduction', 'Hip Abduction Machine', 'glute', ['Glutes', 'Hips'], ['machines'], 1, 'seated_hip', 'none',
+  ['Sit tall, pads on the outside of your knees', 'Push your knees apart', 'Pause wide', 'Return slowly'], L);
+E('hip_adduction', 'Hip Adduction Machine', 'adductor', ['Inner thighs'], ['machines'], 1, 'seated_hip', 'none',
+  ['Pads on the inside of your knees', 'Squeeze your legs together', 'Pause briefly', 'Let them open slowly'], L);
+E('copenhagen', 'Copenhagen Plank', 'adductor', ['Inner thighs', 'Obliques'], ['bench'], 3, 'plank', 'none',
+  ['Side plank with your top foot on a bench', 'Bottom leg hangs free or lifts to the bench', 'Hips stay high', 'Start with short holds'], { unit: 'sec' });
+
+// ---------- Calves ----------
+E('seated_calf', 'Seated Calf Raise', 'calf', ['Calves'], ['machines'], 1, 'seated_calf', 'none',
+  ['Pad snug on your lower thighs', 'Drop heels for a deep stretch', 'Press up onto the balls of your feet', 'Pause at the top'], L);
+E('db_seated_calf', 'Seated Dumbbell Calf Raise', 'calf', ['Calves'], ['dumbbell', 'bench'], 1, 'seated_calf', 'none',
+  ['Sit with dumbbells resting on your knees', 'Balls of feet on a plate or step', 'Raise heels as high as you can', 'Lower slowly'], L);
+E('leg_press_calf', 'Leg Press Calf Raise', 'calf', ['Calves'], ['machines'], 1, 'legpress', 'none',
+  ['Balls of feet on the bottom edge of the platform', 'Legs straight but not locked', 'Push the platform with your toes', 'Let it come back for a stretch'], L);
+E('single_leg_calf', 'Single-Leg Calf Raise', 'calf', ['Calves'], [], 2, 'calf', 'none',
+  ['Stand on one foot on a step edge', 'Hold something for balance', 'Rise high, pause', 'Lower below the step'], L);
+
+// ---------- Core ----------
+E('hanging_leg_raise', 'Hanging Leg Raise', 'core', ['Abs', 'Hip flexors'], ['pullup_bar'], 3, 'hangraise', 'none',
+  ['Hang with shoulders engaged', 'Raise straight legs to hip height or higher', 'Curl your pelvis up at the top', 'Lower without swinging'], {});
+E('lying_leg_raise', 'Lying Leg Raise', 'core', ['Lower abs'], [], 1, 'legraise', 'none',
+  ['Lie flat, hands under your hips', 'Lower back stays pressed down', 'Raise legs to vertical', 'Lower slowly; stop before your back arches'], {});
+E('sit_up', 'Sit-Up', 'core', ['Abs', 'Hip flexors'], [], 1, 'situp', 'none',
+  ['Knees bent, feet anchored or flat', 'Arms crossed on your chest', 'Curl all the way up', 'Lower one vertebra at a time'], {});
+E('decline_situp', 'Decline Sit-Up', 'core', ['Abs'], ['bench'], 2, 'situp', 'none',
+  ['Hook your feet on a decline bench', 'Curl up toward your knees', 'Exhale on the way up', 'Lower with control'], {});
+E('bicycle_crunch', 'Bicycle Crunch', 'core', ['Abs', 'Obliques'], [], 1, 'crunch', 'none',
+  ['Hands lightly behind your head', 'Bring one elbow toward the opposite knee', 'Extend the other leg long', 'Alternate smoothly'], {});
+E('russian_twist', 'Russian Twist', 'core', ['Obliques', 'Abs'], [], 1, 'twist', 'none',
+  ['Sit leaning back, knees bent', 'Rotate your torso side to side', 'Tap the floor beside each hip', 'Hold a weight to make it harder'], {});
+E('hollow_hold', 'Hollow Body Hold', 'core', ['Abs'], [], 2, 'crunch', 'none',
+  ['Lie on your back, press your lower back down', 'Lift shoulders and legs off the floor', 'Arms reach overhead', 'Hold; bend knees to make it easier'], { unit: 'sec' });
+E('ab_rollout', 'Barbell Ab Rollout', 'core', ['Abs', 'Lats'], ['barbell'], 3, 'rollout', 'dumbbell',
+  ['Kneel holding a loaded barbell (round plates)', 'Roll forward with a braced core', 'Go only as far as you can without sagging', 'Pull back with your abs'], {});
+E('shoulder_taps', 'Plank Shoulder Taps', 'core', ['Core', 'Shoulders'], [], 1, 'pushup', 'none',
+  ['High plank, feet wider than hips', 'Tap one hand to the opposite shoulder', 'Keep hips from rocking', 'Alternate sides'], {});
+E('cable_woodchop', 'Cable Woodchop', 'core', ['Obliques', 'Core'], ['cable'], 2, 'cable_fly', 'cable',
+  ['Pulley set high, stand side-on', 'Pull diagonally down across your body', 'Rotate through your hips and torso', 'Return slowly; switch sides'], {});
 
 const EX_BY_ID = Object.fromEntries(EXERCISES.map(e => [e.id, e]));
 EXERCISES.forEach(e => { e.group = PATTERN_GROUP[e.pattern]; });

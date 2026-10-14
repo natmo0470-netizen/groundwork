@@ -1,4 +1,4 @@
-# Groundwork — v1.2
+# Groundwork — v1.3
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -18,7 +18,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Macros | Recommended protein/carbs/fat per goal; switch to custom grams any time; reset to recommended |
 | Food log | 167 built-in foods, online search of Open Food Facts, servings, 4 meals, quick add, custom foods, recents |
 | Workout plan | Split chosen from days/week (2–6) and goal; exercises filtered by equipment and experience; swap any exercise |
-| Exercise guides | 118 exercises, each with an animated demo, step-by-step form cues and muscles worked |
+| Exercise guides | 234 exercises (chest, back, shoulders, arms, legs, glutes, calves, core, traps, forearms, cardio), each with an animated demo, step-by-step form cues and muscles worked |
 | Logger | Weight × reps per set, previous-session column, rest timer, suggested next weight (double progression), PR detection |
 | Progress | Weight trend (7-day average), weekly check-in that adjusts calories, 7-day calorie chart, PR board, history |
 | Reminders | Workout day, missed sessions, food logging, protein behind, weigh-in, weekly check-in; optional browser notifications while open |
