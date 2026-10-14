@@ -23,7 +23,7 @@ function render() {
     root.innerHTML = viewOnboarding();
   } else {
     const views = { today: viewToday, train: viewTrain, food: viewFood, progress: viewProgress };
-    root.innerHTML = `<div class="app">${header()}<main class="view" id="view">${views[UI.tab]()}</main>${tabBar()}</div>`
+    root.innerHTML = `<div class="app">${header()}<main class="view" id="view">${typeof tipBanner === 'function' ? tipBanner(UI.tab) : ''}${views[UI.tab]()}</main>${tabBar()}</div>`
       + (S.activeWorkout && UI.loggerOpen ? viewLogger() : '')
       + (UI.rest && S.activeWorkout && UI.loggerOpen ? restBar() : '')
       + (UI.sheet ? `<div class="scrim" data-act="close-sheet"></div>${sheetHtml()}` : '')
@@ -156,6 +156,7 @@ function viewOnboarding() {
         <div class="h2">${esc(plan.split)}</div>
         <div class="ex-mini">${first.items.map((it, i) => `<div class="row"><span class="n">${i + 1}</span><span class="grow">${esc(EX_BY_ID[it.exId].name)}</span><span class="small faint num">${it.sets}×${it.min}–${it.max}${EX_BY_ID[it.exId].unit === 'reps' ? '' : EX_BY_ID[it.exId].unit === 'sec' ? 's' : ' min'}</span></div>`).join('')}</div>
         <p class="small faint">First workout: ${esc(first.name)}. Every exercise has a demo and form tips.</p></div>
+      ${o.experience === 'beginner' ? `<div class="nudge guide-tip"><span class="ni">${icon('bulb', 20)}</span><div class="stack grow" style="gap:4px"><b>Guided view is on</b><span class="small muted">You'll get short tips, a first-week checklist and beginner guides. Switch to Standard view in Settings anytime.</span></div></div>` : ''}
       <p class="tiny faint">Groundwork gives general fitness and nutrition guidance, not medical advice. Check with a doctor before starting if you have a health condition, are pregnant, or are new to exercise after a long break.</p>`;
   }
   const valid = obValid(step);
@@ -200,19 +201,22 @@ function viewToday() {
   }
 
   const left = T.calories - tot.kcal;
+  // Guided view: one reminder at a time, and skip the daytime workout reminder (the card below covers it).
+  const todayRems = isGuided() ? rems.filter(r => !(r.id === 'workout' && r.level !== 'high')).slice(0, 1) : rems.slice(0, 2);
   return `
     <div class="stack" style="gap:2px"><span class="eyebrow">${prettyDate(today)}</span><h1 class="h1">${greeting()}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1></div>
     ${S.demo ? `<div class="banner">${icon('info', 18)}<span class="grow">You're viewing sample data.</span><button class="link fuel" data-act="end-demo">Start fresh</button></div>` : ''}
-    ${rems.slice(0, 2).map(nudgeHtml).join('')}
-    ${rems.length > 2 ? `<button class="link muted" data-act="open-notifs" style="align-self:flex-start">See all ${rems.length} reminders</button>` : ''}
+    ${todayRems.map(nudgeHtml).join('')}
+    ${rems.length > todayRems.length ? `<button class="link muted" data-act="open-notifs" style="align-self:flex-start">See all ${rems.length} reminders</button>` : ''}
     ${trainCard}
     <div class="card fuel">
       <div class="card-head"><span class="eyebrow">Nutrition today</span><button class="link fuel" data-act="tab" data-id="food">Open log</button></div>
       <div class="ring-wrap"><div class="ring">${ring(tot.kcal, T.calories, 'var(--fuel)')}<div class="c"><span class="mid-num ${left < 0 ? 'over' : ''}">${fmtInt(Math.abs(left))}</span><span class="tiny faint">${left < 0 ? 'kcal over' : 'kcal left'}</span></div></div>
       <div class="kv"><div class="row"><span class="small muted">Target</span><b class="num">${fmtInt(T.calories)}</b></div><div class="row"><span class="small muted">Eaten</span><b class="num">${fmtInt(tot.kcal)}</b></div><div class="row"><span class="small muted">Protein</span><b class="num">${r0(tot.p)} / ${T.protein} g</b></div></div></div>
-      <div class="macros">${macroBar('p', 'Protein', tot.p, T.protein)}${macroBar('c', 'Carbs', tot.c, T.carbs)}${macroBar('f', 'Fat', tot.f, T.fat)}</div>
+      ${macroRow(tot, T)}
       <button class="btn fuel block" data-act="add-food" data-meal="${mealForNow()}">${icon('plus', 18)} Log food</button>
     </div>
+    ${guidedTodayExtras()}
     ${typeof todayMealsCard === 'function' ? todayMealsCard() : ''}
     <div class="card"><div class="card-head"><span class="eyebrow">This week</span><span class="small faint">${weekDoneCount()} of ${weekPlannedCount()} sessions</span></div>${weekStrip()}</div>
     <div class="card">
@@ -310,8 +314,9 @@ function viewPlan() {
 }
 function blockCard() {
   const b = blockInfo(S); if (!b) return '';
-  const label = b.done ? 'Block complete' : b.deload ? `Week ${b.week} of ${b.len} · Deload week` : `Week ${b.week} of ${b.len}`;
-  return `<div class="stack" style="gap:6px"><div class="row between"><span class="small"><b>Block ${b.block}</b> · ${label}</span>${b.done ? `<button class="btn sm train" data-act="new-block">Start block ${b.block + 1}</button>` : b.deload ? '' : `<span class="tiny faint">Deload in week ${b.len}</span>`}</div>
+  const label = b.done ? `${term('block')} complete` : b.deload ? `Week ${b.week} of ${b.len} · ${term('deload')}` : `Week ${b.week} of ${b.len}`;
+  return `<div class="stack" style="gap:6px"><div class="row between"><span class="small"><b>${term('block')} ${b.block}</b> · ${label}</span>${b.done ? `<button class="btn sm train" data-act="new-block">Start ${term('block').toLowerCase()} ${b.block + 1}</button>` : b.deload ? '' : `<span class="tiny faint">${term('deload')} in week ${b.len}</span>`}</div>
+    ${isGuided() && !b.done ? `<span class="tiny faint">${b.deload ? 'This week: fewer, lighter sets so your body can recover.' : `Every ${b.len} weeks you get an easy week to recover. <button class="link small" data-act="open-guide" data-id="progress">How it works</button>`}</span>` : ''}
     <div class="blockbar">${[...Array(b.len)].map((_, i) => `<i class="${i + 1 < b.week || b.done ? 'past' : i + 1 === b.week ? 'now' : ''} ${i + 1 === b.len ? 'dl' : ''}"></i>`).join('')}</div></div>`;
 }
 function exRow(it, attrs, right) {
@@ -371,7 +376,8 @@ function viewLogger() {
       <span class="elapsed" id="elapsed">${elapsedText(a.startedAt)}</span>
       <button class="btn sm train" data-act="finish-workout">Finish</button></div>
     <div class="progress"><i style="width:${totalSets ? (doneSets / totalSets) * 100 : 0}%"></i></div>
-    ${a.deload ? `<div class="banner">${icon('info', 18)}<span><b>Deload week.</b> Fewer sets at about 90% of your usual weight. Stop 3–4 reps short of failure. This lets you come back stronger next block.</span></div>` : ''}
+    ${tipBanner('logger')}
+    ${a.deload ? `<div class="banner">${icon('info', 18)}<span><b>${term('deload')}.</b> Fewer sets at about 90% of your usual weight. Stop 3–4 reps short of failure. This lets you come back stronger next block.</span></div>` : ''}
     ${a.items.map((it, i) => loggerCard(it, i)).join('')}
     <button class="btn ghost block" data-act="add-ex" data-scope="active">${icon('plus', 18)} Add an exercise</button>
     <button class="btn danger block" data-act="cancel-workout">Discard workout</button>
@@ -388,7 +394,7 @@ function loggerCard(it, i) {
   if (deload) sug.reps = it.min;
   return `<div class="card" id="ex-${i}">
     <div class="row"><button class="thumb" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" aria-label="How to do ${esc(ex.name)}" style="border:0;padding:0">${Demo.staticSvg(ex.anim, ex.prop, ex.name)}</button>
-      <div class="grow"><button class="link" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" style="color:var(--ink);font-size:16px;text-align:left">${esc(ex.name)}</button><div class="small muted">${it.slot === 'finisher' ? esc(it.note) + ' · ' : ''}${rxText(it, false)}</div></div>
+      <div class="grow"><button class="link" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" style="color:var(--ink);font-size:16px;text-align:left">${esc(ex.name)}</button><div class="small muted">${it.slot === 'finisher' ? esc(it.note) + ' · ' : ''}${rxText(it, false)}</div>${loggerHelp(it, ex, i)}</div>
       <button class="icon-btn" data-act="swap" data-scope="active" data-idx="${i}" aria-label="Swap exercise">${icon('swap', 20)}</button></div>
     <div class="tip">${icon('target', 16)}<span>${esc(deloadTip || sug.text)}</span></div>
     <div class="sets ${weighted ? '' : 'nowt'}">

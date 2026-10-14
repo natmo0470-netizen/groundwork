@@ -1,4 +1,4 @@
-# Groundwork — v1.4
+# Groundwork — v1.5
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -14,6 +14,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Area | What it does |
 | --- | --- |
 | Onboarding | 5 steps: body stats (lb/ft or kg/cm), goal, experience + activity, training days (2–7) + session length, equipment (pick your gym chain, "Full gym", or individual items) |
+| Experience views | Guided (beginners: screen tips, first-week checklist, 11 guides, calories + protein first, plain-language labels, logger helpers), Standard and Advanced; set from experience level, switchable in Settings |
 | Calorie calculator | Mifflin-St Jeor BMR × activity, goal adjustment, safety floor (1,200 / 1,500 kcal) |
 | Macros | Recommended protein/carbs/fat per goal; switch to custom grams any time; reset to recommended |
 | Food log | 167 built-in foods, online search of Open Food Facts, servings, 4 meals, quick add, custom foods, recents |
@@ -51,6 +52,7 @@ js/store.js         storage adapter (swap for a cloud database in Phase 5)
 js/calc.js          calorie/macro math and units
 js/planner.js       plan builder, day switching, progression, personal records
 js/programs.js      ready-made programs
+js/guide.js         experience views, tips, first-week checklist, guides
 js/reminders.js     reminder rules and weekly check-in
 js/ui.js, app.js, screens.js, actions.js   screens and interactions
 ```

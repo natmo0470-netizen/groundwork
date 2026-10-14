@@ -13,8 +13,9 @@ function viewFoodLog() {
       <div class="ring-wrap"><div class="ring">${ring(tot.kcal, T.calories, 'var(--fuel)')}<div class="c"><span class="mid-num ${left < 0 ? 'over' : ''}">${fmtInt(Math.abs(left))}</span><span class="tiny faint">${left < 0 ? 'kcal over' : 'kcal left'}</span></div></div>
         <div class="kv"><div class="row"><span class="small muted">Target</span><b class="num">${fmtInt(T.calories)}</b></div><div class="row"><span class="small muted">Eaten</span><b class="num">${fmtInt(tot.kcal)}</b></div>
         <button class="link fuel" data-act="open-targets" style="text-align:left">${T.custom ? 'Custom macros' : 'Recommended for ' + GOALS[S.profile.goal].short.toLowerCase()} · Edit</button></div></div>
-      <div class="macros">${macroBar('p', 'Protein', tot.p, T.protein)}${macroBar('c', 'Carbs', tot.c, T.carbs)}${macroBar('f', 'Fat', tot.f, T.fat)}</div>
+      ${macroRow(tot, T)}
     </div>
+    ${isGuided() ? `<button class="link fuel small" data-act="open-guide" data-id="portions" style="align-self:flex-start">${icon('book', 16)} No food scale? Use your hand</button>` : ''}
     ${MEALS.map(([id, label]) => {
       const list = items.filter(i => i.meal === id);
       const kcal = list.reduce((s, i) => s + i.kcal * i.servings, 0);
@@ -53,7 +54,7 @@ function viewProgress() {
     <div class="card fuel"><div class="card-head"><span class="eyebrow">Calories, last 7 days</span></div>${calorieChart(S, T.calories)}</div>
     <div class="card train">
       <div class="card-head"><span class="eyebrow">Training</span></div>
-      <div class="stats"><div class="stat"><div class="v">${weekDoneCount()}/${weekPlannedCount()}</div><div class="k">This week</div></div><div class="stat"><div class="v">${S.workouts.length}</div><div class="k">Workouts</div></div><div class="stat"><div class="v">${S.workouts.reduce((n, w) => n + (w.prs || []).length, 0)}</div><div class="k">PRs set</div></div></div>
+      <div class="stats"><div class="stat"><div class="v">${weekDoneCount()}/${weekPlannedCount()}</div><div class="k">This week</div></div><div class="stat"><div class="v">${S.workouts.length}</div><div class="k">Workouts</div></div><div class="stat"><div class="v">${S.workouts.reduce((n, w) => n + (w.prs || []).length, 0)}</div><div class="k">${term('prs')}</div></div></div>
     </div>
     <div class="card"><div class="card-head"><span class="eyebrow">Personal records</span>${icon('trophy', 18, 'style="color:var(--fuel)"')}</div>
       ${prs.length ? `<div class="list">${prs.map(r => `<button class="li pr-row" data-act="open-ex" data-id="${r.ex.id}"><span class="medal">${icon('trophy', 18)}</span><span class="grow"><span class="t">${esc(r.ex.name)}</span><br><span class="d">${r.maxW ? `Best: ${kgToDisp(S, r.maxW)} ${wUnit(S)} × ${r.maxWReps}` : `Best: ${r.maxReps} reps`}</span></span>${r.best1 ? `<span class="r"><b class="num">${kgToDisp(S, r.best1, 0)}</b><br><span class="tiny faint">est. 1-rep max</span></span>` : ''}</button>`).join('')}</div>`
@@ -304,7 +305,12 @@ const SHEETS = {
     const sw = (k, label, sub) => `<div class="toggle"><span class="small"><b>${label}</b>${sub ? `<br><span class="faint">${sub}</span>` : ''}</span><button class="switch" role="switch" aria-checked="${!!R[k]}" data-act="rem-toggle" data-k="${k}" aria-label="${label}"></button></div>`;
     const notifState = !notifySupported() ? 'Not supported here' : (() => { try { return Notification.permission; } catch (e) { return 'blocked'; } })();
     return sheetHead('Settings')
-      + `<div class="card" style="box-shadow:none" id="set-profile"><span class="eyebrow">Profile</span>
+      + `<div class="card" style="box-shadow:none" id="set-mode"><span class="eyebrow">App experience</span>
+        <div class="seg">${Object.entries(MODES).map(([k, m]) => `<button data-act="set-mode" data-v="${k}" aria-pressed="${modeOf() === k}">${m.label}</button>`).join('')}</div>
+        <p class="small muted" style="margin:0">${esc(MODES[modeOf()].desc)}${S.mode ? '' : ` Set from your experience level (${EXPERIENCE[S.profile.experience].label.toLowerCase()}).`}</p>
+        <div class="grid2"><button class="btn ghost sm" data-act="open-guides">${icon('book', 16)} Guides</button><button class="btn ghost sm" data-act="tips-reset">Show tips again</button></div>
+      </div>
+      <div class="card" style="box-shadow:none" id="set-profile"><span class="eyebrow">Profile</span>
         <div class="seg"><button data-act="set-units" data-v="imperial" aria-pressed="${!metric}">lb · ft/in</button><button data-act="set-units" data-v="metric" aria-pressed="${metric}">kg · cm</button></div>
         <div class="grid2"><div class="field"><label for="st-name">Name</label><input class="input" id="st-name" data-prof="name" value="${esc(p.name)}"></div><div class="field"><label for="st-age">Age</label><input class="input" id="st-age" data-prof="age" inputmode="numeric" value="${p.age}"></div></div>
         <div class="grid2">${metric ? `<div class="field"><label for="st-cm">Height (cm)</label><input class="input" id="st-cm" data-prof="cm" inputmode="numeric" value="${r0(p.heightCm)}"></div>` : `<div class="field"><span class="label">Height</span><div class="grid2"><input class="input" aria-label="Feet" data-prof="ft" inputmode="numeric" value="${h.ft}"><input class="input" aria-label="Inches" data-prof="inch" inputmode="numeric" value="${h.inch}"></div></div>`}
@@ -339,7 +345,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Groundwork v1.0 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
+      <p class="tiny faint">Groundwork v1.5 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
   },
 
   feedback(s) {

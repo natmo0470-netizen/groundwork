@@ -373,3 +373,11 @@ details.pantry summary::-webkit-details-marker { display: none; }
 @media (min-width: 560px) {
   .top { padding-left: max(16px, calc(50% - 224px)); padding-right: max(16px, calc(50% - 224px)); }
 }
+
+/* Guided mode */
+.guide-tip { border-color: color-mix(in srgb, var(--train) 35%, var(--line)); background: color-mix(in srgb, var(--train) 6%, var(--surface)); }
+.guide-tip .ni { background: color-mix(in srgb, var(--train) 16%, transparent); color: var(--train); }
+.fw-item .fw-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; flex: none; color: #fff; }
+.fw-item.done { opacity: 1; }
+.fw-item.done .fw-check { background: var(--train); border-color: var(--train); }
+.fw-item.done .t { text-decoration: line-through; color: var(--ink-3); }
