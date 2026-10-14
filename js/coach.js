@@ -75,7 +75,8 @@ function clientFlags(d) {
   if (d.adherence && d.adherence.planned && d.adherence.done / d.adherence.planned < 0.6) f.push(['Missed sessions', 'warn']);
   const logged = (d.food || []).filter(x => x.logged).slice(-7);
   if (logged.length >= 3 && d.targets) { const avg = logged.reduce((s, x) => s + x.kcal, 0) / logged.length; if (avg < d.targets.calories * 0.8) f.push(['Eating under target', 'warn']); }
-  if (logged.length < 3) f.push(['Not logging food', '']);
+  if (logged.length < 3 && !(d.shared && (d.shared.paused || !d.shared.nutrition))) f.push(['Not logging food', '']);
+  if (d.shared && (d.shared.paused || SHARE_CATS.some(([k]) => !d.shared[k]))) f.push([d.shared.paused ? 'Sharing paused' : 'Limited sharing', '']);
   if ((d.pain || []).some(p => p.kind === 'sharp')) f.push(['Reported pain', 'warn']);
   if (d.safety && d.safety.needsClearance && !d.safety.cleared) f.push(['Needs doctor OK', 'warn']);
   return f;
@@ -98,7 +99,7 @@ function viewClients() {
     ${list.length ? list.map(c => { const d = c.data, fl = clientFlags(d), tr = weightTrend(d);
       return `<button class="card client-card" data-act="client-open" data-id="${c.id}" style="text-align:left">
         <div class="row between"><div><div class="h3">${esc(c.name)}</div><div class="small muted">${d ? `Update ${ago(d.sentAt.slice(0, 10))}` : c.linked ? 'Linked · waiting for first update' : 'Invite sent'}${d && d.plan ? ' · ' + esc(d.plan.name) : ''}</div></div><span class="chev">${icon('chevR', 18)}</span></div>
-        ${d ? `<div class="stats"><div class="stat"><div class="v">${d.adherence.done}/${d.adherence.planned}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">Weight 3 wk (${wUnit(S)})</div></div><div class="stat"><div class="v">${(() => { const l = d.food.filter(x => x.logged).slice(-7); return l.length ? fmtInt(l.reduce((s, x) => s + x.kcal, 0) / l.length) : '—'; })()}</div><div class="k">Avg kcal</div></div></div>` : ''}
+        ${d ? `<div class="stats"><div class="stat"><div class="v">${d.adherence ? `${d.adherence.done}/${d.adherence.planned}` : '—'}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">Weight 3 wk (${wUnit(S)})</div></div><div class="stat"><div class="v">${(() => { const l = (d.food || []).filter(x => x.logged).slice(-7); return l.length ? fmtInt(l.reduce((s, x) => s + x.kcal, 0) / l.length) : '—'; })()}</div><div class="k">Avg kcal</div></div></div>` : ''}
         ${fl.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${fl.map(([t, k]) => `<span class="tag ${k === 'warn' ? 'fuel' : ''}">${t}</span>`).join('')}</div>` : ''}
       </button>`; }).join('')
       : `<div class="card"><div class="empty">${icon('user', 28)}<span>Add your first client. They join with an invite file, then send you weekly updates.</span><button class="btn ghost sm" data-act="coach-sample">Try it with a sample client</button></div></div>`}
@@ -112,6 +113,7 @@ Object.assign(SHEETS, {
     return sheetHead('Coaching', 'Work with a coach, or coach clients yourself')
       + `<div class="card" style="box-shadow:none"><span class="eyebrow">Your coach</span>
         ${c ? `<div class="row between"><div><div class="h3">${esc(c.name)}</div><div class="small muted">Linked ${shortDate(c.linkedAt)} · last update sent ${ago(c.lastSent)}</div></div></div>
+          ${shareControls(c.share || defaultShare(), 'share-set', c.name)}
           <button class="btn train block" data-act="client-send">${icon('share', 18)} Send update to ${esc(c.name.split(' ')[0])}</button>
           <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="client-import">Open a file from your coach</button><button class="btn danger sm" data-act="client-leave">Leave coach</button></div>`
         : `<p class="small muted" style="margin:0">Got an invite from a coach? Open it here to link up. Your coach can then send you plans and targets, and you send back weekly updates.</p><button class="btn ghost block" data-act="client-import">Open coach invite</button>`}</div>
@@ -135,35 +137,40 @@ Object.assign(SHEETS, {
   },
   client(s) {
     const c = findClient(s.id); if (!c) return sheetHead('Client', '');
-    const d = c.data;
+    const d = c.data, sh = (d && d.shared) || null;
+    const hidden = cat => sh && (sh.paused || !sh[cat]);
+    const notShared = what => `<div class="empty">${icon('info', 24)}<span>${esc(c.name)} isn't sharing ${what} with you. They control this in their Coaching settings.</span></div>`;
     const tabs = `<div class="seg">${[['overview', 'Overview'], ['training', 'Training'], ['food', 'Nutrition'], ['plan', 'Assign']].map(([k, l]) => `<button data-act="client-tab" data-v="${k}" aria-pressed="${(s.tab || 'overview') === k}">${l}</button>`).join('')}</div>`;
     let body = '';
     const tab = s.tab || 'overview';
     if (!d && tab !== 'plan') body = `<div class="empty">${icon('download', 26)}<span>No update yet. Ask ${esc(c.name)} to tap <b>Send update to coach</b>, then open the file here.</span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="coach-reinvite" data-id="${c.id}">Resend invite</button><button class="btn ghost sm" data-act="coach-import">Open update</button></div>`;
+    else if (tab === 'training' && hidden('workouts')) body = notShared('training details');
+    else if (tab === 'food' && hidden('nutrition')) body = notShared('nutrition');
     else if (tab === 'overview') {
-      const fl = clientFlags(d), tr = weightTrend(d), pseudo = { weights: d.weights, profile: { units: S.profile.units } };
-      body = `<div class="small muted">Update ${ago(d.sentAt.slice(0, 10))} · ${GOALS[d.profile.goal] ? GOALS[d.profile.goal].label : ''} · ${d.profile.age} y · ${esc(d.plan ? d.plan.name : 'no plan')}</div>
+      const fl = clientFlags(d), tr = weightTrend(d), pseudo = { weights: d.weights || [], profile: { units: S.profile.units } };
+      body = `<div class="small muted">Update ${ago(d.sentAt.slice(0, 10))} · ${GOALS[d.profile.goal] ? GOALS[d.profile.goal].label : ''} · ${d.profile.age ? d.profile.age + ' y · ' : ''}${esc(d.plan ? d.plan.name : 'no plan')}</div>
         ${fl.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${fl.map(([t, k]) => `<span class="tag ${k === 'warn' ? 'fuel' : ''}">${t}</span>`).join('')}</div>` : ''}
         ${d.note ? `<div class="banner">${icon('chat', 18)}<span><b>${esc(c.name)}:</b> ${esc(d.note)}</span></div>` : ''}
-        <div class="stats"><div class="stat"><div class="v">${d.adherence.done}/${d.adherence.planned}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${d.weights.length ? kgToDisp(S, d.weights[d.weights.length - 1].kg) : '—'}</div><div class="k">Weight (${wUnit(S)})</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">3-wk change</div></div></div>
-        ${weightChart(pseudo, 60) || '<p class="small faint">Not enough weigh-ins for a chart yet.</p>'}
+        ${sh ? `<p class="tiny muted" style="margin:0">${sh.paused ? `${esc(c.name)} has paused sharing.` : `Sharing: ${SHARE_CATS.filter(([k]) => sh[k]).map(([, l]) => l).join(', ') || 'nothing'}${SHARE_CATS.some(([k]) => !sh[k]) ? ` · Not sharing: ${SHARE_CATS.filter(([k]) => !sh[k]).map(([, l]) => l).join(', ')}` : ''}`}</p>` : ''}
+        <div class="stats"><div class="stat"><div class="v">${d.adherence ? `${d.adherence.done}/${d.adherence.planned}` : '—'}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${(d.weights || []).length ? kgToDisp(S, d.weights[d.weights.length - 1].kg) : '—'}</div><div class="k">Weight (${wUnit(S)})</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">3-wk change</div></div></div>
+        ${hidden('body') ? '<p class="small faint">Weigh-ins and measurements aren\'t shared.</p>' : (weightChart(pseudo, 60) || '<p class="small faint">Not enough weigh-ins for a chart yet.</p>')}
         ${d.activity ? `<p class="small muted" style="margin:0">From their phone/watch: ${d.activity.stepsAvg != null ? `<b>${fmtInt(d.activity.stepsAvg)}</b> steps/day` : ''}${d.activity.sleepAvg != null ? ` · <b>${Math.floor(d.activity.sleepAvg / 60)}h ${String(d.activity.sleepAvg % 60).padStart(2, '0')}m</b> sleep` : ''} (7-day average)</p>` : ''}
-        ${d.measurements.length ? `<p class="small muted">Waist: ${d.measurements.filter(m => m.waist).map(m => `${cmToDisp(m.waist)} ${lenUnit()} (${shortDate(m.date)})`).slice(-3).join(' → ') || '—'}</p>` : ''}
-        ${d.pain.length ? `<div class="stack" style="gap:4px"><span class="label">Pain reports</span>${d.pain.map(p => `<span class="small">${shortDate(p.date)} · ${esc(p.area)} · ${p.kind === 'sharp' ? 'sharp' : 'ache'} · ${esc((EX_BY_ID[p.exId] || {}).name || '')}</span>`).join('')}</div>` : ''}
+        ${(d.measurements || []).length ? `<p class="small muted">Waist: ${d.measurements.filter(m => m.waist).map(m => `${cmToDisp(m.waist)} ${lenUnit()} (${shortDate(m.date)})`).slice(-3).join(' → ') || '—'}</p>` : ''}
+        ${(d.pain || []).length ? `<div class="stack" style="gap:4px"><span class="label">Pain reports</span>${d.pain.map(p => `<span class="small">${shortDate(p.date)} · ${esc(p.area)} · ${p.kind === 'sharp' ? 'sharp' : 'ache'} · ${esc((EX_BY_ID[p.exId] || {}).name || '')}</span>`).join('')}</div>` : ''}
         <div class="field"><label for="cl-notes">Private notes</label><textarea class="input" id="cl-notes" rows="3" data-clnotes="${c.id}" placeholder="Only you see these">${esc(c.notes || '')}</textarea></div>`;
     } else if (tab === 'training') {
-      body = d.workouts.length ? d.workouts.slice().reverse().map(w => {
+      body = (d.workouts || []).length ? d.workouts.slice().reverse().map(w => {
         const byEx = {}; w.sets.forEach(([id, kg, reps, rir, type]) => { if (type === 'warm') return; (byEx[id] = byEx[id] || []).push([kg, reps, rir]); });
         return `<div class="card" style="box-shadow:none;gap:6px"><div class="row between"><b>${esc(w.name)}</b><span class="small faint">${shortDate(w.date)} · ${w.durationMin} min${w.prs ? ` · ${w.prs} PR` : ''}</span></div>
           ${Object.entries(byEx).map(([id, sets]) => `<div class="row between small"><span>${esc((EX_BY_ID[id] || {}).name || id)}</span><span class="num faint">${sets.map(([kg, r, rir]) => `${kg ? kgToDisp(S, kg) + '×' : ''}${r}${rir != null ? ' @' + rir : ''}`).join(', ')}</span></div>`).join('')}</div>`;
       }).join('') : '<p class="muted">No workouts in the last 4 weeks.</p>';
     } else if (tab === 'food') {
-      const T = d.targets;
+      const T = d.targets || { calories: 0, protein: 0 };
       body = `<p class="small muted" style="margin:0">Targets: ${fmtInt(T.calories)} kcal · ${T.protein} g protein</p>
         <div class="list">${d.food.slice().reverse().map(x => `<div class="li"><span class="grow">${shortDate(x.date)}</span>${x.logged ? `<span class="num small ${x.kcal > T.calories * 1.1 || x.kcal < T.calories * 0.8 ? 'over' : ''}">${fmtInt(x.kcal)} kcal</span><span class="num small faint" style="width:70px;text-align:right">${x.p} g P</span>` : '<span class="small faint">Not logged</span>'}</div>`).join('')}</div>`;
     } else {
-      const a = s.assign || (s.assign = { mode: 'program', program: 'starter3', days: [1, 3, 5], targets: false, kcal: d ? d.targets.calories : 2000, p: d ? d.targets.protein : 150, c: d ? d.targets.carbs : 200, f: d ? d.targets.fat : 65, note: '' });
+      const a = s.assign || (s.assign = { mode: 'program', program: 'starter3', days: [1, 3, 5], targets: false, kcal: d && d.targets ? d.targets.calories : 2000, p: d && d.targets ? d.targets.protein : 150, c: d && d.targets ? d.targets.carbs : 200, f: d && d.targets ? d.targets.fat : 65, note: '' });
       const mine = (S.plan ? S.plan.workouts.filter(w => w.custom) : []);
       body = `<div class="seg"><button data-act="as-mode" data-v="program" aria-pressed="${a.mode === 'program'}">A program</button><button data-act="as-mode" data-v="custom" aria-pressed="${a.mode === 'custom'}">My workouts</button><button data-act="as-mode" data-v="none" aria-pressed="${a.mode === 'none'}">Targets only</button></div>
         ${a.mode === 'program' ? `<div class="field"><label for="as-prog">Program</label><select class="input" id="as-prog" data-as="program">${PROGRAMS.map(p => `<option value="${p.id}" ${a.program === p.id ? 'selected' : ''}>${esc(p.name)} (${p.days} days)</option>`).join('')}</select></div>` : ''}
@@ -301,9 +308,7 @@ Object.assign(ACT, {
     try { o = parseCoachText(f ? await readFile(f) : val('cf-text')); } catch (e) { toast('That isn\'t a Groundwork coach file'); return; }
     if (o.type === 'invite') {
       if (S.coach && S.coach.id !== o.coachId) { toast(`You're already linked to ${S.coach.name}. Leave first to switch coaches.`); return; }
-      S.coach = { id: o.coachId, name: o.coachName, clientId: o.clientId, key: o.key, linkedAt: todayKey(), lastSent: null };
-      if (o.clientName && !S.profile.name) S.profile.name = o.clientName;
-      save(); closeAll(); toast(`Linked with ${o.coachName}. Send your first update when you're ready.`); return;
+      UI.stack = []; UI.sheet = { type: 'coachJoin', invite: o, share: defaultShare(), tall: true }; render(); return;
     }
     if (o.type === 'assign') {
       if (!S.coach || S.coach.id !== o.coachId || S.coach.clientId !== o.clientId) { toast('This plan is for a different coach link. Open the invite first.'); return; }
@@ -331,7 +336,7 @@ Object.assign(ACT, {
   'client-leave': () => confirmSheet('Leave your coach?', 'Your plan and data stay. You can rejoin with a new invite.', 'Leave', () => { S.coach = null; save(); closeAll(); toast('Unlinked'); }, true),
   'coach-copy': async () => { try { await navigator.clipboard.writeText(UI.lastCoachText || ''); toast('Copied'); } catch (e) { const ta = document.getElementById('cs-text'); if (ta) { ta.focus(); ta.select(); } toast('Text selected. Copy it with your device\'s copy command.'); } },
 });
-SHEETS.clientSend = () => sheetHead(`Update for ${esc(S.coach.name)}`, 'Your last 4 weeks of training, food totals, weigh-ins and measurements')
+SHEETS.clientSend = () => sheetHead(`Update for ${esc(S.coach.name)}`, 'Your last 4 weeks of progress, limited to what you share')
   + `<div class="field"><label for="cs-note">Note to your coach (optional)</label><textarea class="input" id="cs-note" rows="3" placeholder="How did the week feel?"></textarea></div>
   ${S.health && S.health.on ? `<p class="small muted" style="margin:0">Includes your 7-day step and sleep averages from ${typeof HealthSync !== 'undefined' ? HealthSync.name() : 'your phone'}.</p>` : ''}
   <p class="tiny faint">Encrypted so only your coach can open it. Progress photos are never included.</p>
@@ -352,3 +357,61 @@ computeReminders = function (state, now) {
     out.push({ id: 'coachupd', level: 'normal', title: `Weekly update for ${state.coach.name}`, body: 'Takes a few seconds. Your coach uses it to adjust your plan.', action: 'client-send', actionLabel: 'Send update', icon: 'user' });
   return out;
 };
+
+/* ================= what the client shares (client-controlled) =================
+   The coach can always send plans and nutrition goals (the client reviews each one).
+   What the coach can SEE is up to the client: chosen when joining, changeable any time.
+   Phase 5 cloud sync enforces the same choices with database row-level security. */
+const SHARE_CATS = [
+  ['workouts', 'Training', 'Workouts, sets, weights, effort and missed sessions', true],
+  ['nutrition', 'Nutrition', 'Daily calorie and protein totals (not individual foods)', true],
+  ['body', 'Body', 'Weigh-ins, measurements, age and height', true],
+  ['activity', 'Phone and watch activity', 'Step and sleep averages from Apple Health / Health Connect', false],
+  ['wellbeing', 'Pain and health flags', 'Pain reports and whether a doctor check is pending', true],
+];
+function defaultShare() { const s = { paused: false }; SHARE_CATS.forEach(([k, , , on]) => { s[k] = on; }); return s; }
+function shareControls(sh, act, coachName) {
+  return `<div class="stack" style="gap:8px"><span class="label">What ${esc((coachName || 'your coach').split(' ')[0])} can see</span>
+    ${SHARE_CATS.map(([k, l, d]) => `<div class="toggle"><span class="small"><b>${l}</b><br><span class="faint">${d}</span></span><button class="switch" role="switch" aria-checked="${!sh.paused && !!sh[k]}" ${sh.paused ? 'disabled' : ''} data-act="${act}" data-k="${k}" aria-label="Share ${l}"></button></div>`).join('')}
+    <div class="toggle"><span class="small"><b>Pause all sharing</b><br><span class="faint">Updates then carry only your name and note</span></span><button class="switch" role="switch" aria-checked="${!!sh.paused}" data-act="${act}" data-k="paused" aria-label="Pause all sharing"></button></div>
+    <p class="tiny faint" style="margin:0">Your coach can always send you plans and nutrition goals; nothing changes until you accept. Progress photos and individual foods are never shared.</p></div>`;
+}
+/* Updates contain only what the client shares. */
+const _buildUpdateShare = buildUpdate;
+buildUpdate = note => {
+  const u = _buildUpdateShare(note), sh = Object.assign(defaultShare(), (S.coach && S.coach.share) || {});
+  const off = k => sh.paused || !sh[k];
+  if (off('workouts')) { u.workouts = []; u.adherence = null; }
+  if (off('nutrition')) { u.food = []; u.targets = null; u.checkins = []; }
+  if (off('body')) { u.weights = []; u.measurements = []; u.profile = { goal: u.profile.goal, experience: u.profile.experience, units: u.profile.units }; }
+  if (off('activity')) delete u.activity;
+  if (off('wellbeing')) { u.pain = []; u.safety = null; }
+  u.shared = sh;
+  return u;
+};
+Object.assign(SHEETS, {
+  coachJoin(s) {
+    const o = s.invite;
+    return sheetHead(`Join ${esc(o.coachName)}`, 'Choose what your coach can see. You can change this any time.')
+      + `<p class="muted" style="margin:0">${esc(o.coachName)} will be able to send you workout plans and nutrition goals. You decide what they see of your progress:</p>
+      ${shareControls(s.share, 'join-share', o.coachName)}
+      <button class="btn train block" data-act="join-accept">Link with ${esc(o.coachName.split(' ')[0])}</button>`;
+  },
+});
+const _clientSendSheet = SHEETS.clientSend;
+SHEETS.clientSend = () => {
+  const sh = Object.assign(defaultShare(), (S.coach && S.coach.share) || {});
+  const list = sh.paused ? 'Sharing is paused: only your name and note are sent.' : `Sharing: ${SHARE_CATS.filter(([k]) => sh[k]).map(([, l]) => l).join(', ') || 'nothing but your note'}.`;
+  return _clientSendSheet().replace('<div class="field"><label for="cs-note">', `<p class="small muted" style="margin:0">${esc(list)} <button class="link small" data-act="coaching-open">Change</button></p><div class="field"><label for="cs-note">`)
+    .replace(/<p class="small muted" style="margin:0">Includes your 7-day step and sleep averages[^<]*<\/p>/, sh.activity && !sh.paused ? '$&' : '');
+};
+Object.assign(ACT, {
+  'join-share': t => { const sh = UI.sheet.share, k = t.dataset.k; sh[k] = !sh[k]; render(); },
+  'join-accept': () => {
+    const o = UI.sheet.invite;
+    S.coach = { id: o.coachId, name: o.coachName, clientId: o.clientId, key: o.key, linkedAt: todayKey(), lastSent: null, share: Object.assign({}, UI.sheet.share) };
+    if (o.clientName && !S.profile.name) S.profile.name = o.clientName;
+    save(); closeAll(); toast(`Linked with ${o.coachName}. Send your first update when you're ready.`);
+  },
+  'share-set': t => { const sh = S.coach.share = Object.assign(defaultShare(), S.coach.share || {}); const k = t.dataset.k; sh[k] = !sh[k]; S.coach.shareChanged = todayKey(); save(); render(); toast(k === 'paused' ? (sh.paused ? 'Sharing paused' : 'Sharing resumed') : 'Saved. Your coach sees the change with your next update.'); },
+});

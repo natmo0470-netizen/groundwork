@@ -178,7 +178,7 @@ ACT['weight-save'] = t => {
 /* Coach updates include activity averages when connected. */
 if (typeof buildUpdate === 'function') {
   const _bu = buildUpdate;
-  buildUpdate = note => { const u = _bu(note); if (S.health && S.health.on && S.healthData) { const days = [...Array(7)].map((_, i) => addDays(todayKey(), -i)); const st = days.map(k => (S.healthData.steps || {})[k]).filter(x => x != null), sl = days.map(k => (S.healthData.sleep || {})[k]).filter(x => x != null); u.activity = { stepsAvg: st.length ? Math.round(st.reduce((a, b) => a + b, 0) / st.length) : null, sleepAvg: sl.length ? Math.round(sl.reduce((a, b) => a + b, 0) / sl.length) : null }; } return u; };
+  buildUpdate = note => { const u = _bu(note); const sh = (S.coach && S.coach.share) || {}; if (S.health && S.health.on && S.healthData && sh.activity && !sh.paused) { const days = [...Array(7)].map((_, i) => addDays(todayKey(), -i)); const st = days.map(k => (S.healthData.steps || {})[k]).filter(x => x != null), sl = days.map(k => (S.healthData.sleep || {})[k]).filter(x => x != null); u.activity = { stepsAvg: st.length ? Math.round(st.reduce((a, b) => a + b, 0) / st.length) : null, sleepAvg: sl.length ? Math.round(sl.reduce((a, b) => a + b, 0) / sl.length) : null }; } return u; };
 }
 
 Object.assign(ACT, {
