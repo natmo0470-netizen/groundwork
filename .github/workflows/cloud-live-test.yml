@@ -1,0 +1,31 @@
+# Checks the live Supabase project: REST permissions with throwaway accounts, then the real app
+# signing up, syncing and restoring. Test accounts are deleted at the end.
+name: Cloud live test
+permissions:
+  contents: read
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['js/cloud*.js', 'js/coach.js', 'server/supabase/**', '.github/workflows/cloud-live-test.yml']
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Database permissions (REST)
+        run: node server/supabase/live-test.mjs
+      - name: The app against the project
+        run: |
+          npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+          (python3 -m http.server 8080 --bind 127.0.0.1 >/dev/null 2>&1 &) && sleep 1
+          node server/supabase/live-ui-test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-screens
+          path: '*.png'
+          if-no-files-found: ignore

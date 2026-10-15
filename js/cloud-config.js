@@ -1,10 +1,9 @@
 /* Groundwork — cloud project settings.
-   Paste your Supabase Project URL and its public key (Project Settings → API: "anon public",
-   or the newer "publishable" key). Both are safe to ship in the app: row-level security in
-   server/supabase/schema.sql decides what each signed-in person can read or write.
-   Never put the service_role / secret key here.
-   Leave them empty and every cloud feature stays hidden; the app works fully offline. */
+   Supabase Project URL and its publishable key (Connect dialog, or Settings → API Keys).
+   Both are safe to ship in the app: row-level security in server/supabase/schema.sql decides
+   what each signed-in person can read or write. Never put the secret / service_role key here.
+   Empty values hide every cloud feature; the app then works fully offline. */
 const CLOUD_CONFIG = {
-  url: '',
-  anonKey: '',
+  url: 'https://eavcynlwjpwigrvfuvzd.supabase.co',
+  anonKey: 'sb_publishable_uWQzbQu29-2DiaP03_fbzA_l_js2neM',
 };

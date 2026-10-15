@@ -1,0 +1,111 @@
+// Live check of the Supabase project: the same REST calls the app makes, with two throwaway accounts
+// (a coach and a client) that are deleted at the end. Run: node server/supabase/live-test.mjs
+import fs from 'node:fs';
+const cfgText = fs.readFileSync(new URL('../../js/cloud-config.js', import.meta.url), 'utf8');
+const URL_ = cfgText.match(/url:\s*'([^']+)'/)[1], KEY = cfgText.match(/anonKey:\s*'([^']+)'/)[1];
+const results = []; let failed = 0;
+const check = (name, ok, extra) => { results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok || extra === undefined ? '' : '  → ' + JSON.stringify(extra)}`); if (!ok) failed++; };
+async function call(path, { method = 'GET', token, body, prefer } = {}) {
+  const h = { apikey: KEY, 'content-type': 'application/json' };
+  if (token) h.authorization = 'Bearer ' + token;
+  if (prefer) h.prefer = prefer;
+  const r = await fetch(URL_ + path, { method, headers: h, body: body == null ? undefined : JSON.stringify(body) });
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) { j = t; }
+  return { status: r.status, ok: r.ok, j };
+}
+const tag = Date.now().toString(36);
+async function signup(role) {
+  for (const dom of ['example.com', 'groundworktest.dev', 'mailinator.com']) {
+    const email = `gw-live-${tag}-${role}@${dom}`;
+    const r = await call('/auth/v1/signup', { method: 'POST', body: { email, password: 'Live-test-' + tag } });
+    if (r.ok && r.j && r.j.access_token) return { email, token: r.j.access_token, id: r.j.user.id };
+    if (r.ok && !(r.j && r.j.access_token)) throw new Error('Signup returned no session: "Confirm email" is still on (Authentication → Sign In / Providers → Email).');
+    if (!/invalid/i.test(JSON.stringify(r.j))) throw new Error('Signup failed: ' + JSON.stringify(r.j));
+  }
+  throw new Error('Signup rejected every test email domain');
+}
+const users = [];
+try {
+  const settings = await call('/auth/v1/settings');
+  check('project reachable with publishable key', settings.ok, settings.status);
+  check('email sign-in enabled', settings.j && settings.j.external && settings.j.external.email === true, settings.j && settings.j.external);
+  check('confirm email off (autoconfirm)', settings.j && settings.j.mailer_autoconfirm === true, settings.j && settings.j.mailer_autoconfirm);
+  const anonRead = await call('/rest/v1/app_state?select=user_id');
+  check('signed-out visitors see no data', anonRead.ok ? anonRead.j.length === 0 : anonRead.status === 401, anonRead);
+  const coach = await signup('coach'); users.push(coach);
+  const client = await signup('client'); users.push(client);
+  check('sign up returns a session', !!coach.token && !!client.token);
+  const login = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: client.email, password: 'Live-test-' + tag } });
+  check('sign in with password', login.ok && !!login.j.access_token, login.j);
+  const bad = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: client.email, password: 'wrong-password' } });
+  check('wrong password refused', !bad.ok, bad.status);
+  const ref = await call('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: login.j.refresh_token } });
+  check('token refresh', ref.ok && !!ref.j.access_token, ref.j);
+  const up = (tok, t, conflict, rows) => call(`/rest/v1/${t}?on_conflict=${conflict}`, { method: 'POST', token: tok, body: rows, prefer: 'resolution=merge-duplicates,return=minimal' });
+  let r = await up(coach.token, 'profiles', 'id', [{ id: coach.id, display_name: 'Live Coach', is_coach: true, synced_at: new Date().toISOString() }]);
+  check('coach profile upsert', r.ok, r.j);
+  r = await up(client.token, 'profiles', 'id', [{ id: client.id, display_name: 'Live Client', is_coach: false, synced_at: new Date().toISOString() }]);
+  check('client profile upsert', r.ok, r.j);
+  // whole-app state with version check
+  r = await call('/rest/v1/app_state', { method: 'POST', token: client.token, body: { user_id: client.id, state: { hello: 1 }, version: 1 }, prefer: 'return=minimal' });
+  check('app_state insert', r.ok, r.j);
+  r = await call(`/rest/v1/app_state?user_id=eq.${client.id}&version=eq.1`, { method: 'PATCH', token: client.token, body: { state: { hello: 2 }, version: 2 }, prefer: 'return=representation' });
+  check('app_state update at current version', r.ok && r.j.length === 1, r.j);
+  r = await call(`/rest/v1/app_state?user_id=eq.${client.id}&version=eq.1`, { method: 'PATCH', token: client.token, body: { state: { hello: 3 }, version: 2 }, prefer: 'return=representation' });
+  check('stale version is not overwritten', r.ok && r.j.length === 0, r.j);
+  const today = new Date().toISOString().slice(0, 10);
+  r = await up(client.token, 'workouts', 'user_id,id', [{ user_id: client.id, id: 'w1', day: today, name: 'Upper A', duration_min: 50, sets: [['bb_bench', 80, 8, 2, null]], prs: 1 }]);
+  check('workouts upsert', r.ok, r.j);
+  r = await up(client.token, 'food_day_totals', 'user_id,day', [{ user_id: client.id, day: today, kcal: 2100, protein: 160, carbs: 200, fat: 70, target_kcal: 2200, target_protein: 160 }]);
+  check('food totals upsert', r.ok, r.j);
+  r = await up(client.token, 'weights', 'user_id,day', [{ user_id: client.id, day: today, kg: 80.5, source: null }]);
+  check('weights upsert', r.ok, r.j);
+  // coaching
+  r = await call('/rest/v1/coach_links', { method: 'POST', token: coach.token, body: { coach_id: coach.id, client_label: 'Live Client' }, prefer: 'return=representation' });
+  const link = r.ok && r.j[0];
+  check('coach creates invite code', !!link && /^[0-9A-F]{8}$/.test(link.invite_code), r.j);
+  r = await call('/rest/v1/workouts?select=id', { token: coach.token });
+  check('coach sees nothing before the client joins', r.ok && r.j.length === 0, r.j);
+  const share = { workouts: true, nutrition: false, body: true, activity: false, wellbeing: true, paused: false };
+  r = await call('/rest/v1/rpc/accept_invite', { method: 'POST', token: client.token, body: { code: link.invite_code, share } });
+  check('client joins with the code', r.ok && r.j === link.id, r.j);
+  r = await call('/rest/v1/rpc/accept_invite', { method: 'POST', token: client.token, body: { code: link.invite_code, share } });
+  check('code works only once', !r.ok, r.j);
+  r = await call(`/rest/v1/workouts?select=id&user_id=eq.${client.id}`, { token: coach.token });
+  check('coach sees shared training', r.ok && r.j.length === 1, r.j);
+  r = await call(`/rest/v1/weights?select=day&user_id=eq.${client.id}`, { token: coach.token });
+  check('coach sees shared body data', r.ok && r.j.length === 1, r.j);
+  r = await call(`/rest/v1/food_day_totals?select=day&user_id=eq.${client.id}`, { token: coach.token });
+  check('coach can NOT see unshared nutrition', r.ok && r.j.length === 0, r.j);
+  r = await call(`/rest/v1/app_state?select=user_id&user_id=eq.${client.id}`, { token: coach.token });
+  check('coach can NOT see the client\'s full app data', r.ok && r.j.length === 0, r.j);
+  r = await call(`/rest/v1/profiles?select=display_name&id=eq.${coach.id}`, { token: client.token });
+  check('client sees the coach\'s name', r.ok && r.j[0] && r.j[0].display_name === 'Live Coach', r.j);
+  r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: coach.token, body: { share: Object.assign({}, share, { nutrition: true }) }, prefer: 'return=minimal' });
+  check('coach can NOT change the client\'s sharing', !r.ok, r.status);
+  r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: client.token, body: { share: Object.assign({}, share, { nutrition: true }), client_note: 'Hello coach', client_note_at: new Date().toISOString() }, prefer: 'return=minimal' });
+  check('client changes sharing and sends a message', r.ok, r.j);
+  r = await call(`/rest/v1/food_day_totals?select=day&user_id=eq.${client.id}`, { token: coach.token });
+  check('coach now sees nutrition', r.ok && r.j.length === 1, r.j);
+  r = await call('/rest/v1/assignments', { method: 'POST', token: coach.token, body: { link_id: link.id, coach_id: coach.id, client_id: client.id, payload: { note: 'Live test', days: [1, 3, 5], program: 'starter3' } }, prefer: 'return=representation' });
+  const asg = r.ok && r.j[0];
+  check('coach sends a plan', !!asg, r.j);
+  r = await call(`/rest/v1/assignments?select=id,payload&status=eq.sent&link_id=eq.${link.id}`, { token: client.token });
+  check('client receives the plan', r.ok && r.j.length === 1, r.j);
+  r = await call(`/rest/v1/assignments?id=eq.${asg.id}`, { method: 'PATCH', token: client.token, body: { status: 'accepted', answered_at: new Date().toISOString() }, prefer: 'return=minimal' });
+  check('client accepts the plan', r.ok, r.j);
+  r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: client.token, body: { share: Object.assign({}, share, { nutrition: true, paused: true }) }, prefer: 'return=minimal' });
+  r = await call(`/rest/v1/workouts?select=id&user_id=eq.${client.id}`, { token: coach.token });
+  check('pause hides everything from the coach', r.ok && r.j.length === 0, r.j);
+  r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: coach.token, body: { status: 'ended' }, prefer: 'return=minimal' });
+  check('coach can end the link', r.ok, r.j);
+} catch (e) { check('run', false, e.message); }
+finally {
+  for (const u of users) {
+    const r = await call('/rest/v1/rpc/delete_my_account', { method: 'POST', token: u.token, body: {} });
+    check(`delete test account (${u.email.split('-').pop()})`, r.ok, r.j);
+  }
+  if (users[1]) { const r = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: users[1].email, password: 'Live-test-' + tag } }); check('deleted account can no longer sign in', !r.ok, r.status); }
+  console.log(results.join('\n')); console.log(failed ? `\n${failed} check(s) failed` : '\nAll live checks passed');
+  process.exit(failed ? 1 : 0);
+}
