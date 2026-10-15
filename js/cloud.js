@@ -426,7 +426,7 @@ const Cloud = (() => {
   }
 
   /* ---------- invite links ---------- */
-  const inviteLink = code => { const b = String(cfg().inviteBase || 'https://natmo0470-netizen.github.io/groundwork/'); return (/\/$|\.html?$/.test(b) ? b : b + '/') + '?join=' + code; };
+  const inviteLink = code => { const b = String(cfg().inviteBase || 'https://movla.app/'); return (/\/$|\.html?$/.test(b) ? b : b + '/') + '?join=' + code; };
   async function invitePreview(code) { const r = await api('/rest/v1/rpc/invite_preview', { method: 'POST', anon: true, body: { code } }); return (r && r[0]) || null; }
 
   /* ---------- links from emails (confirm address / reset password) ---------- */
@@ -476,7 +476,7 @@ const Cloud = (() => {
   viewOnboarding = function () {
     let html = _ob();
     if (UI.obStep === 0 && !Cloud.signedIn()) html = html.replace('<button class="btn ghost block" data-act="seed-demo">Explore with sample data</button>', '$&<button class="btn ghost block" data-act="acct-open" data-mode="signin">I have an account · Sign in</button><button class="link" data-act="coach-start" style="align-self:center">I\'m a personal trainer or coach</button>');
-    if (UI.obStep === 0) { const site = CLOUD_CONFIG.inviteBase || 'https://natmo0470-netizen.github.io/groundwork/'; html = html.replace('</div></div></div>', `<p class="tiny faint" style="text-align:center;margin:4px 0 0"><a href="${site}privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Consumer health data</a> · <a href="${site}terms.html" target="_blank" rel="noopener">Terms</a></p></div></div></div>`); }
+    if (UI.obStep === 0) { const site = CLOUD_CONFIG.inviteBase || 'https://movla.app/'; html = html.replace('</div></div></div>', `<p class="tiny faint" style="text-align:center;margin:4px 0 0"><a href="${site}privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Consumer health data</a> · <a href="${site}terms.html" target="_blank" rel="noopener">Terms</a></p></div></div></div>`); }
     if (UI.sheet && ['account', 'cloudChoice', 'newPassword', 'cloudConsent', 'coachStart'].includes(UI.sheet.type)) html += `<div class="scrim" data-act="close-sheet"></div>${sheetHtml()}`;
     if (UI.toast) html += `<div class="toast" role="status">${esc(UI.toast)}</div>`;
     return html;
@@ -838,6 +838,6 @@ function threadHtml(link, otherName) {
 
 /* Consent checkbox used at sign-up (account sheet, join flow) and for older accounts. */
 function consentBox(checked) {
-  const site = (typeof CLOUD_CONFIG !== 'undefined' && CLOUD_CONFIG.inviteBase) || 'https://natmo0470-netizen.github.io/groundwork/';
+  const site = (typeof CLOUD_CONFIG !== 'undefined' && CLOUD_CONFIG.inviteBase) || 'https://movla.app/';
   return `<label class="consent"><input type="checkbox" data-acct="consent" data-jf="consent" ${checked ? 'checked' : ''}><span class="small">I consent to Movla storing my workout, nutrition, body and health information in my account to run the app, as described in the <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Privacy Policy</a>, and I agree to the <a href="${site}terms.html" target="_blank" rel="noopener">Terms of Use</a>.</span></label>`;
 }

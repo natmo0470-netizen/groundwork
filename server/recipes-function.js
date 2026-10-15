@@ -5,7 +5,7 @@
    Setup: get a key at https://spoonacular.com/food-api, then
      npx wrangler secret put SPOONACULAR_API_KEY
      npx wrangler deploy  → copy the URL into SERVICE_CONFIG.recipeEndpoint in js/mealplan.js */
-const ALLOWED_ORIGIN = 'https://natmo0470-netizen.github.io';
+const ALLOWED_ORIGIN = 'https://movla.app';
 const DIET_MAP = { vegetarian: 'vegetarian', pescatarian: 'pescetarian', glutenfree: 'gluten free' };
 
 export default {

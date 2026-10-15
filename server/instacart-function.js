@@ -10,7 +10,7 @@
      4. npx wrangler deploy  → copy the worker URL into SERVICE_CONFIG.instacartEndpoint in js/mealplan.js
    Check Instacart's current API docs before going live; endpoint paths and fields can change. */
 const INSTACART_URL = 'https://connect.instacart.com/idp/v1/products/products_link'; // development: https://connect.dev.instacart.tools/...
-const ALLOWED_ORIGIN = 'https://natmo0470-netizen.github.io';
+const ALLOWED_ORIGIN = 'https://movla.app';
 
 export default {
   async fetch(request, env) {

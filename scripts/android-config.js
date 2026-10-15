@@ -12,7 +12,7 @@ edit('variables.gradle', s => s.replace(/minSdkVersion\s*=\s*\d+/, 'minSdkVersio
 edit('app/build.gradle', s => s.replace(/versionCode \d+/, `versionCode ${code}`).replace(/versionName "[^"]*"/, `versionName "${version}"`));
 // Privacy policy link that Health Connect shows to users.
 edit('app/src/main/res/values/strings.xml', s => s.includes('health_connect_privacy_policy_url') ? s :
-  s.replace('</resources>', '    <string name="health_connect_privacy_policy_url">https://natmo0470-netizen.github.io/groundwork/privacy.html</string>\n</resources>'));
+  s.replace('</resources>', '    <string name="health_connect_privacy_policy_url">https://movla.app/privacy.html</string>\n</resources>'));
 // Permissions: camera for barcode scanning; Health Connect trimmed to only what Movla reads and writes,
 // because the Play Console asks you to justify every declared health permission.
 const KEEP = ['READ_STEPS', 'READ_ACTIVE_CALORIES_BURNED', 'READ_SLEEP', 'READ_RESTING_HEART_RATE', 'READ_WEIGHT', 'WRITE_WEIGHT', 'READ_BODY_FAT', 'READ_EXERCISE'];

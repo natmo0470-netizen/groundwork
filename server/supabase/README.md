@@ -69,7 +69,7 @@ Secret keys → copy, then GitHub → the repo → Settings → Secrets and vari
    - Set the minimum password length to **8** to match the app.
    - Turn it back on after step 5.
 4. **Redirect links** (Authentication → URL Configuration): set **Site URL** to the address where the web app is
-   hosted (today `https://natmo0470-netizen.github.io/groundwork/`, later your domain) and add it under
+   hosted (today `https://movla.app/`, later your domain) and add it under
    **Redirect URLs**. Password-reset and confirmation emails send people there, and the app finishes signing them in.
 5. **When the domain is ready:** Authentication → Emails → SMTP Settings → connect a sender on your domain
    (for example Resend), then switch **Confirm email** back on and update the Site URL.
