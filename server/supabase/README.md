@@ -104,6 +104,8 @@ assign → accept, pause all, coach removes client, password-reset link, sign ou
 function's secrets. The app calls it at `<project URL>/functions/v1/food-search?q=…`; if it's missing or down, the
 app falls back to USDA's shared public `DEMO_KEY`. Limits: 20 searches a minute per IP address, results cached 6 hours.
 
-Deploy from the dashboard: Edge Functions → Deploy a new function → Via Editor, name it `food-search`, paste the
+Deploy from GitHub (works from a phone): add the repository secrets `SUPABASE_ACCESS_TOKEN` and `USDA_API_KEY`, then run the **Deploy edge functions** workflow. It sets the secret, deploys with JWT verification off, and checks a test search.
+
+Or deploy from the dashboard on a computer: Edge Functions → Deploy a new function → Via Editor, name it `food-search`, paste the
 file, Deploy. Then Edge Functions → Secrets: add `USDA_API_KEY`. In the function's settings, turn off JWT
 verification (food search works without an account).
