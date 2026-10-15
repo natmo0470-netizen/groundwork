@@ -27,5 +27,5 @@ try {
   check('delete account', await A.evaluate(() => !Cloud.signedIn()));
   check('no page errors', !A._e.length && !B._e.length, [A._e, B._e]);
 } catch (e) { check('run', false, e.message); }
-console.log(out.join('\n')); console.log(failed ? `\n${failed} check(s) failed` : '\nAll live app checks passed');
+console.log(out.join('\n')); if (process.env.GITHUB_ACTIONS) console.log(`::notice title=App checks::` + out.join('%0A')); console.log(failed ? `\n${failed} check(s) failed` : '\nAll live app checks passed');
 await b.close(); process.exit(failed ? 1 : 0);

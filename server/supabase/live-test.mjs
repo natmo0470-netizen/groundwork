@@ -106,6 +106,6 @@ finally {
     check(`delete test account (${u.email.split('-').pop()})`, r.ok, r.j);
   }
   if (users[1]) { const r = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: users[1].email, password: 'Live-test-' + tag } }); check('deleted account can no longer sign in', !r.ok, r.status); }
-  console.log(results.join('\n')); console.log(failed ? `\n${failed} check(s) failed` : '\nAll live checks passed');
+  console.log(results.join('\n')); if (process.env.GITHUB_ACTIONS) console.log(`::notice title=REST checks::` + results.join('%0A')); console.log(failed ? `\n${failed} check(s) failed` : '\nAll live checks passed');
   process.exit(failed ? 1 : 0);
 }
