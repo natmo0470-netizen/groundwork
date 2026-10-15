@@ -1,4 +1,4 @@
-// Groundwork — food-search: USDA FoodData Central search, with the API key kept on the server.
+// Movla — food-search: USDA FoodData Central search, with the API key kept on the server.
 // The app calls  GET <project>/functions/v1/food-search?q=chicken+breast
 // The key lives only in this function's secrets as USDA_API_KEY (Edge Functions → Secrets), never in the app.
 // Anyone can search without an account, so the function limits each IP address and caches popular searches

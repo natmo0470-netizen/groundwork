@@ -1,4 +1,4 @@
-/* Groundwork — My meals: build a meal from ingredients for meal prep and home cooking.
+/* Movla — My meals: build a meal from ingredients for meal prep and home cooking.
    Pick ingredients from the built-in foods, the grocery ingredient catalog, your own foods or the
    online databases; enter amounts in grams, ounces, cups, spoons or servings; set how many servings
    the batch makes (and optionally the cooked weight). Calories and macros are totalled for the

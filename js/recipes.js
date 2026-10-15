@@ -1,4 +1,4 @@
-/* Groundwork — ingredient catalog and built-in recipe library.
+/* Movla — ingredient catalog and built-in recipe library.
    Ingredient row: [key, name, aisle, unit, kcal, protein, carbs, fat, price per unit (USD, estimate),
                     flags, store search term, pantry staple?]
    Flags: m = meat/poultry, f = fish, h = shellfish, d = dairy, g = gluten, e = egg, n = nuts/peanuts, s = soy, p = pork, b = beef

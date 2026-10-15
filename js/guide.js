@@ -1,4 +1,4 @@
-/* Groundwork — experience modes, beginner guidance, tips and guides.
+/* Movla — experience modes, beginner guidance, tips and guides.
    Modes:
    - guided   (beginners): same information, less at once; screen tips, first-week checklist,
               guides, plain-language labels, calories + protein first.
@@ -165,7 +165,7 @@ function loggerHelp(it, ex, i) {
 const GUIDES = [
   { id: 'start-weight', cat: 'Training', title: 'How heavy should I go?', mins: 2, body: [
     ['Start lighter than you think', 'Pick a weight you could lift for 2–3 more reps than the plan asks for. If the plan says 8–12 reps, choose something you could do about 14 times.'],
-    ['Use the first set to test', 'If the first set felt easy, go up a little for the next one. If your form broke down, go lighter. Groundwork remembers what you did.'],
+    ['Use the first set to test', 'If the first set felt easy, go up a little for the next one. If your form broke down, go lighter. Movla remembers what you did.'],
     ['Then let the app guide you', 'Once you hit the top of the rep range on every set, the logger suggests adding a small amount of weight next time. That\'s the whole system.'],
     ['Signs it\'s too heavy', 'Your back rounds, you bounce or swing, or the last reps are a grind with ugly form. Drop the weight; good reps build more muscle than bad ones.'],
   ] },
@@ -205,7 +205,7 @@ const GUIDES = [
     ['Calories control weight', 'Eat fewer calories than you burn (a deficit) and you lose weight. Eat more (a surplus) and you gain. Your daily target already accounts for your goal.'],
     ['Protein protects muscle', 'Protein helps you build muscle and keep it while losing fat. It also keeps you full. Your protein target is the second number to watch.'],
     ['Carbs and fat', 'They matter less for beginners. Hit calories and protein most days and the rest tends to sort itself out.'],
-    ['Weekly check-ins', 'Each week Groundwork compares your weight trend with your goal and nudges your calories up or down if needed.'],
+    ['Weekly check-ins', 'Each week Movla compares your weight trend with your goal and nudges your calories up or down if needed.'],
   ] },
   { id: 'protein', cat: 'Nutrition', title: 'Easy ways to get protein', mins: 2, body: [
     ['Build meals around it', 'Start each meal by choosing a protein: chicken, fish, eggs, Greek yogurt, cottage cheese, tofu, beans or lean beef.'],

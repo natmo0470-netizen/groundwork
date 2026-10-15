@@ -1,4 +1,4 @@
-/* Groundwork — storage adapter.
+/* Movla — storage adapter.
    v1 keeps everything in this browser (localStorage). Phase 5 swaps this one file for a
    cloud adapter (e.g. Supabase) with the same load/save/clear interface. */
 const Store = (() => {

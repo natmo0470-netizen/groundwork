@@ -1,4 +1,4 @@
-/* Groundwork — safety, privacy and data-accuracy protections (roadmap risk mitigations).
+/* Movla — safety, privacy and data-accuracy protections (roadmap risk mitigations).
    1. Injury / unsafe targets: a short health check (based on the PAR-Q screening questions),
       pain reports that can retire an exercise from future plans, gentler plans when joints or
       pregnancy call for it, a low-intake warning, and calorie caps for pregnancy and under-18s (calc.js).
@@ -91,7 +91,7 @@ viewOnboarding = () => {
   if (UI.obStep !== 6) return html;
   const o = obDraft(); o.safety = o.safety || {};
   const card = `<div class="card"><div class="card-head"><span class="eyebrow">Quick health check</span></div><p class="small muted" style="margin:0">Seven yes/no questions used by trainers before anyone starts exercising.</p>${healthCheckHtml(o.safety, 'ob-health')}</div>`;
-  const marker = '<p class="tiny faint">Groundwork gives general fitness';
+  const marker = '<p class="tiny faint">Movla gives general fitness';
   return html.includes(marker) ? html.replace(marker, card + marker) : html;
 };
 const _obToState = obToState;
@@ -127,7 +127,7 @@ SHEETS.exercise = s => {
 };
 
 Object.assign(SHEETS, {
-  health() { return sheetHead('Health check', 'Based on the standard pre-exercise screening questions') + healthCheckHtml(S.safety, 'set-health') + `<p class="tiny faint">Groundwork gives general fitness guidance, not medical advice.</p><button class="btn train block" data-act="health-save">Save</button>`; },
+  health() { return sheetHead('Health check', 'Based on the standard pre-exercise screening questions') + healthCheckHtml(S.safety, 'set-health') + `<p class="tiny faint">Movla gives general fitness guidance, not medical advice.</p><button class="btn train block" data-act="health-save">Save</button>`; },
   pain(s) {
     const d = s.draft, ex = EX_BY_ID[s.exId];
     const sharp = d.kind === 'sharp';
@@ -239,10 +239,10 @@ Object.assign(ACT, {
   'download-backup': async () => {
     try {
       const text = await backupText();
-      if (typeof Native !== 'undefined' && Native.isNative) { await Native.shareFile(`groundwork-backup-${todayKey()}.json`, text, 'Groundwork backup'); }
+      if (typeof Native !== 'undefined' && Native.isNative) { await Native.shareFile(`movla-backup-${todayKey()}.json`, text, 'Movla backup'); }
       else {
         const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-        const a = document.createElement('a'); a.href = url; a.download = `groundwork-backup-${todayKey()}.json`;
+        const a = document.createElement('a'); a.href = url; a.download = `movla-backup-${todayKey()}.json`;
         document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
       }
       S.lastBackup = todayKey(); save(); toast(text.includes('"backup-enc"') ? 'Encrypted backup saved' : 'Backup saved. If nothing downloaded, use Copy backup text.');
@@ -260,14 +260,14 @@ Object.assign(ACT, {
     if (!text) { toast('Paste a backup or choose a file'); return; }
     if (UI.sheet && UI.sheet.type === 'importData') UI.sheet.text = text; // keep it if the password is wrong
     let data;
-    try { data = JSON.parse(text); } catch (e) { toast('That doesn\'t look like a Groundwork backup'); return; }
+    try { data = JSON.parse(text); } catch (e) { toast('That doesn\'t look like a Movla backup'); return; }
     if (data && data.gw === 'backup-enc') {
       const pw = val('imp-pw');
       if (!pw) { toast('This backup is password-protected. Enter its password.'); return; }
       try { data = await GWCrypto.openPassword(data, pw); } catch (e) { toast('Wrong password, or the file is damaged'); return; }
     }
     if (data && data.gw === 'coach') { toast('That\'s a coach file. Open it from Settings → Coaching.'); return; }
-    if (!data || !data.profile || !data.version) { toast('That doesn\'t look like a Groundwork backup'); return; }
+    if (!data || !data.profile || !data.version) { toast('That doesn\'t look like a Movla backup'); return; }
     S = Object.assign(defaultState(), data); UI.loggerOpen = false; save(); closeAll(); toast('Data restored');
   },
 });

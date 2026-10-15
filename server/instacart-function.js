@@ -1,4 +1,4 @@
-/* Groundwork — Instacart shopping-list hand-off (Cloudflare Worker).
+/* Movla — Instacart shopping-list hand-off (Cloudflare Worker).
    Keeps your Instacart Developer Platform API key off users' phones.
    The app POSTs { title, line_items } here; this calls Instacart's "create shopping list page"
    endpoint and returns { url } for the app to open.
@@ -29,7 +29,7 @@ export default {
     const res = await fetch(INSTACART_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.INSTACART_API_KEY}`, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ title: String(body.title || 'Groundwork groceries').slice(0, 100), link_type: 'shopping_list', line_items: items }),
+      body: JSON.stringify({ title: String(body.title || 'Movla groceries').slice(0, 100), link_type: 'shopping_list', line_items: items }),
     });
     if (!res.ok) return new Response(JSON.stringify({ error: 'instacart', status: res.status }), { status: 502, headers: { ...cors, 'Content-Type': 'application/json' } });
     const data = await res.json();

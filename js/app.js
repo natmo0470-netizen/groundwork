@@ -1,4 +1,4 @@
-/* Groundwork — app state, rendering and actions. */
+/* Movla — app state, rendering and actions. */
 let S = (() => { const saved = Store.load(); return saved ? Object.assign(defaultState(), saved) : defaultState(); })();
 const UI = {
   tab: 'today', sheet: null, trainSeg: 'plan', libGroup: 'All', libMine: true, libQuery: '',
@@ -46,7 +46,7 @@ function render() {
 function header() {
   const n = computeReminders(S).length;
   return `<header class="top">
-    <div class="brand"><span class="brand-mark">${icon('bolt', 16)}</span>Groundwork</div>
+    <div class="brand"><span class="brand-mark">${icon('bolt', 16)}</span>Movla</div>
     <div class="spacer"></div>
     <button class="icon-btn" data-act="open-notifs" aria-label="Reminders${n ? ', ' + n + ' new' : ''}">${icon('bell', 22)}${n ? `<span class="badge" id="bell-badge">${n}</span>` : ''}</button>
     <button class="icon-btn" data-act="open-settings" aria-label="Settings">${icon('sliders', 22)}</button>
@@ -88,7 +88,7 @@ function viewOnboarding() {
   const o = obDraft(), step = UI.obStep, total = 6;
   if (step === 0) {
     return `<div class="app"><div class="ob"><div class="welcome">
-      <div class="brand"><span class="brand-mark">${icon('bolt', 16)}</span>Groundwork</div>
+      <div class="brand"><span class="brand-mark">${icon('bolt', 16)}</span>Movla</div>
       <h1 class="h1">Train smarter.<br>Eat for it.</h1>
       <p class="muted">One plan for your workouts and your nutrition, built from your goal, your schedule and the equipment you actually have.</p>
       <div class="figs">
@@ -157,7 +157,7 @@ function viewOnboarding() {
         <div class="ex-mini">${first.items.map((it, i) => `<div class="row"><span class="n">${i + 1}</span><span class="grow">${esc(EX_BY_ID[it.exId].name)}</span><span class="small faint num">${it.sets}×${it.min}–${it.max}${EX_BY_ID[it.exId].unit === 'reps' ? '' : EX_BY_ID[it.exId].unit === 'sec' ? 's' : ' min'}</span></div>`).join('')}</div>
         <p class="small faint">First workout: ${esc(first.name)}. Every exercise has a demo and form tips.</p></div>
       ${o.experience === 'beginner' ? `<div class="nudge guide-tip"><span class="ni">${icon('bulb', 20)}</span><div class="stack grow" style="gap:4px"><b>Guided view is on</b><span class="small muted">You'll get short tips, a first-week checklist and beginner guides. Switch to Standard view in Settings anytime.</span></div></div>` : ''}
-      <p class="tiny faint">Groundwork gives general fitness and nutrition guidance, not medical advice. Check with a doctor before starting if you have a health condition, are pregnant, or are new to exercise after a long break.</p>`;
+      <p class="tiny faint">Movla gives general fitness and nutrition guidance, not medical advice. Check with a doctor before starting if you have a health condition, are pregnant, or are new to exercise after a long break.</p>`;
   }
   const valid = obValid(step);
   return `<div class="app"><div class="ob">
@@ -275,7 +275,7 @@ function gymPicker(d, act) {
   const adjusted = g && !(g.items.length === d.items.length && g.items.every(x => d.items.includes(x)));
   return `<div class="stack" style="gap:8px"><span class="label">Where do you train?</span>
     <div class="chips scroll">${GYM_PRESETS.map(x => `<button class="chip" data-act="${act}" data-id="${x.id}" aria-pressed="${d.gym === x.id}">${esc(x.name)}</button>`).join('')}</div>
-    ${g ? `<p class="small muted">${esc(g.note)} ${adjusted ? '<b>Adjusted for your club.</b>' : 'Untick anything your club doesn\'t have.'}</p>${g.id.match(/^(hotel|home|garage)/) ? '' : '<p class="tiny faint" style="margin:0">Typical equipment for this chain, not an official list. Gym names are trademarks of their owners; Groundwork isn\'t affiliated with them.</p>'}` : `<p class="tiny faint">Pick your gym to load its typical equipment. Not listed? Use Full gym or tick items below.</p>`}</div>`;
+    ${g ? `<p class="small muted">${esc(g.note)} ${adjusted ? '<b>Adjusted for your club.</b>' : 'Untick anything your club doesn\'t have.'}</p>${g.id.match(/^(hotel|home|garage)/) ? '' : '<p class="tiny faint" style="margin:0">Typical equipment for this chain, not an official list. Gym names are trademarks of their owners; Movla isn\'t affiliated with them.</p>'}` : `<p class="tiny faint">Pick your gym to load its typical equipment. Not listed? Use Full gym or tick items below.</p>`}</div>`;
 }
 function equipSetGym(d, id) {
   if (d.gym === id) { d.gym = null; return; }

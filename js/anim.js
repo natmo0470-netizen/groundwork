@@ -1,4 +1,4 @@
-/* Groundwork — animated exercise demos.
+/* Movla — animated exercise demos.
    A side-view figure drawn from a few key points per pose (hip, neck, ankles, hands);
    knees and elbows are solved with two-bone inverse kinematics so feet stay planted
    and limbs keep their length. Poses interpolate with easing and loop. */

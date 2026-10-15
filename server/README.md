@@ -1,6 +1,6 @@
 # Optional server functions
 
-Groundwork works without any server. These two small functions switch on extra services
+Movla works without any server. These two small functions switch on extra services
 while keeping your API keys secret (keys must never be put in the app itself).
 
 | File | What it switches on | Needs |

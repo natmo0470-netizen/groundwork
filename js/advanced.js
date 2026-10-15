@@ -1,4 +1,4 @@
-/* Groundwork — Advanced tools for experienced lifters.
+/* Movla — Advanced tools for experienced lifters.
    Advanced view: effort per set (reps in reserve), warm-up and drop sets, supersets,
    weekly sets per muscle, training-day / rest-day carbs, refeeds and diet breaks.
    Standard and Advanced: custom workouts with editable sets/reps/rest, plate calculator,
@@ -96,7 +96,7 @@ function measureCard() {
       : `<p class="small muted" style="margin:0">Waist and other measurements show changes the scale misses. Log them every 2–4 weeks.</p>`}</div>`;
 }
 
-/* Progress photos were removed (v1.13): Groundwork doesn't keep photos of people.
+/* Progress photos were removed (v1.13): Movla doesn't keep photos of people.
    Earlier versions stored them on the device only; this deletes any that are still there, once. */
 (() => {
   try {

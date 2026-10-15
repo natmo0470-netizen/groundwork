@@ -1,4 +1,4 @@
-/* Groundwork — meal plan generator, grocery list and store hand-off.
+/* Movla — meal plan generator, grocery list and store hand-off.
    Plans 7 days from the built-in recipe library (plus any connected recipe service), scaling
    servings so each day lands near the user's calorie and protein targets. */
 

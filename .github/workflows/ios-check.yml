@@ -20,16 +20,17 @@ jobs:
       - run: npx @capacitor/assets generate --ios --iconBackgroundColor '#111A17' --splashBackgroundColor '#F3F5F4'
       - name: Permission text (camera, Apple Health) and export compliance
         run: |
-          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Groundwork uses the camera to scan food barcodes.'" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Movla uses the camera to scan food barcodes.'" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :NSHealthShareUsageDescription string 'Groundwork reads your steps, sleep, resting heart rate, weight and workouts to show your activity and recovery next to your training.'" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :NSHealthUpdateUsageDescription string 'Groundwork saves the body weight you log so it appears in Apple Health.'" ios/App/App/Info.plist
-          # Invite links: groundwork://join/CODE opens the app
+          /usr/libexec/PlistBuddy -c "Add :NSHealthShareUsageDescription string 'Movla reads your steps, sleep, resting heart rate, weight and workouts to show your activity and recovery next to your training.'" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSHealthUpdateUsageDescription string 'Movla saves the body weight you log so it appears in Apple Health.'" ios/App/App/Info.plist
+          # Invite links: movla://join/CODE (and the older groundwork://) open the app
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string app.groundwork.fitness" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string app.movla.fitness" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string groundwork" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string movla" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:1 string groundwork" ios/App/App/Info.plist
       - run: npx cap sync ios
       - name: Build for the iPhone simulator
         run: |

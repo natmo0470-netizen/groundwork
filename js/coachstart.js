@@ -1,8 +1,8 @@
-/* Groundwork — becoming a coach.
+/* Movla — becoming a coach.
    Modelled on the onboarding of popular coaching platforms: a short pitch, an account, the coaching
    business, optional credentials, a plan by client seats, then "invite your first client".
    Coach tools unlock only when the server reports an active coach plan for the account (bought at
-   launch, or granted by the Groundwork team now), so the old Settings switch can't be flipped on. */
+   launch, or granted by the Movla team now), so the old Settings switch can't be flipped on. */
 (() => {
   if (typeof Cloud === 'undefined' || !Cloud.configured()) return;
   const SPECIALTIES = [['strength', 'Strength'], ['muscle', 'Muscle building'], ['fatloss', 'Fat loss'], ['nutrition', 'Nutrition'], ['sport', 'Sport performance'], ['beginners', 'Beginners'], ['older', 'Older adults'], ['postnatal', 'Pre/postnatal'], ['rehab', 'Injury-aware training']];
@@ -15,13 +15,13 @@
 
   SHEETS.coachStart = s => {
     const d = draft(), step = s.step || 'intro';
-    if (step === 'intro') return sheetHead('Coach on Groundwork', 'For personal trainers and online coaches')
+    if (step === 'intro') return sheetHead('Coach on Movla', 'For personal trainers and online coaches')
       + `<div class="card train" style="box-shadow:none"><div class="join-list">
-          <div>${icon('user', 18)}<span><b>Your clients use Groundwork free</b><br><span class="small muted">You pay by number of clients; they get every feature, no ads.</span></span></div>
+          <div>${icon('user', 18)}<span><b>Your clients use Movla free</b><br><span class="small muted">You pay by number of clients; they get every feature, no ads.</span></span></div>
           <div>${icon('dumbbell', 18)}<span><b>Programs and nutrition targets</b><br><span class="small muted">Assign a program or your own workouts and macros; clients approve them in their app.</span></span></div>
           <div>${icon('chart', 18)}<span><b>Live progress</b><br><span class="small muted">Sessions, weigh-ins, food totals and pain reports, limited to what each client shares.</span></span></div>
           <div>${icon('chat', 18)}<span><b>Messaging and invite links</b><br><span class="small muted">One link brings a client in and lands them in your chat.</span></span></div></div></div>
-        <p class="small muted" style="margin:0">${(PRICING.showPrices || testCheckout()) ? `Plans from $${COACH_PLANS[0].monthly}/month for ${COACH_PLANS[0].seats} clients, with a ${PRICING.trialDays}-day free trial.` : 'Plans are by number of clients, from 5 to 100. During early access coach plans are set up by the Groundwork team.'}</p>
+        <p class="small muted" style="margin:0">${(PRICING.showPrices || testCheckout()) ? `Plans from $${COACH_PLANS[0].monthly}/month for ${COACH_PLANS[0].seats} clients, with a ${PRICING.trialDays}-day free trial.` : 'Plans are by number of clients, from 5 to 100. During early access coach plans are set up by the Movla team.'}</p>
         <button class="btn train block" data-act="cs-go" data-v="business">${Cloud.signedIn() ? 'Get started' : 'Create a coach account'}</button>
         ${Cloud.signedIn() ? '' : '<button class="link" data-act="cs-signin" style="align-self:center">I already have an account</button>'}`;
     if (step === 'business') return stepHead(s, 'Your coaching business', 'This is what clients see')
@@ -35,11 +35,11 @@
     if (step === 'creds') return stepHead(s, 'Credentials', 'Optional, shown to clients as self-reported')
       + `<div class="field"><span class="label">Certification</span><div class="chips">${CERTS.map(c => `<button class="chip" data-act="cs-set" data-k="certification" data-v="${esc(c)}" aria-pressed="${d.certification === c}">${esc(c)}</button>`).join('')}</div></div>
         ${d.certification !== 'None yet' ? `<div class="field"><label for="cs-cert">Certificate number <span class="faint">(optional)</span></label><input class="input" id="cs-cert" data-cs="cert_number" maxlength="60" value="${esc(d.cert_number)}"></div>` : ''}
-        <p class="tiny faint" style="margin:0">Groundwork doesn't check certifications yet. Coaches are independent; see the Terms of Use.</p>
+        <p class="tiny faint" style="margin:0">Movla doesn't check certifications yet. Coaches are independent; see the Terms of Use.</p>
         <button class="btn train block" data-act="cs-go" data-v="plan">Continue</button><button class="link" data-act="cs-go" data-v="business" style="align-self:center">Back</button>`;
     if (step === 'plan') {
       const rec = suggestPlan(d.client_count); if (!d.plan) d.plan = rec;
-      return stepHead(s, 'Choose a plan', 'By number of clients; your clients use Groundwork free')
+      return stepHead(s, 'Choose a plan', 'By number of clients; your clients use Movla free')
         + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="cs-set" data-k="plan" data-v="${p.id}" aria-pressed="${d.plan === p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${(PRICING.showPrices || testCheckout()) ? `$${p.monthly}/month · about $${(p.monthly / p.seats).toFixed(2)} per client` : 'Early access'}</span></span>${p.id === rec ? '<span class="tag train">Suggested</span>' : ''}${d.plan === p.id ? `<span class="chev">${icon('check', 18)}</span>` : ''}</button>`).join('')}</div>
         <p class="tiny faint" style="margin:0">${(PRICING.showPrices || testCheckout()) ? `${PRICING.trialDays}-day free trial, then billed monthly. Cancel any time.` : 'You can change plans later.'}</p>
         <button class="btn train block" data-act="cs-plan-next" ${s.busy ? 'disabled' : ''}>${s.busy ? 'One moment…' : 'Continue'}</button><button class="link" data-act="cs-go" data-v="creds" style="align-self:center">Back</button>`;
@@ -53,12 +53,12 @@
           <div class="row between"><span class="small muted">After your ${PRICING.trialDays}-day trial</span><span class="small">$${p.monthly}/month</span></div>
           <div class="row between"><b>Due today</b><b>$0.00</b></div>
         </div>
-        <p class="tiny faint" style="margin:0">Your clients use Groundwork free. You can change plans or cancel any time.</p>
+        <p class="tiny faint" style="margin:0">Your clients use Movla free. You can change plans or cancel any time.</p>
         ${s.error ? `<p class="small" role="alert" style="margin:0;color:var(--bad)">${esc(s.error)}</p>` : ''}
         <button class="btn train block" data-act="cs-test-pay" ${s.busy ? 'disabled' : ''}>${s.busy ? 'Starting…' : `Start ${PRICING.trialDays}-day free trial`}</button><button class="link" data-act="cs-go" data-v="plan" style="align-self:center">Change plan</button>`;
     }
     if (step === 'pay') return stepHead(s, 'Start your plan', 'Early access')
-      + `<div class="card" style="box-shadow:none;gap:8px"><b>We've saved your coach profile.</b><p class="small muted" style="margin:0">Coach plans can't be bought in the app yet. During early access the Groundwork team switches coach plans on for each coach. Once yours is on, this screen moves on by itself, or tap Check again.</p></div>
+      + `<div class="card" style="box-shadow:none;gap:8px"><b>We've saved your coach profile.</b><p class="small muted" style="margin:0">Coach plans can't be bought in the app yet. During early access the Movla team switches coach plans on for each coach. Once yours is on, this screen moves on by itself, or tap Check again.</p></div>
         ${s.error ? `<p class="small" role="alert" style="margin:0;color:var(--bad)">${esc(s.error)}</p>` : ''}
         <button class="btn train block" data-act="cs-check" ${s.busy ? 'disabled' : ''}>${s.busy ? 'Checking…' : 'Check again'}</button><button class="btn ghost block" data-act="close-sheet">I'll come back later</button>`;
     // done

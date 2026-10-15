@@ -1,4 +1,4 @@
-/* Groundwork — small UI helpers: icons, escaping, formatting, charts. */
+/* Movla — small UI helpers: icons, escaping, formatting, charts. */
 const ICONS = {
   book: '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zM5 19.5A1.5 1.5 0 0 0 6.5 21H19M9 7h6"/>',
   bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',

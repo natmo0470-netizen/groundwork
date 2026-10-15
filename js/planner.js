@@ -1,4 +1,4 @@
-/* Groundwork — plan builder, progression and personal records. */
+/* Movla — plan builder, progression and personal records. */
 
 const TEMPLATES = {
   fbA:    { name: 'Full Body A', slots: ['squat', 'hpush', 'hpull', 'glute', 'vpush', 'biceps', 'core', 'calf'] },

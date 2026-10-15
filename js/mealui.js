@@ -1,4 +1,4 @@
-/* Groundwork — meal plan and grocery list screens, sheets and actions. */
+/* Movla — meal plan and grocery list screens, sheets and actions. */
 UI.foodSeg = 'log';
 UI.planDay = null;
 const SLOT_TO_LOG = { breakfast: 'breakfast', lunch: 'lunch', dinner: 'dinner', meal4: 'snacks', snack: 'snacks' };
@@ -44,7 +44,7 @@ function viewMealPlan() {
   if (!S.mealPlan || !planIsCurrent()) {
     return `<div class="card fuel">
         <div class="h2">${S.mealPlan ? 'Plan your next week' : 'Plan your week of meals'}</div>
-        <p class="muted">Groundwork builds 7 days of meals from ${RECIPES.length} recipes, sized to hit your ${fmtInt(T.calories)} kcal and ${T.protein} g protein targets. Then it turns them into a grocery list.</p>
+        <p class="muted">Movla builds 7 days of meals from ${RECIPES.length} recipes, sized to hit your ${fmtInt(T.calories)} kcal and ${T.protein} g protein targets. Then it turns them into a grocery list.</p>
         <div class="callout">${esc(prefsSummary())}</div>
         <div class="row wrap"><button class="btn fuel" data-act="plan-create">${icon('bolt', 18)} Create my meal plan</button><button class="btn ghost" data-act="plan-prefs">Preferences</button></div>
       </div>`;
@@ -138,7 +138,7 @@ function groceryRow(i, G, store) {
 function groceryText() {
   const G = ensureGrocery();
   const list = groceryList(S, G.range === 'rest' ? todayKey() : null);
-  let aisle = '', out = `Groundwork grocery list (week of ${shortDate(S.mealPlan.start)})\n`;
+  let aisle = '', out = `Movla grocery list (week of ${shortDate(S.mealPlan.start)})\n`;
   list.items.filter(i => !i.pantry && !G.checked[i.key]).forEach(i => { if (i.aisle !== aisle) { aisle = i.aisle; out += `\n${aisle}\n`; } out += `- ${i.name}${i.amount ? ' — ' + i.amount : ''}\n`; });
   return out;
 }
@@ -344,7 +344,7 @@ Object.assign(ACT, {
     const G = ensureGrocery();
     const items = groceryList(S, G.range === 'rest' ? todayKey() : null).items.filter(i => !i.pantry && !G.checked[i.key]);
     toast('Building your Instacart list…');
-    try { const url = await sendToInstacart(items, `Groundwork meals, week of ${shortDate(S.mealPlan.start)}`); window.open(url, '_blank', 'noopener') || (location.href = url); }
+    try { const url = await sendToInstacart(items, `Movla meals, week of ${shortDate(S.mealPlan.start)}`); window.open(url, '_blank', 'noopener') || (location.href = url); }
     catch (e) { toast('Couldn\'t reach Instacart. Use the item links or copy the list instead.'); }
   },
 });

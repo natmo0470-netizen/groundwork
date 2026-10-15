@@ -1,5 +1,5 @@
-/* Groundwork — watches and smart scales.
-   Every major brand writes into Apple Health (iPhone) or Health Connect (Android), and Groundwork reads
+/* Movla — watches and smart scales.
+   Every major brand writes into Apple Health (iPhone) or Health Connect (Android), and Movla reads
    those hubs (health.js), so one connection covers them all. This file adds:
    - a "Set up your watch or scale" guide with the switch to flip in each brand's own app
    - body fat % from smart scales, next to body weight on Today and in Progress
@@ -55,9 +55,9 @@ Object.assign(SHEETS, {
     const rows = DEVICE_GUIDES.filter(g => both || g[plat]);
     const on = !!(S.health && S.health.on);
     const open = UI.sheet && UI.sheet.open;
-    return sheetHead('Set up your watch or scale', `Your device's app shares with ${both ? 'Apple Health or Health Connect' : hub}; Groundwork reads from there`)
+    return sheetHead('Set up your watch or scale', `Your device's app shares with ${both ? 'Apple Health or Health Connect' : hub}; Movla reads from there`)
       + `<ol class="small" style="margin:0;padding-left:20px;display:grid;gap:4px">
-          <li>${on ? `<b>${hub} is connected.</b>` : `Connect ${both ? 'Apple Health or Health Connect in the phone app' : hub} in Groundwork (Settings → Phone and watch data).`}</li>
+          <li>${on ? `<b>${hub} is connected.</b>` : `Connect ${both ? 'Apple Health or Health Connect in the phone app' : hub} in Movla (Settings → Phone and watch data).`}</li>
           <li>In your device's own app, turn on sharing with ${both ? 'Apple Health / Health Connect' : hub} (steps below).</li>
           <li>Come back and tap <b>Sync now</b>. New data appears within a few minutes of your device syncing.</li></ol>
         <div class="list">${rows.map(g => `<button class="li" data-act="device-pick" data-id="${g.id}" aria-expanded="${open === g.id}"><span class="grow"><span class="t">${esc(g.name)}</span><br><span class="d">${esc(g.kind === 'Any' ? 'Any watch, ring, scale or app' : g.kind)}</span></span><span class="chev">${icon(open === g.id ? 'chevD' : 'chevR', 18)}</span></button>
@@ -65,7 +65,7 @@ Object.assign(SHEETS, {
             ? `${g.ios ? `<p class="small" style="margin:0"><b>iPhone:</b> ${esc(g.ios)}</p>` : ''}${g.android ? `<p class="small" style="margin:0"><b>Android:</b> ${esc(g.android)}</p>` : ''}`
             : `<p class="small" style="margin:0">${esc(g[plat])}</p>`}</div>` : ''}`).join('')}</div>
         ${plat === 'android' || both ? `<p class="tiny faint" style="margin:0">Two devices counting steps? In Health Connect → Data and access → Steps → Data sources and priority, put your main device first so steps aren't counted twice.</p>` : ''}
-        ${on ? `<button class="btn ghost block" data-act="health-sync">Sync now</button>` : (typeof HealthSync !== 'undefined' && HealthSync.ok() ? `<button class="btn train block" data-act="health-open">Connect ${hub}</button>` : `<p class="tiny faint" style="margin:0">Watches and scales connect in the Groundwork phone app.</p>`)}
+        ${on ? `<button class="btn ghost block" data-act="health-sync">Sync now</button>` : (typeof HealthSync !== 'undefined' && HealthSync.ok() ? `<button class="btn train block" data-act="health-open">Connect ${hub}</button>` : `<p class="tiny faint" style="margin:0">Watches and scales connect in the Movla phone app.</p>`)}
         <p class="tiny faint" style="margin:0">Menu names change between app versions. If a step doesn't match, look in the app's settings for "${both ? 'Apple Health / Health Connect' : hub}".</p>`;
   },
 });

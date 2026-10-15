@@ -1,4 +1,4 @@
-/* Groundwork — nutrition and progress screens, and all bottom sheets. */
+/* Movla — nutrition and progress screens, and all bottom sheets. */
 
 /* ================= nutrition ================= */
 function viewFoodLog() {
@@ -47,7 +47,7 @@ function viewProgress() {
     </div>
     <div class="card">
       <div class="card-head"><span class="eyebrow">Weekly check-in</span>${ci.due ? `<span class="tag fuel">Ready</span>` : `<span class="tag">In ${ci.daysUntil} day${ci.daysUntil === 1 ? '' : 's'}</span>`}</div>
-      <p class="small muted">Each week Groundwork compares your average weight with the week before and nudges calories up or down so you keep moving toward your goal.</p>
+      <p class="small muted">Each week Movla compares your average weight with the week before and nudges calories up or down so you keep moving toward your goal.</p>
       ${ci.due ? `<button class="btn train block" data-act="open-checkin">Start check-in</button>` : ''}
       ${S.checkins.length ? `<div class="list">${S.checkins.slice().reverse().slice(0, 5).map(c => `<div class="li"><span class="grow"><span class="t">${shortDate(c.date)}</span><br><span class="d">${c.change != null ? `${c.change > 0 ? '+' : ''}${kgToDisp(S, c.change, 1)} ${wUnit(S)} vs last week` : 'Baseline'}</span></span><span class="r tag ${c.adjust ? 'fuel' : ''}">${c.adjust ? (c.adjust > 0 ? '+' : '') + c.adjust + ' kcal' : 'No change'}</span></div>`).join('')}</div>` : ''}
     </div>
@@ -335,30 +335,30 @@ const SHEETS = {
         ${sw('enabled', 'Reminders on', 'Show nudges on the Today screen')}
         ${sw('workout', 'Workout days')}${sw('missed', 'Missed sessions')}${sw('meals', 'Food logging')}${sw('protein', 'Protein check')}${sw('weighin', 'Weigh-ins')}${sw('checkin', 'Weekly check-in')}
         <div class="divider"></div>
-        ${typeof Native !== 'undefined' && Native.isNative ? `<div class="toggle"><span class="small"><b>Reminders on this phone</b><br><span class="faint">Arrive even when Groundwork is closed.</span></span><button class="switch" role="switch" aria-checked="${!!R.browser}" data-act="notif-toggle" aria-label="Phone reminders"></button></div>
+        ${typeof Native !== 'undefined' && Native.isNative ? `<div class="toggle"><span class="small"><b>Reminders on this phone</b><br><span class="faint">Arrive even when Movla is closed.</span></span><button class="switch" role="switch" aria-checked="${!!R.browser}" data-act="notif-toggle" aria-label="Phone reminders"></button></div>
         ${R.browser ? `<div class="grid2"><div class="field"><label for="rt-w">Workout reminder</label><select class="input" id="rt-w" data-remtime="workoutTime">${['06:00', '07:00', '08:00', '09:00', '12:00', '16:00', '17:00'].map(v => `<option value="${v}" ${(R.workoutTime || '08:00') === v ? 'selected' : ''}>${fmtClock(v)}</option>`).join('')}</select></div>
           <div class="field"><label for="rt-f">Food log reminder</label><select class="input" id="rt-f" data-remtime="foodTime">${['18:00', '19:00', '20:00', '21:00'].map(v => `<option value="${v}" ${(R.foodTime || '20:00') === v ? 'selected' : ''}>${fmtClock(v)}</option>`).join('')}</select></div></div>` : ''}`
-        : `<div class="toggle"><span class="small"><b>Phone or desktop notifications</b><br><span class="faint">Status: ${esc(notifState)}. In this version they arrive while Groundwork is open.</span></span><button class="switch" role="switch" aria-checked="${!!R.browser}" data-act="notif-toggle" aria-label="Browser notifications"></button></div>`}
+        : `<div class="toggle"><span class="small"><b>Phone or desktop notifications</b><br><span class="faint">Status: ${esc(notifState)}. In this version they arrive while Movla is open.</span></span><button class="switch" role="switch" aria-checked="${!!R.browser}" data-act="notif-toggle" aria-label="Browser notifications"></button></div>`}
       </div>
       <div class="card" style="box-shadow:none"><span class="eyebrow">App</span>
         ${installRow()}
         <button class="li" data-act="open-feedback"><span class="ni">${icon('chat', 20)}</span><span class="grow"><span class="t">Send feedback</span><br><span class="d">Tell us what's confusing or missing</span></span><span class="chev">${icon('chevR', 18)}</span></button>
         <a class="li" href="https://natmo0470-netizen.github.io/groundwork/privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="ni">${icon('info', 20)}</span><span class="grow"><span class="t">Privacy policy</span><br><span class="d">What's stored and where, and your rights</span></span><span class="chev">${icon('external', 18)}</span></a>
-        <a class="li" href="https://natmo0470-netizen.github.io/groundwork/terms.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="ni">${icon('book', 20)}</span><span class="grow"><span class="t">Terms of use</span><br><span class="d">The rules for using Groundwork and messaging</span></span><span class="chev">${icon('external', 18)}</span></a>
+        <a class="li" href="https://natmo0470-netizen.github.io/groundwork/terms.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="ni">${icon('book', 20)}</span><span class="grow"><span class="t">Terms of use</span><br><span class="d">The rules for using Movla and messaging</span></span><span class="chev">${icon('external', 18)}</span></a>
       </div>
       <div class="card" style="box-shadow:none"><span class="eyebrow">Your data</span>
         <p class="small muted">Everything is stored on this device${Store.available() ? '' : ' (browser storage is blocked here, so data lasts only until you close this page)'}${typeof Cloud !== 'undefined' && Cloud.signedIn() ? ', and backed up to your account' : ''}. Back it up to a file to keep your own copy.</p>
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Groundwork v1.17 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
+      <p class="tiny faint">Movla v1.18 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
   },
 
   feedback(s) {
     const d = s.draft || {};
     const past = (S.feedback || []).length;
-    return sheetHead('Send feedback', 'Groundwork is in testing. Your notes decide what gets fixed first.')
-      + `<div class="field"><span class="label">How easy is Groundwork to use?</span><div class="seg">${[1, 2, 3, 4, 5].map(n => `<button data-act="fb-rate" data-v="${n}" aria-pressed="${d.rating === n}" aria-label="${n} of 5">${n}</button>`).join('')}</div><div class="row between tiny faint"><span>Confusing</span><span>Very easy</span></div></div>
+    return sheetHead('Send feedback', 'Movla is in testing. Your notes decide what gets fixed first.')
+      + `<div class="field"><span class="label">How easy is Movla to use?</span><div class="seg">${[1, 2, 3, 4, 5].map(n => `<button data-act="fb-rate" data-v="${n}" aria-pressed="${d.rating === n}" aria-label="${n} of 5">${n}</button>`).join('')}</div><div class="row between tiny faint"><span>Confusing</span><span>Very easy</span></div></div>
       <div class="field"><span class="label">Which part are you giving feedback on?</span><div class="chips">${['Setup', 'Workouts', 'Exercise demos', 'Food log', 'Targets', 'Progress', 'Reminders', 'Other'].map(a => `<button class="chip" data-act="fb-area" data-v="${a}" aria-pressed="${(d.areas || []).includes(a)}">${a}</button>`).join('')}</div></div>
       <div class="field"><label for="fb-confusing">What was confusing or got in your way?</label><textarea class="input" id="fb-confusing" rows="3" data-fb="confusing">${esc(d.confusing || '')}</textarea></div>
       <div class="field"><label for="fb-missing">What's missing that you'd want?</label><textarea class="input" id="fb-missing" rows="3" data-fb="missing">${esc(d.missing || '')}</textarea></div>
@@ -370,7 +370,7 @@ const SHEETS = {
     const json = JSON.stringify(S);
     return sheetHead('Back up your data', 'Use a backup to move to a new phone or computer, or to keep a safe copy')
       + `<button class="btn train block" data-act="download-backup">${icon('download', 18)} Download backup file</button>
-      <p class="small muted">Saves a file named groundwork-backup-${todayKey()}.json. Send it to your other device (email, cloud drive, AirDrop), open Groundwork there, then Settings → Restore → choose the file.</p>
+      <p class="small muted">Saves a file named movla-backup-${todayKey()}.json. Send it to your other device (email, cloud drive, AirDrop), open Movla there, then Settings → Restore → choose the file.</p>
       <div class="divider"></div>
       <span class="eyebrow">Or copy it as text</span>
       <textarea class="input" id="exp-text" rows="5" readonly style="font:12px ui-monospace,monospace">${esc(json)}</textarea>
@@ -406,13 +406,13 @@ function pickRows(s) {
 
 function installRow() {
   const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-  if (standalone) return `<div class="li"><span class="ni">${icon('check', 20)}</span><span class="grow"><span class="t">Installed</span><br><span class="d">Groundwork is running as an app</span></span></div>`;
+  if (standalone) return `<div class="li"><span class="ni">${icon('check', 20)}</span><span class="grow"><span class="t">Installed</span><br><span class="d">Movla is running as an app</span></span></div>`;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const hosted = /^https?:/.test(location.protocol);
-  const how = UI.installPrompt ? 'Adds Groundwork to your home screen and works offline'
+  const how = UI.installPrompt ? 'Adds Movla to your home screen and works offline'
     : ios ? 'In Safari: tap Share, then Add to Home Screen'
     : hosted ? 'Use your browser menu: Install app, or Add to Home screen'
-    : 'Available once Groundwork is hosted on a web address (see README)';
+    : 'Available once Movla is hosted on a web address (see README)';
   return `<button class="li" data-act="install" ${UI.installPrompt ? '' : 'aria-disabled="true"'}><span class="ni">${icon('download', 20)}</span><span class="grow"><span class="t">Install on this device</span><br><span class="d">${how}</span></span></button>`;
 }
 

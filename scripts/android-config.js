@@ -13,7 +13,7 @@ edit('app/build.gradle', s => s.replace(/versionCode \d+/, `versionCode ${code}`
 // Privacy policy link that Health Connect shows to users.
 edit('app/src/main/res/values/strings.xml', s => s.includes('health_connect_privacy_policy_url') ? s :
   s.replace('</resources>', '    <string name="health_connect_privacy_policy_url">https://natmo0470-netizen.github.io/groundwork/privacy.html</string>\n</resources>'));
-// Permissions: camera for barcode scanning; Health Connect trimmed to only what Groundwork reads and writes,
+// Permissions: camera for barcode scanning; Health Connect trimmed to only what Movla reads and writes,
 // because the Play Console asks you to justify every declared health permission.
 const KEEP = ['READ_STEPS', 'READ_ACTIVE_CALORIES_BURNED', 'READ_SLEEP', 'READ_RESTING_HEART_RATE', 'READ_WEIGHT', 'WRITE_WEIGHT', 'READ_BODY_FAT', 'READ_EXERCISE'];
 const REMOVE = ['WRITE_STEPS', 'WRITE_BODY_FAT', 'READ_DISTANCE', 'WRITE_DISTANCE', 'WRITE_ACTIVE_CALORIES_BURNED', 'READ_HEART_RATE', 'WRITE_HEART_RATE', 'WRITE_SLEEP',
@@ -26,12 +26,13 @@ edit('app/src/main/AndroidManifest.xml', s => {
     .concat(REMOVE.map(p => `    <uses-permission android:name="android.permission.health.${p}" tools:node="remove" />`));
   return s.replace('</manifest>', lines.join('\n') + '\n</manifest>');
 });
-// Invite links: groundwork://join/CODE opens the app straight into the join flow.
-edit('app/src/main/AndroidManifest.xml', s => s.includes('android:scheme="groundwork"') ? s : s.replace('</activity>',
+// Invite links: movla://join/CODE (and the older groundwork://join/CODE) open the app straight into the join flow.
+edit('app/src/main/AndroidManifest.xml', s => s.includes('android:scheme="movla"') ? s : s.replace('</activity>',
   `    <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="movla" android:host="join" />
                 <data android:scheme="groundwork" android:host="join" />
             </intent-filter>
         </activity>`));

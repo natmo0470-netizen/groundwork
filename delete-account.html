@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Delete Account</title>
-<meta name="description" content="Delete your Groundwork account and all of its data.">
+<meta name="description" content="Delete your Movla account and all of its data.">
 <link rel="icon" href="icons/icon-192.png">
 <style>
   :root { --bg: #F3F5F4; --surface: #FFFFFF; --ink: #111A17; --ink-2: #44514C; --line: #DDE3E0; --accent: #0E7A62; }
@@ -33,14 +33,14 @@
 </head>
 <body>
 <main>
-  <h1>Delete your Groundwork account</h1>
-  <p class="meta">Groundwork workout and nutrition app</p>
+  <h1>Delete your Movla account</h1>
+  <p class="meta">Movla workout and nutrition app</p>
   <div class="card">
     <p style="margin-top:0">Deleting your account permanently removes, straight away:</p>
     <ul>
       <li>your account (email and password)</li>
       <li>everything synced to it: profile, plans, workouts, food log, weigh-ins, measurements, activity summaries, pain reports and settings</li>
-      <li>coach links, messages and plans sent through Groundwork</li>
+      <li>coach links, messages and plans sent through Movla</li>
     </ul>
     <p>Nothing is kept afterwards, except a report you filed about another user, which we keep without your account details until it's reviewed. Data saved only on your phone stays there until you erase it in the app (Settings → Erase all data) or uninstall the app.</p>
     <p style="margin-bottom:0">The quickest way is in the app: <b>Settings → Account &amp; sync → Delete account</b>. Or sign in here:</p>
@@ -60,7 +60,7 @@
 (() => {
   const C = window.CLOUD_CONFIG || (typeof CLOUD_CONFIG !== 'undefined' ? CLOUD_CONFIG : {}), $ = id => document.getElementById(id), msg = t => { $('msg').textContent = t; };
   const base = String(C.url || '').replace(/\/+$/, ''), h = t => Object.assign({ apikey: C.anonKey, 'content-type': 'application/json' }, t ? { authorization: 'Bearer ' + t } : {});
-  if (!base) { msg('Accounts aren\'t switched on for this version of Groundwork, so there is nothing to delete.'); $('go').disabled = true; return; }
+  if (!base) { msg('Accounts aren\'t switched on for this version of Movla, so there is nothing to delete.'); $('go').disabled = true; return; }
   $('f').addEventListener('submit', async e => {
     e.preventDefault(); $('go').disabled = true; msg('Signing in…');
     try {

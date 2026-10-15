@@ -1,4 +1,4 @@
-/* Groundwork — native phone features (Capacitor). Everything here is a no-op on the website.
+/* Movla — native phone features (Capacitor). Everything here is a no-op on the website.
    - Reminders scheduled on the phone, so they arrive with the app closed (Local Notifications)
    - Haptics on completed sets, finished workouts and personal bests
    - Screen kept awake while a workout is open
@@ -177,7 +177,7 @@ const Native = (() => {
     const p = await Native.notifPermission(true);
     S.reminders.browser = p === 'granted'; save(); render();
     if (p === 'granted') { await Native.syncReminders(); toast('Reminders on. They arrive even with the app closed.'); }
-    else toast('Notifications are off for Groundwork. Turn them on in your phone\'s Settings.');
+    else toast('Notifications are off for Movla. Turn them on in your phone\'s Settings.');
   };
   ACT['rem-time'] = t => { S.reminders[t.dataset.k] = t.value; save(); render(); };
 })();

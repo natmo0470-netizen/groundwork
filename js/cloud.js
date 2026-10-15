@@ -1,4 +1,4 @@
-/* Groundwork — accounts, cloud backup and sync, and live coaching (Supabase).
+/* Movla — accounts, cloud backup and sync, and live coaching (Supabase).
    Talks to Supabase's REST endpoints directly with fetch (no SDK), so it runs the same on the
    website and inside the phone apps.
    - Auth: email + password (/auth/v1). Session kept in localStorage under groundwork.session.
@@ -497,11 +497,11 @@ const Cloud = (() => {
     ? `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
         <div class="row between" style="gap:10px"><div style="min-width:0"><div class="h3" style="overflow-wrap:anywhere">${esc(Cloud.email())}</div><div class="small muted" id="sync-line">${esc(syncLine())}</div></div></div>
         ${Cloud.status.conflict ? `<button class="btn train block" data-act="cloud-resolve">Choose which data to keep</button>` : ''}${Cloud.needsConsent() ? `<button class="btn train block" data-act="cloud-consent">Review and continue</button>` : ''}
-        ${(() => { const c = Cloud.coachAccess(), p = Cloud.plusSource(); const end = r => r && r.ends_at ? ` until ${shortDate(dateKey(new Date(r.ends_at)))}` : ''; return c ? `<p class="small" style="margin:0">${icon('check', 14)} Coach plan: up to ${c.seats} clients${c.source === 'grant' ? ' (complimentary)' : ''}${end(c)}</p>` : p ? `<p class="small" style="margin:0">${icon('check', 14)} Groundwork Plus${p.source === 'coach' ? ' from your coach' : p.source === 'grant' ? ' (complimentary)' : ''}${end(p)}</p>` : `<p class="small" style="margin:0">Free plan · <button class="link" data-act="plus-open">See Plus</button></p>`; })()}
+        ${(() => { const c = Cloud.coachAccess(), p = Cloud.plusSource(); const end = r => r && r.ends_at ? ` until ${shortDate(dateKey(new Date(r.ends_at)))}` : ''; return c ? `<p class="small" style="margin:0">${icon('check', 14)} Coach plan: up to ${c.seats} clients${c.source === 'grant' ? ' (complimentary)' : ''}${end(c)}</p>` : p ? `<p class="small" style="margin:0">${icon('check', 14)} Movla Plus${p.source === 'coach' ? ' from your coach' : p.source === 'grant' ? ' (complimentary)' : ''}${end(p)}</p>` : `<p class="small" style="margin:0">Free plan · <button class="link" data-act="plus-open">See Plus</button></p>`; })()}
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="cloud-sync">Sync now</button><button class="btn ghost sm" data-act="acct-signout">Sign out</button><button class="btn danger sm" data-act="acct-delete">Delete account</button></div>
         <p class="tiny faint" style="margin:0">Your plan, logs and settings are backed up privately to your account.</p></div>`
     : `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
-        <p class="small muted" style="margin:0">Back up your data and use Groundwork on more than one device. Coaches and clients connect live with an account.</p>
+        <p class="small muted" style="margin:0">Back up your data and use Movla on more than one device. Coaches and clients connect live with an account.</p>
         <div class="grid2"><button class="btn train sm" data-act="acct-open" data-mode="signup">Create account</button><button class="btn ghost sm" data-act="acct-open" data-mode="signin">Sign in</button></div></div>`;
   const _settings = SHEETS.settings;
   SHEETS.settings = s => _settings(s).replace('<div class="card" style="box-shadow:none" id="set-mode">', accountCard() + '<div class="card" style="box-shadow:none" id="set-mode">');
@@ -510,7 +510,7 @@ const Cloud = (() => {
   Object.assign(SHEETS, {
     cloudConsent(s) {
       return sheetHead('How your data is stored', 'One question before we back up your data')
-        + `<p class="small muted" style="margin:0">With an account, Groundwork stores your workouts, food log, weigh-ins, measurements, pain reports, health-check answers and any phone or watch activity in your account, so you can use it on other devices and, if you choose, share it with a coach.</p>
+        + `<p class="small muted" style="margin:0">With an account, Movla stores your workouts, food log, weigh-ins, measurements, pain reports, health-check answers and any phone or watch activity in your account, so you can use it on other devices and, if you choose, share it with a coach.</p>
         <ul class="small muted" style="margin:0;padding-left:20px;display:grid;gap:4px"><li>Used only to run the app: never sold, never used for ads.</li><li>A coach sees only the categories you choose.</li><li>Export it any time, or delete your account and all of it.</li></ul>
         ${consentBox(s.consent)}
         ${s.error ? `<p class="small" role="alert" style="margin:0;color:var(--bad)">${esc(s.error)}</p>` : ''}
@@ -559,13 +559,13 @@ const Cloud = (() => {
     },
     cloudInvite(s) {
       const link = Cloud.inviteLink(s.code), coachName = (S.coachMode && S.coachMode.name) || S.profile.name || 'Your coach';
-      const msg = `${coachName} invited you to train together on Groundwork. Tap to join: ${link}`;
+      const msg = `${coachName} invited you to train together on Movla. Tap to join: ${link}`;
       return sheetHead(`Invite ${esc(s.name)}`, 'Send this link. It works once.')
         + `<div class="card" style="box-shadow:none;gap:8px"><span class="label">Invite link</span><div class="invite-link" id="invite-link">${esc(link)}</div>
           <span class="small muted">${esc(s.name)} taps it, creates an account, chooses what to share and answers a few setup questions, then lands in their Coach tab, linked to you.</span></div>
         <button class="btn train block" data-act="cloud-share-code" data-text="${esc(msg)}">${icon('share', 18)} Send invite link</button>
         <button class="btn ghost block" data-act="cloud-copy-link" data-text="${esc(link)}">${icon('copy', 18)} Copy link</button>
-        <p class="small muted" style="margin:0;text-align:center">Or they can enter code <b class="num" id="invite-code" style="letter-spacing:.08em">${esc(s.code)}</b> in Groundwork → Coach tab → Enable coaching.</p>
+        <p class="small muted" style="margin:0;text-align:center">Or they can enter code <b class="num" id="invite-code" style="letter-spacing:.08em">${esc(s.code)}</b> in Movla → Coach tab → Enable coaching.</p>
         <button class="btn ghost block" data-act="close-sheet">Done</button>`;
     },
   });
@@ -643,8 +643,8 @@ const Cloud = (() => {
     'cloud-share-code': async t => {
       const text = t.dataset.text;
       try {
-        if (typeof Native !== 'undefined' && Native.isNative) { await Native.call('Share', 'share', { title: 'Groundwork invite', text, dialogTitle: 'Send invite code' }); return; }
-        if (navigator.share) { await navigator.share({ title: 'Groundwork invite', text }); return; }
+        if (typeof Native !== 'undefined' && Native.isNative) { await Native.call('Share', 'share', { title: 'Movla invite', text, dialogTitle: 'Send invite code' }); return; }
+        if (navigator.share) { await navigator.share({ title: 'Movla invite', text }); return; }
         await navigator.clipboard.writeText(text); toast('Invite copied. Paste it into a text or email.');
       } catch (e) { /* share cancelled */ }
     },
@@ -839,5 +839,5 @@ function threadHtml(link, otherName) {
 /* Consent checkbox used at sign-up (account sheet, join flow) and for older accounts. */
 function consentBox(checked) {
   const site = (typeof CLOUD_CONFIG !== 'undefined' && CLOUD_CONFIG.inviteBase) || 'https://natmo0470-netizen.github.io/groundwork/';
-  return `<label class="consent"><input type="checkbox" data-acct="consent" data-jf="consent" ${checked ? 'checked' : ''}><span class="small">I consent to Groundwork storing my workout, nutrition, body and health information in my account to run the app, as described in the <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Privacy Policy</a>, and I agree to the <a href="${site}terms.html" target="_blank" rel="noopener">Terms of Use</a>.</span></label>`;
+  return `<label class="consent"><input type="checkbox" data-acct="consent" data-jf="consent" ${checked ? 'checked' : ''}><span class="small">I consent to Movla storing my workout, nutrition, body and health information in my account to run the app, as described in the <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Privacy Policy</a>, and I agree to the <a href="${site}terms.html" target="_blank" rel="noopener">Terms of Use</a>.</span></label>`;
 }

@@ -1,4 +1,4 @@
-/* Groundwork — actions, event wiring, sample data and startup. */
+/* Movla — actions, event wiring, sample data and startup. */
 UI.stack = [];
 function pushSheet(sheet) { if (UI.sheet) UI.stack.push(UI.sheet); UI.sheet = sheet; render(); }
 function popSheet() { UI.sheet = UI.stack.pop() || null; render(); }
@@ -307,7 +307,7 @@ const ACT = {
   },
   'install': async () => {
     if (!UI.installPrompt) return;
-    try { UI.installPrompt.prompt(); const r = await UI.installPrompt.userChoice; UI.installPrompt = null; render(); if (r && r.outcome === 'accepted') toast('Installed. Open Groundwork from your home screen.'); } catch (e) { /* ignore */ }
+    try { UI.installPrompt.prompt(); const r = await UI.installPrompt.userChoice; UI.installPrompt = null; render(); if (r && r.outcome === 'accepted') toast('Installed. Open Movla from your home screen.'); } catch (e) { /* ignore */ }
   },
   'open-feedback': () => pushSheet({ type: 'feedback', draft: {} }),
   'fb-rate': t => { UI.sheet.draft.rating = Number(t.dataset.v); render(); },
@@ -320,7 +320,7 @@ const ACT = {
   },
   'fb-copy': () => {
     const txt = (S.feedback || []).map(f => `${f.date} · ease ${f.rating || '–'}/5 · ${f.areas.join(', ') || 'general'}\nConfusing: ${f.confusing || '–'}\nMissing: ${f.missing || '–'}\n(${f.goal}, ${f.experience}, ${f.workouts} workouts, ${f.app})`).join('\n\n');
-    try { navigator.clipboard.writeText('Groundwork feedback\n\n' + txt).then(() => toast('Copied. Paste it into a text or email.'), () => toast('Copy isn\'t available here')); } catch (e) { toast('Copy isn\'t available here'); }
+    try { navigator.clipboard.writeText('Movla feedback\n\n' + txt).then(() => toast('Copied. Paste it into a text or email.'), () => toast('Copy isn\'t available here')); } catch (e) { toast('Copy isn\'t available here'); }
   },
   'export': () => pushSheet({ type: 'exportData' }),
   'copy-export': () => {
@@ -334,7 +334,7 @@ const ACT = {
       const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `groundwork-backup-${todayKey()}.json`;
+      a.href = url; a.download = `movla-backup-${todayKey()}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       S.lastBackup = todayKey(); save();
@@ -348,7 +348,7 @@ const ACT = {
         const data = JSON.parse(text);
         if (!data || !data.profile || !data.version) throw new Error('bad');
         S = Object.assign(defaultState(), data); UI.loggerOpen = false; save(); closeAll(); toast('Data restored');
-      } catch (e) { toast('That doesn\'t look like a Groundwork backup'); }
+      } catch (e) { toast('That doesn\'t look like a Movla backup'); }
     };
     const file = document.getElementById('imp-file').files[0];
     if (file) { const rd = new FileReader(); rd.onload = () => apply(rd.result); rd.readAsText(file); }

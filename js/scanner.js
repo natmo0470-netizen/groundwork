@@ -1,4 +1,4 @@
-/* Groundwork — barcode scanner.
+/* Movla — barcode scanner.
    Uses the browser's built-in BarcodeDetector where it exists (Chrome on Android, Safari 17+ on some
    devices). Elsewhere it loads the open-source ZXing reader from a CDN the first time it's needed.
    Camera access needs a secure page (https, or a file opened on this computer). */

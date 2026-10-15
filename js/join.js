@@ -1,5 +1,5 @@
-/* Groundwork — invite links: the client's join flow.
-   A coach sends https://<site>/?join=CODE (or groundwork://join/CODE opens the phone app).
+/* Movla — invite links: the client's join flow.
+   A coach sends https://<site>/?join=CODE (or movla://join/CODE, or the older groundwork://join/CODE, opens the phone app).
    The person sees who invited them, creates an account (or signs in), chooses what to share,
    answers the usual setup questions if they're new, and lands in the Coach tab, linked.
    An unfinished join is remembered on this device, so a page reload or an email confirmation
@@ -36,22 +36,22 @@ const JoinFlow = (() => {
   function view() {
     const j = UI.join, coach = esc(first(j.coachName)), hasAcct = j.withAccount || !Cloud.signedIn(), steps = (hasAcct ? 1 : 0) + 1 + (S.onboarded ? 0 : 1);
     const stepNo = { account: 1, share: hasAcct ? 2 : 1 }[j.step];
-    const shell = (inner, foot) => `<div class="app"><div class="ob join"><div class="stack" style="gap:18px"><div class="brand"><span class="brand-mark">${icon('bolt', 16)}</span>Groundwork</div>${inner}</div><div class="stack">${foot}</div></div></div>`;
+    const shell = (inner, foot) => `<div class="app"><div class="ob join"><div class="stack" style="gap:18px"><div class="brand"><span class="brand-mark">${icon('bolt', 16)}</span>Movla</div>${inner}</div><div class="stack">${foot}</div></div></div>`;
     const avatar = `<span class="avatar xl" aria-hidden="true">${esc((j.coachName || 'C').replace(/^coach\s+/i, '').trim().charAt(0).toUpperCase() || 'C')}</span>`;
     if (j.step === 'loading') return shell(`<div class="empty" style="padding:60px 0">Opening your invite…</div>`, '');
     if (j.step === 'error') return shell(`<div class="stack" style="gap:8px"><h1 class="h1">${j.error === 'invalid' ? 'This invite link has expired' : 'Couldn\'t open the invite'}</h1>
         <p class="muted">${j.error === 'invalid' ? 'It may have been used already, or your coach cancelled it. Ask your coach to send a new link.' : j.error === 'offline' ? 'You seem to be offline. Connect to the internet and try again.' : 'Something went wrong on our side. Try again in a minute.'}</p></div>`,
-      `${j.error !== 'invalid' ? `<button class="btn train block" data-act="jf-retry">Try again</button>` : ''}<button class="btn ghost block" data-act="jf-cancel">Continue to Groundwork</button>`);
+      `${j.error !== 'invalid' ? `<button class="btn train block" data-act="jf-retry">Try again</button>` : ''}<button class="btn ghost block" data-act="jf-cancel">Continue to Movla</button>`);
     if (j.step === 'already') return shell(`<div class="stack" style="gap:8px"><h1 class="h1">You already have a coach</h1><p class="muted">You're linked with ${esc(S.coach.name)}. To switch coaches, leave in Settings → Coaching first, then open the new link again.</p></div>`,
       `<button class="btn train block" data-act="jf-done">Go to your Coach tab</button><button class="btn ghost block" data-act="jf-cancel">Close</button>`);
     if (j.step === 'intro') return shell(`<div class="join-hero">${avatar}<span class="eyebrow">You're invited</span><h1 class="h1">Train with ${coach}</h1>
-        <p class="muted" style="margin:0">${coach} invited you${j.label ? ` (as ${esc(j.label)})` : ''} to Groundwork, a workout and nutrition app. It takes about 2 minutes to get set up.</p></div>
+        <p class="muted" style="margin:0">${coach} invited you${j.label ? ` (as ${esc(j.label)})` : ''} to Movla, a workout and nutrition app. It takes about 2 minutes to get set up.</p></div>
       <div class="card"><div class="join-list">
         <div>${icon('dumbbell', 18)}<span><b>Plans and targets from ${coach}</b><br><span class="small muted">Nothing changes until you approve it.</span></span></div>
         <div>${icon('chat', 18)}<span><b>Message each other</b><br><span class="small muted">Right in the app's Coach tab.</span></span></div>
         <div>${icon('check', 18)}<span><b>You choose what ${coach} sees</b><br><span class="small muted">Change it, pause it or leave any time.</span></span></div></div></div>`,
       `<button class="btn train block" data-act="jf-next">Get started</button>
-       ${isPhoneBrowser() ? `<a class="btn ghost block" href="groundwork://join/${esc(j.code)}">Open in the Groundwork app</a>` : ''}
+       ${isPhoneBrowser() ? `<a class="btn ghost block" href="movla://join/${esc(j.code)}">Open in the Movla app</a>` : ''}
        <button class="link muted" data-act="jf-cancel" style="align-self:center">Not now</button>`);
     if (j.step === 'account') {
       const up = j.mode === 'signup';
@@ -169,7 +169,7 @@ const JoinFlow = (() => {
     } catch (e) { /* ignore */ }
     code = code || saved();
     if (code) setTimeout(() => open(code), 50);
-    // The phone app opened from groundwork://join/CODE or an invite web link.
+    // The phone app opened from movla:// (or groundwork://) join links or an invite web link.
     if (typeof Native !== 'undefined' && Native.isNative && Native.listen) Native.listen('App', 'appUrlOpen', ev => { const c = codeFrom(ev && ev.url); if (c) open(c); });
   }
   return { open, close, boot, codeFrom };

@@ -1,4 +1,4 @@
-/* Groundwork — built-in food database (approximate USDA values per listed serving).
+/* Movla — built-in food database (approximate USDA values per listed serving).
    Row: [name, serving label, kcal, protein g, carbs g, fat g, category]
    Online search (Open Food Facts) supplements this list when the network allows. */
 const FOOD_ROWS = [

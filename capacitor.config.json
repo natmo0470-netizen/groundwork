@@ -1,6 +1,6 @@
 {
-  "appId": "app.groundwork.fitness",
-  "appName": "Groundwork",
+  "appId": "app.movla.fitness",
+  "appName": "Movla",
   "webDir": "www",
   "android": {
     "backgroundColor": "#F3F5F4"

@@ -1,4 +1,4 @@
--- Groundwork admin snippets. Run in the Supabase SQL Editor. Replace the email addresses.
+-- Movla admin snippets. Run in the Supabase SQL Editor. Replace the email addresses.
 
 -- Give a friend free Plus forever:
 insert into public.grants (email, kind, plan, note) values ('friend@example.com', 'plus', 'plus', 'friends and family');

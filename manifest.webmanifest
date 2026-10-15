@@ -1,6 +1,6 @@
 {
-  "name": "Groundwork",
-  "short_name": "Groundwork",
+  "name": "Movla",
+  "short_name": "Movla",
   "description": "Workout plans matched to your equipment, plus calorie and macro targets in one app.",
   "start_url": "./index.html",
   "scope": "./",

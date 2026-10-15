@@ -1,4 +1,4 @@
-/* Groundwork — exercise library and equipment model.
+/* Movla — exercise library and equipment model.
    Each exercise: id, name, pattern (movement slot used by the planner), muscles,
    req (equipment ids ALL required; bodyweight needs none), diff (1 easy – 3 advanced),
    anim (demo animation key), prop (what the figure holds), cues (form tips),
@@ -324,7 +324,7 @@ E('jump_squat', 'Jump Squat', 'cardio', ['Quads', 'Cardio'], [], 2, 'jumpsquat',
 
 // =====================================================================
 // Expanded library (v1.3). Coverage checked against the major muscle groups in
-// Muscle & Strength's exercise database; all form cues are written for Groundwork.
+// Muscle & Strength's exercise database; all form cues are written for Movla.
 // =====================================================================
 
 // ---------- Chest: presses ----------
@@ -589,7 +589,7 @@ E('cable_woodchop', 'Cable Woodchop', 'core', ['Obliques', 'Core'], ['cable'], 2
 
 
 // Library additions (v1.4): fills remaining gaps against a classic exercise-database checklist.
-// Cues are written for Groundwork.
+// Cues are written for Movla.
 // ---------- Squat & quads ----------
 E('heel_goblet_squat', 'Heel-Elevated Goblet Squat', 'squat', ['Quads', 'Glutes'], ['dumbbell'], 1, 'squat', 'dumbbell',
   ['Heels on a small plate or wedge', 'Hold the dumbbell at your chest', 'Let knees travel forward over toes', 'Stay tall and stand up smoothly'], L);

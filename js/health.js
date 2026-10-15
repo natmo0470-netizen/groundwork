@@ -1,7 +1,7 @@
-/* Groundwork — Apple Health / Android Health Connect (Phase 3, on-phone data only).
+/* Movla — Apple Health / Android Health Connect (Phase 3, on-phone data only).
    Reads: daily steps, active calories, sleep, resting heart rate, body weight, body fat and workouts
    recorded by other apps, watches and smart scales (Garmin, Fitbit, Samsung, Oura, Withings, Renpho,
-   Strava… all write to these hubs; devices.js has the setup steps). Writes: body weight logged in Groundwork.
+   Strava… all write to these hubs; devices.js has the setup steps). Writes: body weight logged in Movla.
    Data stays on the phone. Uses @capgo/capacitor-health; does nothing on the website. */
 
 /* Friendly names for the apps that write into Apple Health / Health Connect (Android reports package names). */
@@ -12,7 +12,7 @@ const HEALTH_SOURCES = [
   [/apple\.health|com\.apple|watch/i, 'Apple Watch'],
 ];
 function sourceLabel(raw) {
-  const s = String(raw || ''); if (!s || /groundwork/i.test(s)) return '';
+  const s = String(raw || ''); if (!s || /groundwork|movla/i.test(s)) return '';
   const hit = HEALTH_SOURCES.find(([re]) => re.test(s)); if (hit) return hit[1];
   return /^[a-z]+(\.[a-z0-9_]+)+$/i.test(s) ? '' : s.slice(0, 24);   // unknown package name → no label
 }
@@ -69,7 +69,7 @@ const HealthSync = (() => {
   }
   async function otherWorkouts(days) {
     const r = await call('queryWorkouts', { startDate: iso(dayStart(addDays(todayKey(), -(days - 1)))), endDate: iso(Date.now()), limit: 50 });
-    return (r.workouts || []).filter(w => !/groundwork/i.test(w.sourceName || '')).map(w => ({
+    return (r.workouts || []).filter(w => !/groundwork|movla/i.test(w.sourceName || '')).map(w => ({
       date: localKey(w.startDate), type: String(w.workoutType || 'other').replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim(),
       minutes: Math.round((w.duration || 0) / 60), kcal: w.totalEnergyBurned ? Math.round(w.totalEnergyBurned) : null, source: sourceLabel(w.sourceName || w.sourceId || ''),
     }));
@@ -158,12 +158,12 @@ Object.assign(SHEETS, {
   health_connect() {
     const on = !!(S.health && S.health.on), nm = HealthSync.name();
     return sheetHead(nm, 'Use data from your phone and watch')
-      + `<p class="muted" style="margin:0">Groundwork reads <b>steps, active calories, sleep, resting heart rate, weigh-ins, body fat and workouts</b> from other apps, and saves the weight you log here back to ${nm}. Nothing leaves your phone.</p>
+      + `<p class="muted" style="margin:0">Movla reads <b>steps, active calories, sleep, resting heart rate, weigh-ins, body fat and workouts</b> from other apps, and saves the weight you log here back to ${nm}. Nothing leaves your phone.</p>
       <button class="li" data-act="devices-open"><span class="ni">${icon('bolt', 20)}</span><span class="grow"><span class="t">Set up your watch or scale</span><br><span class="d">Garmin, Fitbit, Samsung, Oura, Withings, Renpho, Strava and more</span></span><span class="chev">${icon('chevR', 18)}</span></button>
       <div class="toggle"><span class="small"><b>Connect ${nm}</b><br><span class="faint">${on ? 'Connected' + (S.healthData && S.healthData.syncedAt ? ' · last sync ' + new Date(S.healthData.syncedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') : 'You choose what to share on the next screen'}</span></span><button class="switch" role="switch" aria-checked="${on}" data-act="health-toggle" aria-label="Connect ${nm}"></button></div>
       ${on ? `<div class="field"><label for="hc-goal">Daily step goal</label><select class="input" id="hc-goal" data-stepgoal>${[5000, 6000, 7000, 8000, 10000, 12000, 15000].map(v => `<option value="${v}" ${(S.health.stepGoal || 8000) === v ? 'selected' : ''}>${fmtInt(v)}</option>`).join('')}</select></div>
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="health-sync">Sync now</button>${Native.platform === 'android' ? `<button class="btn ghost sm" data-act="health-settings">Health Connect permissions</button>` : ''}</div>
-        <p class="tiny faint">Calorie targets stay based on your weight trend, so watch calorie estimates don't double count. To change what's shared, use ${Native.platform === 'ios' ? 'the Health app → Sharing → Apps → Groundwork' : 'Health Connect permissions'}.</p>` : ''}
+        <p class="tiny faint">Calorie targets stay based on your weight trend, so watch calorie estimates don't double count. To change what's shared, use ${Native.platform === 'ios' ? 'the Health app → Sharing → Apps → Movla' : 'Health Connect permissions'}.</p>` : ''}
       ${Native.platform === 'android' ? `<p class="tiny faint">Health Connect is built into Android 14 and later; on older phones, install "Health Connect" from the Play Store.</p>` : ''}`;
   },
 });

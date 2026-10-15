@@ -1,4 +1,4 @@
-/* Groundwork — Coach tools. With an account (cloud.js) coaching is live: invite codes, synced progress
+/* Movla — Coach tools. With an account (cloud.js) coaching is live: invite codes, synced progress
    and plans delivered in the app. Without one, everything below still works with files.
    Coach: turns on Coach mode, gets a Clients tab with a seat limit by plan, invites clients,
    assigns programs / their own workouts / macro targets, and reads clients' progress updates.
@@ -140,23 +140,23 @@ Object.assign(SHEETS, {
         : `<p class="small muted" style="margin:0">Got an invite from a coach? Open it here to link up. Your coach can then send you plans and targets, and you send back weekly updates.</p><button class="btn ghost block" data-act="client-import">Open coach invite</button>`}</div>
       <div class="card" style="box-shadow:none"><span class="eyebrow">Coach tools</span>
         ${coachAllowed() ? `<div class="toggle"><span class="small"><b>Show coach tools</b><br><span class="faint">${typeof Cloud !== 'undefined' && Cloud.configured() ? `Your plan: ${esc(coachPlan().name)}, up to ${coachPlan().seats} clients. ` : ''}Adds the Clients tab to manage clients, assign plans and macros, and review their progress.</span></span><button class="switch" role="switch" aria-checked="${coachOn()}" data-act="coach-toggle" aria-label="Show coach tools"></button></div>`
-          : `<p class="small muted" style="margin:0">Are you a personal trainer or coach? Manage clients, send programs and nutrition targets, and message clients, with your clients using Groundwork free.</p><button class="btn train block" data-act="coach-start">Become a coach</button>`}
+          : `<p class="small muted" style="margin:0">Are you a personal trainer or coach? Manage clients, send programs and nutrition targets, and message clients, with your clients using Movla free.</p><button class="btn train block" data-act="coach-start">Become a coach</button>`}
         ${coachOn() ? `<div class="field"><label for="coach-name">Your name (shown to clients)</label><input class="input" id="coach-name" data-coachname value="${esc(S.coachMode.name || '')}"></div>` : ''}</div>`;
   },
   coachPlan() {
     const cur = coachPlan();
-    return sheetHead('Coach plans', 'Plans by number of client seats; clients use Groundwork free while linked')
+    return sheetHead('Coach plans', 'Plans by number of client seats; clients use Movla free while linked')
       + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="coach-plan-pick" data-id="${p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${PRICING.showPrices || testCheckout() ? `$${p.monthly}/month` : 'Early access'}</span></span>${cur.id === p.id ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`).join('')}</div>
-      <p class="tiny faint">${testCheckout() ? 'Test mode: switching plans is free and nothing is charged. Test plans last 14 days; pick a plan again to restart.' : PRICING.showPrices ? `Billed monthly; ${PRICING.trialDays}-day free trial.` : 'Coach plans are set up by the Groundwork team during early access. Paid plans open at launch, with notice before anything changes.'}</p>`;
+      <p class="tiny faint">${testCheckout() ? 'Test mode: switching plans is free and nothing is charged. Test plans last 14 days; pick a plan again to restart.' : PRICING.showPrices ? `Billed monthly; ${PRICING.trialDays}-day free trial.` : 'Coach plans are set up by the Movla team during early access. Paid plans open at launch, with notice before anything changes.'}</p>`;
   },
   coachAdd(s) {
     const full = clients().length >= coachPlan().seats;
     return sheetHead('Add a client', full ? 'All seats are in use' : `${coachPlan().seats - clients().length} seats left`)
       + (full ? `<p class="muted">Your ${coachPlan().name} plan covers ${coachPlan().seats} clients. Move up a plan or remove a client to add another.</p><button class="btn train block" data-act="coach-plan">See plans</button>`
         : `<div class="field"><label for="ca-name">Client name</label><input class="input" id="ca-name" placeholder="e.g. Jordan"></div>
-        ${cloudOn() ? `<p class="small muted">Creates an 8-character code. Your client enters it in Groundwork → Settings → Coaching, chooses what to share, and their progress syncs to you.</p>
+        ${cloudOn() ? `<p class="small muted">Creates an 8-character code. Your client enters it in Movla → Settings → Coaching, chooses what to share, and their progress syncs to you.</p>
         <button class="btn train block" data-act="coach-invite">Create invite code</button>`
-        : `<p class="small muted">Creates an invite file to send by text, email or AirDrop. Your client opens it in Groundwork → Settings → Coaching.</p>
+        : `<p class="small muted">Creates an invite file to send by text, email or AirDrop. Your client opens it in Movla → Settings → Coaching.</p>
         <button class="btn train block" data-act="coach-invite">${icon('share', 18)} Create and send invite</button>`}`);
   },
   client(s) {
@@ -168,7 +168,7 @@ Object.assign(SHEETS, {
     const tabs = `<div class="seg">${tabList.map(([k, l]) => `<button data-act="client-tab" data-v="${k}" aria-pressed="${(s.tab || 'overview') === k}">${l}${k === 'chat' && unreadCount(c.id) ? ` <span class="dot" aria-label="${unreadCount(c.id)} unread"></span>` : ''}</button>`).join('')}</div>`;
     let body = '';
     const tab = s.tab || 'overview';
-    if (c.cloud && !c.linked) return sheetHead(esc(c.name), 'Invite not used yet') + `<div class="card" style="box-shadow:none;align-items:center;text-align:center"><div class="mid-num" style="font-size:32px;letter-spacing:.12em">${esc(c.code)}</div><span class="small muted">${esc(c.name)} enters this code in Groundwork → Settings → Coaching.</span></div>
+    if (c.cloud && !c.linked) return sheetHead(esc(c.name), 'Invite not used yet') + `<div class="card" style="box-shadow:none;align-items:center;text-align:center"><div class="mid-num" style="font-size:32px;letter-spacing:.12em">${esc(c.code)}</div><span class="small muted">${esc(c.name)} enters this code in Movla → Settings → Coaching.</span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="coach-reinvite" data-id="${c.id}">${icon('share', 16)} Send code again</button><button class="btn danger sm" data-act="coach-remove" data-id="${c.id}">Cancel invite</button></div>`;
     if (tab === 'chat' && c.cloud) body = `<div class="chat">${threadHtml(c.id, c.name)}</div>`;
     else if (!d && tab !== 'plan') body = `<div class="empty">${icon('download', 26)}<span>No update yet. Ask ${esc(c.name)} to tap <b>Send update to coach</b>, then open the file here.</span></div>
@@ -222,7 +222,7 @@ Object.assign(SHEETS, {
   },
   coachSent(s) {
     return sheetHead('Ready to send', s.sub || '')
-      + `<p class="small muted">If the share sheet didn't open, or you'd rather paste it into a message, copy this text instead. ${s.encrypted ? 'It\'s encrypted: only the other person\'s Groundwork can read it.' : ''}</p>
+      + `<p class="small muted">If the share sheet didn't open, or you'd rather paste it into a message, copy this text instead. ${s.encrypted ? 'It\'s encrypted: only the other person\'s Movla can read it.' : ''}</p>
       <textarea class="input" id="cs-text" rows="4" readonly style="font:12px ui-monospace,monospace">${esc(UI.lastCoachText || '')}</textarea>
       <button class="btn ghost block" data-act="coach-copy">${icon('copy', 18)} Copy text</button><button class="btn train block" data-act="close-sheet">Done</button>`;
   },
@@ -314,7 +314,7 @@ function viewCoach() {
 SHEETS.coachEnable = () => sheetHead('Enable coaching', 'Enter the code your coach gave you')
   + `<div class="row" style="gap:8px"><input class="input" id="join-code" placeholder="8-character code" autocapitalize="characters" autocomplete="off" maxlength="9" style="text-transform:uppercase;letter-spacing:.1em" aria-label="Invite code"><button class="btn train" data-act="join-code">Next</button></div>
   <p class="small muted" style="margin:0">Next you choose what your coach can see. You can change it or leave at any time.</p>
-  <p class="small muted" style="margin:0">Don't have a code? Ask your coach to add you in Groundwork (Clients → Add client).</p>
+  <p class="small muted" style="margin:0">Don't have a code? Ask your coach to add you in Movla (Clients → Add client).</p>
   <button class="link small" data-act="client-import" style="align-self:flex-start">Got an invite file instead?</button>`;
 /* Settings: Coaching entry. */
 const _settingsCoach = SHEETS.settings;
@@ -346,7 +346,7 @@ Object.assign(ACT, {
       try { await Cloud.startTestPlan(p.id); } catch (e) { toast('Couldn\'t change plans: ' + (e.message || 'try again')); return; }
       if (S.coachMode) { S.coachMode.plan = p.id; save(); } popSheet(); toast(`${p.name} plan (test): up to ${p.seats} clients`); return;
     }
-    if (typeof Cloud !== 'undefined' && Cloud.configured()) { toast(coachPlan().id === t.dataset.id ? 'That\'s your current plan' : 'Plan changes open at launch. During early access, ask the Groundwork team.'); return; } const p = COACH_PLANS.find(x => x.id === t.dataset.id); if (clients().length > p.seats) { toast(`You have ${clients().length} clients; ${p.name} covers ${p.seats}.`); return; } S.coachMode.plan = p.id; save(); popSheet(); toast(`${p.name} plan: up to ${p.seats} clients`); },
+    if (typeof Cloud !== 'undefined' && Cloud.configured()) { toast(coachPlan().id === t.dataset.id ? 'That\'s your current plan' : 'Plan changes open at launch. During early access, ask the Movla team.'); return; } const p = COACH_PLANS.find(x => x.id === t.dataset.id); if (clients().length > p.seats) { toast(`You have ${clients().length} clients; ${p.name} covers ${p.seats}.`); return; } S.coachMode.plan = p.id; save(); popSheet(); toast(`${p.name} plan: up to ${p.seats} clients`); },
   'coach-add': () => pushSheet({ type: 'coachAdd' }),
   'coach-invite': async () => {
     const name = val('ca-name'); if (!name) { toast('Add your client\'s name'); return; }
@@ -359,10 +359,10 @@ Object.assign(ACT, {
     const c = { id: 'cl_' + uid(), name, key: GWCrypto.newKey(), invitedAt: todayKey(), linked: false, data: null, notes: '' };
     S.coachMode.clients.push(c); save();
     const inv = { gw: 'coach', v: 1, type: 'invite', coachId: S.coachMode.id, coachName: S.coachMode.name || S.profile.name || 'Your coach', clientId: c.id, clientName: name, key: c.key };
-    await sendCoachFile(inv, 'groundwork-invite-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Groundwork coach invite');
+    await sendCoachFile(inv, 'movla-invite-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Movla coach invite');
     UI.stack = []; UI.sheet = { type: 'coachSent', sub: `Invite for ${name}. They open it in Settings → Coaching.`, encrypted: false }; render();
   },
-  'coach-reinvite': async t => { const c = findClient(t.dataset.id); if (c.cloud) { pushSheet({ type: 'cloudInvite', name: c.name, code: c.code }); return; } const inv = { gw: 'coach', v: 1, type: 'invite', coachId: S.coachMode.id, coachName: S.coachMode.name || 'Your coach', clientId: c.id, clientName: c.name, key: c.key }; await sendCoachFile(inv, 'groundwork-invite', 'Groundwork coach invite'); pushSheet({ type: 'coachSent', sub: `Invite for ${c.name}` }); },
+  'coach-reinvite': async t => { const c = findClient(t.dataset.id); if (c.cloud) { pushSheet({ type: 'cloudInvite', name: c.name, code: c.code }); return; } const inv = { gw: 'coach', v: 1, type: 'invite', coachId: S.coachMode.id, coachName: S.coachMode.name || 'Your coach', clientId: c.id, clientName: c.name, key: c.key }; await sendCoachFile(inv, 'movla-invite', 'Movla coach invite'); pushSheet({ type: 'coachSent', sub: `Invite for ${c.name}` }); },
   'coach-sample': () => { const c = { id: 'cl_' + uid(), name: 'Sample: Jordan', key: GWCrypto.ok() ? GWCrypto.newKey() : '', invitedAt: todayKey(), linked: true, sample: true, data: sampleClient(), notes: '' }; S.coachMode.clients.push(c); save(); render(); },
   'coach-remove': t => {
     const c = findClient(t.dataset.id);
@@ -392,7 +392,7 @@ Object.assign(ACT, {
       return;
     }
     const env = await sealFor('assign', S.coachMode.id, c.id, c.key, payload);
-    await sendCoachFile(env, 'groundwork-plan-for-' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Plan from your coach');
+    await sendCoachFile(env, 'movla-plan-for-' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Plan from your coach');
     c.lastAssign = todayKey(); save();
     UI.stack = []; UI.sheet = { type: 'coachSent', sub: `Plan for ${c.name}`, encrypted: !!env.enc }; render();
   },
@@ -402,7 +402,7 @@ Object.assign(ACT, {
     const readFile = f => new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsText(f); });
     const f = document.getElementById('cf-file').files[0];
     let o;
-    try { o = parseCoachText(f ? await readFile(f) : val('cf-text')); } catch (e) { toast('That isn\'t a Groundwork coach file'); return; }
+    try { o = parseCoachText(f ? await readFile(f) : val('cf-text')); } catch (e) { toast('That isn\'t a Movla coach file'); return; }
     if (o.type === 'invite') {
       if (S.coach && (S.coach.cloud || S.coach.id !== o.coachId)) { toast(`You're already linked to ${S.coach.name}. Leave first to switch coaches.`); return; }
       UI.stack = []; UI.sheet = { type: 'coachJoin', invite: o, share: defaultShare(), tall: true }; render(); return;
@@ -426,7 +426,7 @@ Object.assign(ACT, {
   'client-send-go': async () => {
     const note = val('cs-note');
     const env = await sealFor('update', S.coach.id, S.coach.clientId, S.coach.key, buildUpdate(note));
-    await sendCoachFile(env, 'groundwork-update-' + (S.profile.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Update for your coach');
+    await sendCoachFile(env, 'movla-update-' + (S.profile.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Update for your coach');
     S.coach.lastSent = todayKey(); save();
     UI.stack = []; UI.sheet = { type: 'coachSent', sub: `Update for ${S.coach.name}`, encrypted: !!env.enc }; render();
   },

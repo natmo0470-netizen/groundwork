@@ -1,4 +1,4 @@
--- Groundwork migration 007: test checkout.
+-- Movla migration 007: test checkout.
 -- While payments aren't set up, anyone signed in can start a free 14-day test coach plan from the
 -- app's "Become a coach" flow (and switch plans), so the whole coach workflow can be tried.
 -- Turn it OFF before launch:

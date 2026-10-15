@@ -1,4 +1,4 @@
-# Groundwork cloud (Phase 5): Supabase
+# Movla cloud (Phase 5): Supabase
 
 `schema.sql` is the database for accounts, sync and coaching. It enforces the client's sharing choices
 inside the database (row-level security), so a coach can never read a category the client hasn't shared,

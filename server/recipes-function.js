@@ -1,4 +1,4 @@
-/* Groundwork — recipe service search (Cloudflare Worker, Spoonacular).
+/* Movla — recipe service search (Cloudflare Worker, Spoonacular).
    Lets the meal plan's Swap screen search thousands of extra recipes. Returns recipes in the same
    shape as the built-in library. Spoonacular has a free tier with daily limits; paid plans cost more.
 

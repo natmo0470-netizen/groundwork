@@ -1,4 +1,4 @@
-/* Groundwork — the free plan and Plus.
+/* Movla — the free plan and Plus.
    Everything in the app is free. Plus removes the one small card on Today and the food log and
    lifts the daily barcode-scan limit. Coaches, coached clients and complimentary (friends and
    family) accounts get Plus through Cloud.hasPlus(). Builds without accounts (no cloud config)
@@ -47,7 +47,7 @@ const Plus = (() => {
   const HOUSE = [
     { id: 'meals', eyebrow: 'Tip', title: 'Meal prep, counted for you', body: 'Build a recipe from its ingredients in My meals and get calories and macros per portion.', act: 'promo-meals', label: 'Open My meals' },
     { id: 'coach', eyebrow: 'Tip', title: 'Working with a trainer?', body: 'Your coach can send your program and targets straight to the app, and their clients get Plus free.', act: 'tab', id2: 'coach', label: 'See coaching' },
-    { id: 'plus', eyebrow: 'Groundwork Plus', title: 'Keep it clean', body: 'Plus hides this card and gives you unlimited barcode scans. Everything else stays free.', act: 'plus-open', label: 'See Plus' },
+    { id: 'plus', eyebrow: 'Movla Plus', title: 'Keep it clean', body: 'Plus hides this card and gives you unlimited barcode scans. Everything else stays free.', act: 'plus-open', label: 'See Plus' },
   ];
   // Home-gym gear, each tied to the equipment it adds to your plan. A card only offers gear you don't have.
   const PRODUCTS = [
@@ -76,7 +76,7 @@ const Plus = (() => {
       const n = esc(PLUS.partner.name);
       return `<div class="card promo"><div class="card-head"><span class="eyebrow">Sponsored · ${n}</span>${x}</div><b>${esc(c.title)}</b><span class="small muted">${esc(c.body)}</span>
         <a class="btn ghost sm" href="${partnerLink(c.q)}" target="_blank" rel="noopener sponsored" style="align-self:flex-start">${icon('external', 16)} See it at ${n}</a>
-        <span class="tiny faint">Groundwork earns a commission if you buy through this link, at no cost to you. <button class="link" data-act="plus-open">Hide these with Plus</button></span></div>`;
+        <span class="tiny faint">Movla earns a commission if you buy through this link, at no cost to you. <button class="link" data-act="plus-open">Hide these with Plus</button></span></div>`;
     }
     return `<div class="card promo"><div class="card-head"><span class="eyebrow">${esc(c.eyebrow)}</span>${x}</div><b>${esc(c.title)}</b><span class="small muted">${esc(c.body)}</span>
       <button class="link" data-act="${c.act}"${c.id2 ? ` data-id="${c.id2}"` : ''} style="align-self:flex-start">${esc(c.label)}</button></div>`;
@@ -86,7 +86,7 @@ const Plus = (() => {
   SHEETS.plus = () => {
     const src = gated() && Cloud.signedIn() ? Cloud.plusSource() : null;
     const have = active() && gated();
-    return sheetHead('Groundwork Plus', have ? 'You have Plus' : 'The whole app is free. Plus is for people who want it extra clean.')
+    return sheetHead('Movla Plus', have ? 'You have Plus' : 'The whole app is free. Plus is for people who want it extra clean.')
       + `<div class="card"><div class="list">
           <div class="li"><span class="grow"><span class="t">No sponsored or tip cards</span><br><span class="d">Today and the food log show only your stuff</span></span>${icon('check', 18)}</div>
           <div class="li"><span class="grow"><span class="t">Unlimited barcode scans</span><br><span class="d">Free plan: ${PLUS.freeScans} a day</span></span>${icon('check', 18)}</div>
@@ -94,7 +94,7 @@ const Plus = (() => {
         <p class="small muted">Workouts, programs, food logging, meal plans, groceries, My meals, check-ins, progress and coaching all stay free.</p>
         ${have ? `<p class="small">${icon('check', 14)} ${src && src.source === 'coach' ? 'Included with your coach' : src && src.kind === 'coach' ? 'Included with your coach plan' : src && src.source === 'grant' ? 'Complimentary' : 'Active'}</p>`
           : PLUS.showPrices ? `<div class="row wrap"><button class="btn fuel" data-act="plus-buy" data-id="yearly">$${PLUS.yearly}/year</button><button class="btn ghost" data-act="plus-buy" data-id="monthly">$${PLUS.monthly}/month</button></div><button class="link muted" data-act="plus-restore">Restore purchases</button>`
-          : `<p class="small muted">Plus opens at launch. Training with a coach on Groundwork? You get it free.</p>`}`;
+          : `<p class="small muted">Plus opens at launch. Training with a coach on Movla? You get it free.</p>`}`;
   };
 
   Object.assign(ACT, {

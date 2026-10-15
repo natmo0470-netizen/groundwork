@@ -1,4 +1,4 @@
-/* Groundwork — reminder rules and weekly check-in.
+/* Movla — reminder rules and weekly check-in.
    Rules run whenever the app opens or ticks; each returns at most one reminder.
    Phase 2 (store app) schedules them on the phone so they arrive with the app closed. */
 
@@ -108,7 +108,7 @@ function maybeNotify(state, list) {
     list.filter(r => r.level === 'high').forEach(r => {
       const key = r.id + ':' + today;
       if (state.notified[key]) return;
-      new Notification('Groundwork: ' + r.title, { body: r.body, tag: key });
+      new Notification('Movla: ' + r.title, { body: r.body, tag: key });
       state.notified[key] = true; fired = true;
     });
   } catch (e) { /* notifications blocked in this context */ }

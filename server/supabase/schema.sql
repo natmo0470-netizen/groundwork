@@ -1,4 +1,4 @@
--- Groundwork cloud schema (Phase 5) for Supabase / Postgres.
+-- Movla cloud schema (Phase 5) for Supabase / Postgres.
 -- Draft: run in the Supabase SQL editor once the project exists, then test with two accounts.
 --
 -- Principles

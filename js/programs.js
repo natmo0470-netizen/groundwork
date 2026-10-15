@@ -1,7 +1,7 @@
-/* Groundwork — ready-made training programs.
+/* Movla — ready-made training programs.
    Program styles follow the classic formats found on sites like Muscle & Strength (full body,
    5×5, power/size upper-lower, push/pull/legs, one-muscle-a-day splits). Exercise picks and
-   wording are Groundwork's own.
+   wording are Movla's own.
 
    Each session item: [slot, preferredExerciseIds, sets, minReps, maxReps, restSec, unit]
    - The first preferred exercise the user has equipment for is used; otherwise the planner

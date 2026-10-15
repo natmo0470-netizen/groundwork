@@ -35,19 +35,19 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
-      - run: cp android/app/build/outputs/apk/debug/app-debug.apk groundwork-test.apk
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk movla-test.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: groundwork-test-apk
-          path: groundwork-test.apk
+          name: movla-test-apk
+          path: movla-test.apk
       # Latest test build, downloadable from the repo's Releases page (or straight on an Android phone).
       - name: Publish to the "test-build" release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete test-build --yes --cleanup-tag || true
-          gh release create test-build groundwork-test.apk --prerelease --title "Test build (latest)" \
-            --notes "Debug APK for testing, built from ${GITHUB_SHA::7}. On Android: open this page, download groundwork-test.apk, allow installs from this source when asked."
+          gh release create test-build movla-test.apk --prerelease --title "Test build (latest)" \
+            --notes "Debug APK for testing, built from ${GITHUB_SHA::7}. On Android: open this page, download movla-test.apk, allow installs from this source when asked."
       - name: Build signed release bundle (.aab) for Google Play
         if: env.KS != ''
         working-directory: android
@@ -58,19 +58,19 @@ jobs:
             -Pandroid.injected.signing.store.password='${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' \
             -Pandroid.injected.signing.key.alias='${{ secrets.ANDROID_KEY_ALIAS }}' \
             -Pandroid.injected.signing.key.password='${{ secrets.ANDROID_KEY_PASSWORD }}'
-          cp app/build/outputs/bundle/release/app-release.aab ../groundwork-release.aab
+          cp app/build/outputs/bundle/release/app-release.aab ../movla-release.aab
       - name: Publish the release bundle
         if: env.KS != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete play-bundle --yes --cleanup-tag || true
-          gh release create play-bundle groundwork-release.aab --prerelease --title "Google Play bundle (latest)" \
+          gh release create play-bundle movla-release.aab --prerelease --title "Google Play bundle (latest)" \
             --notes "Signed release bundle for the Play Console, version $(node -p "require('./package.json').version") (build ${{ github.run_number }}), from ${GITHUB_SHA::7}."
       # Keep a copy on the apk-builds branch as well.
       - name: Save to apk-builds branch
         run: |
-          mkdir out && cp groundwork-test.apk out/ && cd out
+          mkdir out && cp movla-test.apk out/ && cd out
           git init -q && git checkout -q -b apk-builds
           git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com add . 
           git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -q -m "Test APK from ${GITHUB_SHA::7}"
