@@ -38,9 +38,10 @@ create table public.coach_links (
   client_note text not null default '',                                  -- a short message from the client to the coach
   client_note_at timestamptz,
   created_at timestamptz not null default now(),
-  accepted_at timestamptz,
-  unique (coach_id, client_id)
+  accepted_at timestamptz
 );
+-- one ACTIVE link per coach + client; ended links stay as history so a client can rejoin later
+create unique index coach_links_one_active on public.coach_links (coach_id, client_id) where status = 'active';
 
 -- ---------- the client's data, by sharing category ----------
 -- workouts
@@ -205,10 +206,17 @@ create policy coach_notes_own on public.coach_notes for all using (coach_id = au
 -- ---------- accepting an invite, and seat limits ----------
 create or replace function public.accept_invite(code text, share jsonb)
 returns uuid language plpgsql security definer set search_path = public as $$
-declare link_id uuid;
+declare link_id uuid; coach uuid;
 begin
+  select l.coach_id into coach from coach_links l
+   where l.invite_code = upper(accept_invite.code) and l.status = 'invited' and l.client_id is null;
+  if coach is null then raise exception 'Invite not found or already used'; end if;
+  if coach = auth.uid() then raise exception 'This is your own invite link'; end if;
+  if exists (select 1 from coach_links l where l.coach_id = coach and l.client_id = auth.uid() and l.status = 'active') then
+    raise exception 'You are already linked with this coach';
+  end if;
   update coach_links set client_id = auth.uid(), status = 'active', accepted_at = now(), share = coalesce(accept_invite.share, coach_links.share)
-   where invite_code = code and status = 'invited' and client_id is null and coach_id <> auth.uid()
+   where invite_code = upper(accept_invite.code) and status = 'invited' and client_id is null
    returning id into link_id;
   if link_id is null then raise exception 'Invite not found or already used'; end if;
   return link_id;

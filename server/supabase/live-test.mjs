@@ -119,6 +119,17 @@ try {
   check('pause hides everything from the coach', r.ok && r.j.length === 0, r.j);
   r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: coach.token, body: { status: 'ended' }, prefer: 'return=minimal' });
   check('coach can end the link', r.ok, r.j);
+  r = await call('/rest/v1/coach_links', { method: 'POST', token: coach.token, body: { coach_id: coach.id, client_label: 'Live Client' }, prefer: 'return=representation' });
+  const link2 = r.ok && r.j[0];
+  r = await call('/rest/v1/rpc/accept_invite', { method: 'POST', token: client.token, body: { code: link2.invite_code, share } });
+  check('client can rejoin the same coach after the link ended (run migrations/004_rejoin.sql if this fails)', r.ok && r.j === link2.id, r.j);
+  r = await call('/rest/v1/coach_links', { method: 'POST', token: coach.token, body: { coach_id: coach.id, client_label: 'Live Client' }, prefer: 'return=representation' });
+  const link3 = r.ok && r.j[0];
+  r = await call('/rest/v1/rpc/accept_invite', { method: 'POST', token: client.token, body: { code: link3.invite_code, share } });
+  check('a second active link to the same coach is refused clearly', !r.ok && /already linked/i.test(JSON.stringify(r.j)), r.j);
+  r = await call('/rest/v1/rpc/accept_invite', { method: 'POST', token: coach.token, body: { code: link3.invite_code, share } });
+  check('a coach can\'t accept their own invite', !r.ok && /own invite/i.test(JSON.stringify(r.j)), r.j);
+  await call(`/rest/v1/coach_links?id=in.(${link2.id},${link3.id})`, { method: 'PATCH', token: coach.token, body: { status: 'ended' }, prefer: 'return=minimal' });
   r = await call('/rest/v1/messages', { method: 'POST', token: client.token, body: { link_id: link.id, sender_id: client.id, body: 'after the end' } });
   check('no messages after the link ends', !r.ok, r.status);
 } catch (e) { check('run', false, e.message); }

@@ -317,7 +317,18 @@ const Cloud = (() => {
   async function setShare(linkId, share) { await rest(`coach_links?id=eq.${linkId}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { share } }); }
   async function setClientNote(linkId, note) { await rest(`coach_links?id=eq.${linkId}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { client_note: note, client_note_at: new Date().toISOString() } }); }
   async function answer(id, st) { await rest(`assignments?id=eq.${id}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { status: st, answered_at: new Date().toISOString() } }); pending = pending.filter(a => a.id !== id); Object.values(threads).forEach(t => t.items.forEach(it => { if (it.id === id) it.status = st; })); }
+  /* An active link on the server that this phone doesn't know about (another device joined, or a lost save). */
+  async function activeLink() {
+    const l = (await rest(`coach_links?select=id,coach_id,share,accepted_at&client_id=eq.${me()}&status=eq.active&order=accepted_at.desc&limit=1`))[0];
+    if (!l) return null;
+    const p = (await rest(`profiles?select=display_name&id=eq.${l.coach_id}`).catch(() => []))[0];
+    return { linkId: l.id, coachId: l.coach_id, coachName: (p && p.display_name) || 'Your coach', share: l.share, linkedAt: l.accepted_at ? localDay(l.accepted_at) : todayKey() };
+  }
   async function clientSide() {
+    if (!S.coach && S.onboarded) {
+      const a = await activeLink().catch(() => null);
+      if (a) { S.coach = { cloud: true, linkId: a.linkId, id: a.coachId, name: a.coachName, clientId: me(), linkedAt: a.linkedAt, lastSent: null, share: Object.assign(defaultShare(), a.share || {}) }; save(); }
+    }
     const c = S.coach;
     if (!c || !c.cloud) { pending = []; return; }
     const l = (await rest(`coach_links?select=status,share&id=eq.${c.linkId}`))[0];
@@ -388,7 +399,7 @@ const Cloud = (() => {
     configured, signedIn, email, me, status, meta: () => meta, friendlyAuthError,
     signUp, signIn, signOut, recover, setPassword, deleteAccount, afterSignIn, syncNow, markDirty, keepLocal, useRemote, schedule,
     roster: () => roster, rosterAge: () => Date.now() - rosterAt, rosterBusy: () => !!rosterLoading, loadRoster, invite, endLink, assign, saveNote,
-    acceptInvite, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
+    acceptInvite, activeLink, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
   };
@@ -563,7 +574,7 @@ const Cloud = (() => {
       S.coach = { cloud: true, linkId: r.linkId, id: r.coachId, name: r.coachName, clientId: Cloud.me(), linkedAt: todayKey(), lastSent: null, share: Object.assign(defaultShare(), r.share || s.share) };
       save(); closeAll(); toast(`Linked with ${r.coachName}. Your progress syncs automatically.`);
       Cloud.syncNow();
-    } catch (e) { s.busy = false; toast(/not found|already used/i.test(e.message) ? 'That code didn\'t work. Check it with your coach: each code works once.' : 'Couldn\'t join: ' + (e.message || 'try again')); }
+    } catch (e) { s.busy = false; toast(/not found|already used/i.test(e.message) ? 'That code didn\'t work. Check it with your coach: each code works once.' : /own invite/i.test(e.message) ? 'That\'s your own invite code. Send it to your client instead.' : /already linked/i.test(e.message) ? 'You\'re already linked with this coach. Pull down or reopen the app to refresh.' : 'Couldn\'t join: ' + (e.message || 'try again')); }
   };
   // Sharing changes apply on the server straight away.
   const _share = ACT['share-set'];

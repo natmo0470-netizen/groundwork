@@ -115,7 +115,13 @@ const JoinFlow = (() => {
         j.busy = false; j.step = 'done'; render(); Cloud.syncNow();
       } catch (e) {
         j.busy = false;
-        j.error = /not found|already used/i.test(e.message) ? 'This invite was just used or cancelled. Ask your coach for a new link.' : e.code === 'offline' ? 'No connection. Check your internet and try again.' : 'Couldn\'t link: ' + (e.message || 'try again');
+        if (/already linked/i.test(e.message)) {   // linked on the server already: pick that link up
+          const l = await Cloud.activeLink().catch(() => null);
+          if (l) { S.coach = { cloud: true, linkId: l.linkId, id: l.coachId, name: l.coachName, clientId: Cloud.me(), linkedAt: l.linkedAt, lastSent: null, share: Object.assign(defaultShare(), l.share || {}) }; save(); keep(null); j.step = S.onboarded ? 'done' : j.step; if (!S.onboarded) { UI.joinOb = l.coachName; UI.join = null; UI.obStep = 1; } render(); return; }
+        }
+        j.error = /not found|already used/i.test(e.message) ? 'This invite was just used or cancelled. Ask your coach for a new link.'
+          : /own invite/i.test(e.message) ? 'This is your own invite link. Send it to your client instead.'
+          : e.code === 'offline' ? 'No connection. Check your internet and try again.' : 'Couldn\'t link: ' + (e.message || 'try again');
         render();
       }
     },
