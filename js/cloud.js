@@ -407,8 +407,13 @@ const Cloud = (() => {
     if (!signedIn()) return;
     await rest('rpc/claim_grants', { method: 'POST', body: {} }).catch(() => null);
     const rows = await rest('rpc/my_access', { method: 'POST', body: {} });
-    access = { userId: me(), rows: Array.isArray(rows) ? rows : [], at: Date.now() }; ls.set(AKEY, access);
+    const test = await rest('rpc/test_checkout_on', { method: 'POST', body: {} }).catch(() => false);
+    access = { userId: me(), rows: Array.isArray(rows) ? rows : [], test: test === true, at: Date.now() }; ls.set(AKEY, access);
   }
+  /* Test checkout (migration 007): while payments aren't set up, the server can let anyone start a free
+     14-day test coach plan. Switched off on the server before launch. */
+  const testCheckout = () => !!(access && access.userId === me() && access.test);
+  async function startTestPlan(plan) { await rest('rpc/start_test_coach_plan', { method: 'POST', body: { p_plan: plan } }); await refreshAccess(); }
   const hasCoach = () => accessRows().some(r => r.kind === 'coach' && live(r));
   const hasPlus = () => accessRows().some(r => live(r));            // coaches and coached clients get Plus too
   function coachAccess() { return accessRows().filter(r => r.kind === 'coach' && live(r)).sort((a, b) => (b.seats || 0) - (a.seats || 0))[0] || null; }
@@ -443,7 +448,7 @@ const Cloud = (() => {
     acceptInvite, activeLink, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
-    needsConsent, recordConsent, report, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile,
+    needsConsent, recordConsent, report, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile, testCheckout, startTestPlan,
   };
 })();
 

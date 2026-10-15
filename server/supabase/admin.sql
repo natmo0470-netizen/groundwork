@@ -29,3 +29,12 @@ select u.email, e.kind, e.plan, e.seats, e.source, e.ends_at
 select r.created_at, r.reason, r.reported_body, r.details, u.email as reporter
   from public.reports r left join auth.users u on u.id = r.reporter_id
  where r.status = 'open' order by r.created_at desc;
+
+-- ---------- test checkout (migration 007) ----------
+-- Is it on?  ('on' lets anyone start a free 14-day test coach plan from the app)
+select value from public.app_settings where key = 'test_checkout';
+-- BEFORE LAUNCH: turn it off, and end every test plan:
+update public.app_settings set value = 'off', updated_at = now() where key = 'test_checkout';
+update public.entitlements set ends_at = now() where note = 'test checkout' and (ends_at is null or ends_at > now());
+-- Turn it back on:
+update public.app_settings set value = 'on', updated_at = now() where key = 'test_checkout';

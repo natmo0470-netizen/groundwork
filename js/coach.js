@@ -16,6 +16,8 @@ const COACH_PLANS = [
   { id: 'studio', name: 'Studio', seats: 100, monthly: 99 },
 ];
 const PRICING = { showPrices: false, trialDays: 14 };
+/* Test checkout (server switch, migration 007): plans can be started and switched free while billing is off. */
+const testCheckout = () => typeof Cloud !== 'undefined' && Cloud.configured() && Cloud.signedIn() && Cloud.testCheckout();
 /* Coach tools need an active coach plan on the account (checked by the server). Without accounts
    switched on (local builds), coach mode works as before. */
 const coachAllowed = () => typeof Cloud === 'undefined' || !Cloud.configured() || Cloud.hasCoach();
@@ -144,8 +146,8 @@ Object.assign(SHEETS, {
   coachPlan() {
     const cur = coachPlan();
     return sheetHead('Coach plans', 'Plans by number of client seats; clients use Groundwork free while linked')
-      + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="coach-plan-pick" data-id="${p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${PRICING.showPrices ? `$${p.monthly}/month` : 'Early access'}</span></span>${cur.id === p.id ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`).join('')}</div>
-      <p class="tiny faint">${PRICING.showPrices ? `Billed monthly; ${PRICING.trialDays}-day free trial.` : 'Coach plans are set up by the Groundwork team during early access. Paid plans open at launch, with notice before anything changes.'}</p>`;
+      + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="coach-plan-pick" data-id="${p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${PRICING.showPrices || testCheckout() ? `$${p.monthly}/month` : 'Early access'}</span></span>${cur.id === p.id ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`).join('')}</div>
+      <p class="tiny faint">${testCheckout() ? 'Test mode: switching plans is free and nothing is charged. Test plans last 14 days; pick a plan again to restart.' : PRICING.showPrices ? `Billed monthly; ${PRICING.trialDays}-day free trial.` : 'Coach plans are set up by the Groundwork team during early access. Paid plans open at launch, with notice before anything changes.'}</p>`;
   },
   coachAdd(s) {
     const full = clients().length >= coachPlan().seats;
@@ -337,7 +339,14 @@ Object.assign(ACT, {
   'coaching-open': () => pushSheet({ type: 'coaching' }),
   'coach-toggle': () => { if (!coachAllowed()) { ACT['coach-start'](); return; } S.coachMode = S.coachMode || { on: false, plan: 'starter', clients: [], name: S.profile.name || '', id: 'co_' + uid() }; S.coachMode.on = !S.coachMode.on; if (!S.coachMode.on && UI.tab === 'clients') UI.tab = 'today'; save(); render(); toast(S.coachMode.on ? 'Coach mode on: see the Clients tab' : 'Coach mode off. Client data is kept.'); },
   'coach-plan': () => pushSheet({ type: 'coachPlan' }),
-  'coach-plan-pick': t => { if (typeof Cloud !== 'undefined' && Cloud.configured()) { toast(coachPlan().id === t.dataset.id ? 'That\'s your current plan' : 'Plan changes open at launch. During early access, ask the Groundwork team.'); return; } const p = COACH_PLANS.find(x => x.id === t.dataset.id); if (clients().length > p.seats) { toast(`You have ${clients().length} clients; ${p.name} covers ${p.seats}.`); return; } S.coachMode.plan = p.id; save(); popSheet(); toast(`${p.name} plan: up to ${p.seats} clients`); },
+  'coach-plan-pick': async t => {
+    if (testCheckout() && coachPlan().id !== t.dataset.id) {
+      const p = COACH_PLANS.find(x => x.id === t.dataset.id), used = clients().filter(c => c.status !== 'ended').length;
+      if (used > p.seats) { toast(`You have ${used} clients; ${p.name} covers ${p.seats}.`); return; }
+      try { await Cloud.startTestPlan(p.id); } catch (e) { toast('Couldn\'t change plans: ' + (e.message || 'try again')); return; }
+      if (S.coachMode) { S.coachMode.plan = p.id; save(); } popSheet(); toast(`${p.name} plan (test): up to ${p.seats} clients`); return;
+    }
+    if (typeof Cloud !== 'undefined' && Cloud.configured()) { toast(coachPlan().id === t.dataset.id ? 'That\'s your current plan' : 'Plan changes open at launch. During early access, ask the Groundwork team.'); return; } const p = COACH_PLANS.find(x => x.id === t.dataset.id); if (clients().length > p.seats) { toast(`You have ${clients().length} clients; ${p.name} covers ${p.seats}.`); return; } S.coachMode.plan = p.id; save(); popSheet(); toast(`${p.name} plan: up to ${p.seats} clients`); },
   'coach-add': () => pushSheet({ type: 'coachAdd' }),
   'coach-invite': async () => {
     const name = val('ca-name'); if (!name) { toast('Add your client\'s name'); return; }

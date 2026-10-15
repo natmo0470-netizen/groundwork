@@ -21,7 +21,7 @@
           <div>${icon('dumbbell', 18)}<span><b>Programs and nutrition targets</b><br><span class="small muted">Assign a program or your own workouts and macros; clients approve them in their app.</span></span></div>
           <div>${icon('chart', 18)}<span><b>Live progress</b><br><span class="small muted">Sessions, weigh-ins, food totals and pain reports, limited to what each client shares.</span></span></div>
           <div>${icon('chat', 18)}<span><b>Messaging and invite links</b><br><span class="small muted">One link brings a client in and lands them in your chat.</span></span></div></div></div>
-        <p class="small muted" style="margin:0">${PRICING.showPrices ? `Plans from $${COACH_PLANS[0].monthly}/month for ${COACH_PLANS[0].seats} clients, with a ${PRICING.trialDays}-day free trial.` : 'Plans are by number of clients, from 5 to 100. During early access coach plans are set up by the Groundwork team.'}</p>
+        <p class="small muted" style="margin:0">${(PRICING.showPrices || testCheckout()) ? `Plans from $${COACH_PLANS[0].monthly}/month for ${COACH_PLANS[0].seats} clients, with a ${PRICING.trialDays}-day free trial.` : 'Plans are by number of clients, from 5 to 100. During early access coach plans are set up by the Groundwork team.'}</p>
         <button class="btn train block" data-act="cs-go" data-v="business">${Cloud.signedIn() ? 'Get started' : 'Create a coach account'}</button>
         ${Cloud.signedIn() ? '' : '<button class="link" data-act="cs-signin" style="align-self:center">I already have an account</button>'}`;
     if (step === 'business') return stepHead(s, 'Your coaching business', 'This is what clients see')
@@ -40,9 +40,22 @@
     if (step === 'plan') {
       const rec = suggestPlan(d.client_count); if (!d.plan) d.plan = rec;
       return stepHead(s, 'Choose a plan', 'By number of clients; your clients use Groundwork free')
-        + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="cs-set" data-k="plan" data-v="${p.id}" aria-pressed="${d.plan === p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${PRICING.showPrices ? `$${p.monthly}/month · about $${(p.monthly / p.seats).toFixed(2)} per client` : 'Early access'}</span></span>${p.id === rec ? '<span class="tag train">Suggested</span>' : ''}${d.plan === p.id ? `<span class="chev">${icon('check', 18)}</span>` : ''}</button>`).join('')}</div>
-        <p class="tiny faint" style="margin:0">${PRICING.showPrices ? `${PRICING.trialDays}-day free trial, then billed monthly. Cancel any time.` : 'You can change plans later.'}</p>
+        + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="cs-set" data-k="plan" data-v="${p.id}" aria-pressed="${d.plan === p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${(PRICING.showPrices || testCheckout()) ? `$${p.monthly}/month · about $${(p.monthly / p.seats).toFixed(2)} per client` : 'Early access'}</span></span>${p.id === rec ? '<span class="tag train">Suggested</span>' : ''}${d.plan === p.id ? `<span class="chev">${icon('check', 18)}</span>` : ''}</button>`).join('')}</div>
+        <p class="tiny faint" style="margin:0">${(PRICING.showPrices || testCheckout()) ? `${PRICING.trialDays}-day free trial, then billed monthly. Cancel any time.` : 'You can change plans later.'}</p>
         <button class="btn train block" data-act="cs-plan-next" ${s.busy ? 'disabled' : ''}>${s.busy ? 'One moment…' : 'Continue'}</button><button class="link" data-act="cs-go" data-v="creds" style="align-self:center">Back</button>`;
+    }
+    if (step === 'pay' && Cloud.testCheckout()) {
+      const p = COACH_PLANS.find(x => x.id === d.plan) || COACH_PLANS[0];
+      return stepHead(s, 'Start your free trial', 'Test checkout')
+        + `<div class="banner">${icon('info', 18)}<span class="small"><b>Test mode.</b> No payment is taken. At launch this step becomes the real checkout.</span></div>
+        <div class="card" style="box-shadow:none;gap:10px">
+          <div class="row between"><b>${p.name} plan</b><span class="small muted">up to ${p.seats} clients</span></div>
+          <div class="row between"><span class="small muted">After your ${PRICING.trialDays}-day trial</span><span class="small">$${p.monthly}/month</span></div>
+          <div class="row between"><b>Due today</b><b>$0.00</b></div>
+        </div>
+        <p class="tiny faint" style="margin:0">Your clients use Groundwork free. You can change plans or cancel any time.</p>
+        ${s.error ? `<p class="small" role="alert" style="margin:0;color:var(--bad)">${esc(s.error)}</p>` : ''}
+        <button class="btn train block" data-act="cs-test-pay" ${s.busy ? 'disabled' : ''}>${s.busy ? 'Starting…' : `Start ${PRICING.trialDays}-day free trial`}</button><button class="link" data-act="cs-go" data-v="plan" style="align-self:center">Change plan</button>`;
     }
     if (step === 'pay') return stepHead(s, 'Start your plan', 'Early access')
       + `<div class="card" style="box-shadow:none;gap:8px"><b>We've saved your coach profile.</b><p class="small muted" style="margin:0">Coach plans can't be bought in the app yet. During early access the Groundwork team switches coach plans on for each coach. Once yours is on, this screen moves on by itself, or tap Check again.</p></div>
@@ -85,6 +98,12 @@
       } catch (e) { s.busy = false; s.error = e.code === 'offline' ? 'No connection. Check your internet and try again.' : 'Couldn\'t save: ' + (e.message || 'try again'); render(); return; }
       s.busy = false;
       if (Cloud.hasCoach()) { enableCoachMode(); goto('done'); } else goto('pay');
+    },
+    'cs-test-pay': async () => {
+      const s = UI.sheet, d = draft(); s.busy = true; s.error = ''; render();
+      try { await Cloud.startTestPlan(d.plan || 'starter'); } catch (e) { s.busy = false; s.error = e.code === 'offline' ? 'No connection. Check your internet and try again.' : 'Couldn\'t start the trial: ' + (e.message || 'try again'); render(); return; }
+      s.busy = false;
+      if (Cloud.hasCoach()) { enableCoachMode(); goto('done'); } else { s.error = 'The trial didn\'t start. Try again.'; render(); }
     },
     'cs-check': async () => {
       const s = UI.sheet; s.busy = true; render();
