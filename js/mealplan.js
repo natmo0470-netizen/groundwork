@@ -8,9 +8,10 @@ const SERVICE_CONFIG = {
   instacartEndpoint: '',
   // URL of your server function that searches a recipe service such as Spoonacular (server/recipes-function.js)
   recipeEndpoint: '',
-  // USDA FoodData Central key for verified food search (the project's own free key, limit 1,000 searches an hour;
-  // it falls back to DEMO_KEY if blank). Keys from api.data.gov are meant for use in apps.
-  usdaKey: 'EebkLQl5Cdq0C386BpFjn6AjegeR6qfIxtSXA22Y',
+  // USDA FoodData Central search. The project's key is private: it lives only in the Supabase Edge Function
+  // server/supabase/functions/food-search (secret USDA_API_KEY), which the app calls when accounts are set up.
+  // Without it (or if the function is down) the app falls back to USDA's shared public DEMO_KEY.
+  usdaFunction: 'food-search',
 };
 
 const DIETS = [

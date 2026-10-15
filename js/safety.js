@@ -165,14 +165,25 @@ computeReminders = function (state, now) {
 };
 
 /* ================= food accuracy ================= */
-const _usdaKey = () => (typeof SERVICE_CONFIG !== 'undefined' && SERVICE_CONFIG.usdaKey) || 'DEMO_KEY';
+/* USDA search goes through our server function (the key stays private there); USDA's public DEMO_KEY is the fallback. */
 async function searchUSDA(q) {
   const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 9000);
+  const fn = typeof SERVICE_CONFIG !== 'undefined' && SERVICE_CONFIG.usdaFunction;
+  const cloud = typeof CLOUD_CONFIG !== 'undefined' && CLOUD_CONFIG.url && CLOUD_CONFIG.anonKey;
   try {
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(_usdaKey())}&pageSize=15&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)&query=${encodeURIComponent(q)}`;
-    const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    let data = null;
+    if (fn && cloud) {
+      try {
+        const res = await fetch(`${CLOUD_CONFIG.url.replace(/\/$/, '')}/functions/v1/${fn}?q=${encodeURIComponent(q)}`, { headers: { apikey: CLOUD_CONFIG.anonKey }, signal: ctrl.signal });
+        if (res.ok) data = await res.json();
+      } catch (e) { if (ctrl.signal.aborted) throw e; }
+    }
+    if (!data) {
+      const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&pageSize=15&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)&query=${encodeURIComponent(q)}`;
+      const res = await fetch(url, { signal: ctrl.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+    }
     return (data.foods || []).map(usdaToFood).filter(Boolean);
   } finally { clearTimeout(timer); }
 }

@@ -37,7 +37,7 @@
   <h2>When the app connects to the internet</h2>
   <table>
     <tr><th>Feature</th><th>What is sent</th><th>To whom</th></tr>
-    <tr><td>Online food search</td><td>The search words you enter. No personal details.</td><td><a href="https://fdc.nal.usda.gov/">USDA FoodData Central</a> and <a href="https://world.openfoodfacts.org/privacy">Open Food Facts</a></td></tr>
+    <tr><td>Online food search</td><td>The search words you enter. No personal details. USDA searches pass through our server (Supabase), which keeps them only briefly in memory to answer repeat searches faster and doesn't log who searched.</td><td><a href="https://fdc.nal.usda.gov/">USDA FoodData Central</a> (via Supabase) and <a href="https://world.openfoodfacts.org/privacy">Open Food Facts</a></td></tr>
     <tr><td>Barcode lookup</td><td>The barcode number. No personal details.</td><td><a href="https://world.openfoodfacts.org/privacy">Open Food Facts</a></td></tr>
     <tr><td>Product links on the free plan</td><td>Nothing until you tap a link; it then opens the retailer's site (currently RitFit) through the Awin affiliate network, so they know the visit came from Groundwork. Nothing about you is included.</td><td>RitFit, Awin</td></tr>
     <tr><td>Grocery store links</td><td>Nothing until you tap a link; it then opens the store's website with the item name.</td><td>The store you choose (Instacart, Walmart, Kroger, Amazon Fresh)</td></tr>
