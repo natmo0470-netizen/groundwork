@@ -103,7 +103,7 @@ function viewClients() {
       return `<button class="card client-card" data-act="client-open" data-id="${c.id}" style="text-align:left">
         <div class="row between"><div><div class="h3">${esc(c.name)}</div><div class="small muted">${d ? `${d.cloud ? 'Synced' : 'Update'} ${ago(d.sentAt.slice(0, 10))}` : c.linked ? 'Linked · waiting for first update' : c.cloud ? `Invite code ${esc(c.code)} · not joined yet` : 'Invite sent'}${d && d.plan ? ' · ' + esc(d.plan.name) : ''}</div></div><span class="chev">${icon('chevR', 18)}</span></div>
         ${d ? `<div class="stats"><div class="stat"><div class="v">${d.adherence ? `${d.adherence.done}/${d.adherence.planned}` : '—'}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">Weight 3 wk (${wUnit(S)})</div></div><div class="stat"><div class="v">${(() => { const l = (d.food || []).filter(x => x.logged).slice(-7); return l.length ? fmtInt(l.reduce((s, x) => s + x.kcal, 0) / l.length) : '—'; })()}</div><div class="k">Avg kcal</div></div></div>` : ''}
-        ${fl.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${fl.map(([t, k]) => `<span class="tag ${k === 'warn' ? 'fuel' : ''}">${t}</span>`).join('')}</div>` : ''}
+        ${fl.length || unreadCount(c.id) ? `<div class="row" style="gap:6px;flex-wrap:wrap">${unreadCount(c.id) ? `<span class="tag train">${icon('chat', 12)} ${unreadCount(c.id)} new message${unreadCount(c.id) > 1 ? 's' : ''}</span>` : ''}${fl.map(([t, k]) => `<span class="tag ${k === 'warn' ? 'fuel' : ''}">${t}</span>`).join('')}</div>` : ''}
       </button>`; }).join('')
       : `<div class="card"><div class="empty">${icon('user', 28)}<span>${cloudOn() ? 'Add your first client. They join with a code and their progress syncs here.' : 'Add your first client. They join with an invite file, then send you weekly updates.'}</span><button class="btn ghost sm" data-act="coach-sample">Try it with a sample client</button></div></div>`}
     <p class="tiny faint">${cloudOn() ? 'Client progress syncs from their app, limited to what each client chooses to share.' : 'Client data arrives only when a client sends you an update, and is stored on this device. Sign in (Settings → Account) for live sync.'}</p>`;
@@ -118,8 +118,7 @@ Object.assign(SHEETS, {
         ${c ? `<div class="row between"><div><div class="h3">${esc(c.name)}</div><div class="small muted">Linked ${shortDate(c.linkedAt)} · last update sent ${ago(c.lastSent)}</div></div></div>
           ${shareControls(c.share || defaultShare(), 'share-set', c.name)}
           ${c.cloud ? `<p class="small muted" style="margin:0">${icon('check', 14)} Your progress syncs to ${esc(c.name)} automatically. New plans show up on your Today screen.</p>
-          <div class="field"><label for="cl-msg">Message to ${esc(c.name)}</label><textarea class="input" id="cl-msg" rows="2" data-clmsg placeholder="How's the week going?">${esc(c.note || '')}</textarea></div>
-          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn danger sm" data-act="client-leave">Leave coach</button></div>`
+          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn train sm" data-act="open-coach-tab">${icon('chat', 16)} Messages</button><button class="btn danger sm" data-act="client-leave">Leave coach</button></div>`
           : `<button class="btn train block" data-act="client-send">${icon('share', 18)} Send update to ${esc(c.name.split(' ')[0])}</button>
           <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="client-import">Open a file from your coach</button><button class="btn danger sm" data-act="client-leave">Leave coach</button></div>`}`
         : cloudOn() ? `<p class="small muted" style="margin:0">Got a code from a coach? Enter it to link up. Your coach can then send you plans and targets, and sees the progress you choose to share.</p>
@@ -151,12 +150,14 @@ Object.assign(SHEETS, {
     const d = c.data, sh = (d && d.shared) || null;
     const hidden = cat => sh && (sh.paused || !sh[cat]);
     const notShared = what => `<div class="empty">${icon('info', 24)}<span>${esc(c.name)} isn't sharing ${what} with you. They control this in their Coaching settings.</span></div>`;
-    const tabs = `<div class="seg">${[['overview', 'Overview'], ['training', 'Training'], ['food', 'Nutrition'], ['plan', 'Assign']].map(([k, l]) => `<button data-act="client-tab" data-v="${k}" aria-pressed="${(s.tab || 'overview') === k}">${l}</button>`).join('')}</div>`;
+    const tabList = [['overview', 'Overview'], ['training', 'Training'], ['food', 'Food']].concat(c.cloud && c.linked ? [['chat', 'Chat']] : []).concat([['plan', 'Assign']]);
+    const tabs = `<div class="seg">${tabList.map(([k, l]) => `<button data-act="client-tab" data-v="${k}" aria-pressed="${(s.tab || 'overview') === k}">${l}${k === 'chat' && unreadCount(c.id) ? ` <span class="dot" aria-label="${unreadCount(c.id)} unread"></span>` : ''}</button>`).join('')}</div>`;
     let body = '';
     const tab = s.tab || 'overview';
     if (c.cloud && !c.linked) return sheetHead(esc(c.name), 'Invite not used yet') + `<div class="card" style="box-shadow:none;align-items:center;text-align:center"><div class="mid-num" style="font-size:32px;letter-spacing:.12em">${esc(c.code)}</div><span class="small muted">${esc(c.name)} enters this code in Groundwork → Settings → Coaching.</span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="coach-reinvite" data-id="${c.id}">${icon('share', 16)} Send code again</button><button class="btn danger sm" data-act="coach-remove" data-id="${c.id}">Cancel invite</button></div>`;
-    if (!d && tab !== 'plan') body = `<div class="empty">${icon('download', 26)}<span>No update yet. Ask ${esc(c.name)} to tap <b>Send update to coach</b>, then open the file here.</span></div>
+    if (tab === 'chat' && c.cloud) body = `<div class="chat">${threadHtml(c.id, c.name)}</div>`;
+    else if (!d && tab !== 'plan') body = `<div class="empty">${icon('download', 26)}<span>No update yet. Ask ${esc(c.name)} to tap <b>Send update to coach</b>, then open the file here.</span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="coach-reinvite" data-id="${c.id}">Resend invite</button><button class="btn ghost sm" data-act="coach-import">Open update</button></div>`;
     else if (tab === 'training' && hidden('workouts')) body = notShared('training details');
     else if (tab === 'food' && hidden('nutrition')) body = notShared('nutrition');
@@ -164,7 +165,8 @@ Object.assign(SHEETS, {
       const fl = clientFlags(d), tr = weightTrend(d), pseudo = { weights: d.weights || [], profile: { units: S.profile.units } };
       body = `<div class="small muted">${d.cloud ? 'Synced' : 'Update'} ${ago(d.sentAt.slice(0, 10))} · ${GOALS[d.profile.goal] ? GOALS[d.profile.goal].label : ''} · ${d.profile.age ? d.profile.age + ' y · ' : ''}${esc(d.plan ? d.plan.name : 'no plan')}</div>
         ${fl.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${fl.map(([t, k]) => `<span class="tag ${k === 'warn' ? 'fuel' : ''}">${t}</span>`).join('')}</div>` : ''}
-        ${d.note ? `<div class="banner">${icon('chat', 18)}<span><b>${esc(c.name)}${d.noteAt ? ' · ' + ago(d.noteAt.slice(0, 10)) : ''}:</b> ${esc(d.note)}</span></div>` : ''}
+        ${c.cloud && unreadCount(c.id) ? `<button class="banner" data-act="client-tab" data-v="chat" style="text-align:left;border:0;width:100%">${icon('chat', 18)}<span><b>${unreadCount(c.id)} new message${unreadCount(c.id) > 1 ? 's' : ''}</b> · ${esc(Cloud.unread(c.id).slice(-1)[0].body.slice(0, 90))}</span></button>` : ''}
+        ${d.note && !c.cloud ? `<div class="banner">${icon('chat', 18)}<span><b>${esc(c.name)}${d.noteAt ? ' · ' + ago(d.noteAt.slice(0, 10)) : ''}:</b> ${esc(d.note)}</span></div>` : ''}
         ${sh ? `<p class="tiny muted" style="margin:0">${sh.paused ? `${esc(c.name)} has paused sharing.` : `Sharing: ${SHARE_CATS.filter(([k]) => sh[k]).map(([, l]) => l).join(', ') || 'nothing'}${SHARE_CATS.some(([k]) => !sh[k]) ? ` · Not sharing: ${SHARE_CATS.filter(([k]) => !sh[k]).map(([, l]) => l).join(', ')}` : ''}`}</p>` : ''}
         <div class="stats"><div class="stat"><div class="v">${d.adherence ? `${d.adherence.done}/${d.adherence.planned}` : '—'}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${(d.weights || []).length ? kgToDisp(S, d.weights[d.weights.length - 1].kg) : '—'}</div><div class="k">Weight (${wUnit(S)})</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">3-wk change</div></div></div>
         ${hidden('body') ? '<p class="small faint">Weigh-ins and measurements aren\'t shared.</p>' : (weightChart(pseudo, 60) || '<p class="small faint">Not enough weigh-ins for a chart yet.</p>')}
@@ -251,10 +253,54 @@ function sampleClient() {
 /* ================= hooks ================= */
 const _tabBar = tabBar;
 tabBar = () => {
-  if (!coachOn()) return _tabBar();
-  const t = [['today', 'Today', 'home'], ['train', 'Train', 'dumbbell'], ['food', 'Nutrition', 'fork'], ['progress', 'Progress', 'chart'], ['clients', 'Clients', 'user']];
-  return `<nav class="tabs" aria-label="Main"><div class="tabs-inner">${t.map(([id, label, ic]) => `<button class="tab" data-tab="${id}" data-act="tab" data-id="${id}" ${UI.tab === id ? 'aria-current="page"' : ''}>${icon(ic, 24)}<span>${label}</span></button>`).join('')}</div></nav>`;
+  const last = coachOn() ? ['clients', 'Clients', 'user'] : ['coach', 'Coach', 'chat'];
+  const t = [['today', 'Today', 'home'], ['train', 'Train', 'dumbbell'], ['food', 'Nutrition', 'fork'], ['progress', 'Progress', 'chart'], last];
+  const n = unreadCount();
+  return `<nav class="tabs" aria-label="Main"><div class="tabs-inner">${t.map(([id, label, ic]) => `<button class="tab" data-tab="${id}" data-act="tab" data-id="${id}" ${UI.tab === id ? 'aria-current="page"' : ''} ${id === last[0] && n ? `aria-label="${label}, ${n} unread"` : ''}>${icon(ic, 24)}<span>${label}</span>${id === last[0] && n ? `<span class="badge">${n > 9 ? '9+' : n}</span>` : ''}</button>`).join('')}</div></nav>`;
 };
+/* Unread messages from the coach (client) or from all clients (coach). */
+function unreadCount(linkId) {
+  if (!cloudOn()) return 0;
+  if (linkId) return Cloud.unread(linkId).length;
+  if (coachOn()) return clients().filter(c => c.cloud).reduce((n, c) => n + Cloud.unread(c.id).length, 0);
+  return S.coach && S.coach.cloud ? Cloud.unread(S.coach.linkId).length : 0;
+}
+
+/* ================= Coach tab (clients) ================= */
+function viewCoach() {
+  const c = S.coach;
+  if (!c) return `<div class="stack" style="gap:2px"><span class="eyebrow">Coaching</span><h1 class="h1">Your coach</h1></div>
+    <div class="locked">
+      <div class="locked-preview" aria-hidden="true">
+        <div class="card"><div class="row" style="gap:12px"><span class="avatar">C</span><div><div class="h3">Your coach</div><div class="small muted">Plans, targets and messages</div></div></div></div>
+        <div class="card"><div class="thread"><div class="msg them"><div class="bubble">Great week. I'm adding a fourth day.</div></div><div class="msg me"><div class="bubble">Sounds good. Knee feels better too.</div></div><div class="msg-plan">${icon('dumbbell', 16)}<div class="grow"><b>New plan</b>: Upper / Lower, 4 days</div></div></div></div>
+        <div class="card"><span class="label">What your coach sees</span><div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag">Training</span><span class="tag">Nutrition</span><span class="tag">Body</span></div></div>
+      </div>
+      <div class="card locked-cta">
+        <span class="ni-lg">${icon('user', 26)}</span>
+        <div class="h3">Coaching is off</div>
+        <p class="small muted" style="margin:0">Link with your personal trainer to get workout plans and nutrition targets from them, message each other, and share only the progress you choose.</p>
+        <button class="btn train block" data-act="coach-enable">Enable coaching</button>
+        <button class="link small" data-act="coaching-open">I'm a coach</button>
+      </div>
+    </div>`;
+  const head = `<div class="stack" style="gap:2px"><span class="eyebrow">Your coach</span><h1 class="h1">${esc(c.name)}</h1><span class="small muted">Linked ${shortDate(c.linkedAt)}${c.cloud ? ' · progress syncs automatically' : ''}</span></div>`;
+  const sh = Object.assign(defaultShare(), c.share || {});
+  const sharing = `<div class="card"><div class="card-head"><span class="eyebrow">What ${esc(c.name)} can see</span><button class="link small" data-act="coaching-open">Change</button></div>
+    <p class="small muted" style="margin:0">${sh.paused ? 'Sharing is paused. Your coach sees only your name.' : SHARE_CATS.filter(([k]) => sh[k]).map(([, l]) => l).join(', ') || 'Nothing yet'}</p></div>`;
+  const planLine = c.lastAssign ? `<div class="card"><span class="eyebrow">Current plan</span><p class="small" style="margin:0">From ${esc(c.name)}, ${shortDate(c.lastAssign.sentAt)}${c.lastAssign.note ? `: “${esc(c.lastAssign.note)}”` : ''}</p><button class="link small" data-act="tab" data-id="train" style="align-self:flex-start">Open your plan</button></div>` : '';
+  if (!c.cloud) return head + `<div class="card train"><span class="eyebrow">Updates</span><p class="small muted" style="margin:0">You and ${esc(c.name)} are linked with files. Messages need an account: sign in under Settings → Account &amp; sync, then rejoin with a code from your coach.</p>
+      <button class="btn train sm" data-act="client-send" style="align-self:flex-start">${icon('share', 16)} Send update</button><button class="link small" data-act="client-import" style="align-self:flex-start">Open a file from your coach</button></div>` + planLine + sharing;
+  const pend = typeof Cloud !== 'undefined' ? Cloud.pending() : [];
+  return head
+    + pend.map(a => `<div class="card train"><div class="card-head"><span class="eyebrow">New plan from ${esc(c.name)}</span><span class="tag fuel">Needs your OK</span></div>${a.payload && a.payload.note ? `<p class="small" style="margin:0">“${esc(a.payload.note)}”</p>` : ''}<button class="btn train sm" data-act="cloud-assign-open" data-id="${a.id}" style="align-self:flex-start">Review plan</button></div>`).join('')
+    + `<div class="card chat"><span class="eyebrow">Messages</span>${threadHtml(c.linkId, c.name)}</div>` + planLine + sharing;
+}
+SHEETS.coachEnable = () => sheetHead('Enable coaching', 'Enter the code your coach gave you')
+  + `<div class="row" style="gap:8px"><input class="input" id="join-code" placeholder="8-character code" autocapitalize="characters" autocomplete="off" maxlength="9" style="text-transform:uppercase;letter-spacing:.1em" aria-label="Invite code"><button class="btn train" data-act="join-code">Next</button></div>
+  <p class="small muted" style="margin:0">Next you choose what your coach can see. You can change it or leave at any time.</p>
+  <p class="small muted" style="margin:0">Don't have a code? Ask your coach to add you in Groundwork (Clients → Add client).</p>
+  <button class="link small" data-act="client-import" style="align-self:flex-start">Got an invite file instead?</button>`;
 /* Settings: Coaching entry. */
 const _settingsCoach = SHEETS.settings;
 SHEETS.settings = s => _settingsCoach(s).replace('<div class="card" style="box-shadow:none" id="set-profile">',
@@ -268,7 +314,7 @@ viewToday = () => {
   const c = S.coach, due = !c.cloud && (!c.lastSent || daysBetween(c.lastSent, todayKey()) >= 7);
   const card = `<div class="card train"><div class="card-head"><span class="eyebrow">Your coach · ${esc(c.name)}</span>${due ? '<span class="tag fuel">Update due</span>' : ''}</div>
     ${c.lastAssign && c.lastAssign.note ? `<p class="small" style="margin:0">“${esc(c.lastAssign.note)}”</p>` : ''}
-    ${c.cloud ? `<span class="small muted">${icon('check', 14)} Progress syncs automatically</span>` : `<button class="btn ${due ? 'train' : 'ghost'} sm" data-act="client-send" style="align-self:flex-start">${icon('share', 16)} Send update</button>`}</div>`;
+    ${c.cloud ? `<div class="row" style="gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ${unreadCount() ? 'train' : 'ghost'} sm" data-act="tab" data-id="coach">${icon('chat', 16)} ${unreadCount() ? `${unreadCount()} new message${unreadCount() > 1 ? 's' : ''}` : 'Messages'}</button><span class="small muted">${icon('check', 14)} Progress syncs automatically</span></div>` : `<button class="btn ${due ? 'train' : 'ghost'} sm" data-act="client-send" style="align-self:flex-start">${icon('share', 16)} Send update</button>`}</div>`;
   const marker = '<div class="card fuel">';
   return html.includes(marker) ? html.replace(marker, card + marker) : html + card;
 };

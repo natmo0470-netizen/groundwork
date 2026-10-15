@@ -84,7 +84,7 @@ const Cloud = (() => {
   async function signIn(mail, password) { setSession(await api('/auth/v1/token?grant_type=password', { method: 'POST', anon: true, body: { email: mail, password } })); }
   async function recover(mail) { await api('/auth/v1/recover', { method: 'POST', anon: true, body: { email: mail } }); }
   async function setPassword(password) { await api('/auth/v1/user', { method: 'PUT', body: { password } }); }
-  function signedOutLocally() { setSession(null); meta = freshMeta(); saveMeta(); roster = null; rosterAt = 0; status.state = 'idle'; status.error = ''; status.conflict = null; pending = []; }
+  function signedOutLocally() { setSession(null); meta = freshMeta(); saveMeta(); roster = null; rosterAt = 0; status.state = 'idle'; status.error = ''; status.conflict = null; pending = []; unread = {}; Object.keys(threads).forEach(k => delete threads[k]); }
   async function signOut() { try { await api('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* signing out locally is enough */ } signedOutLocally(); }
   async function deleteAccount() { await rest('rpc/delete_my_account', { method: 'POST', body: {} }); signedOutLocally(); }
 
@@ -198,6 +198,7 @@ const Cloud = (() => {
         if (!status.conflict && S.onboarded && (meta.dirty || !meta.version)) await pushState();
         if (!status.conflict && S.onboarded) await pushTables();
         await clientSide();
+        await checkInbox().catch(() => null);
         status.state = status.conflict ? 'conflict' : 'ok'; status.error = '';
       } catch (e) {
         status.state = e.code === 'offline' ? 'offline' : e.code === 'signed_out' ? 'idle' : 'error'; status.error = e.message || '';
@@ -302,7 +303,7 @@ const Cloud = (() => {
     return r[0];
   }
   async function endLink(linkId) { await rest(`coach_links?id=eq.${linkId}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { status: 'ended' } }); }
-  async function assign(c, payload) { await rest('assignments', { method: 'POST', headers: { prefer: 'return=minimal' }, body: { link_id: c.id, coach_id: me(), client_id: c.userId, payload } }); }
+  async function assign(c, payload) { await rest('assignments', { method: 'POST', headers: { prefer: 'return=minimal' }, body: { link_id: c.id, coach_id: me(), client_id: c.userId, payload } }); delete threads[c.id]; }
   async function saveNote(linkId, notes) { await upsert('coach_notes', 'link_id', [{ link_id: linkId, coach_id: me(), notes }]); }
 
   /* ---------- client side ---------- */
@@ -315,7 +316,7 @@ const Cloud = (() => {
   }
   async function setShare(linkId, share) { await rest(`coach_links?id=eq.${linkId}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { share } }); }
   async function setClientNote(linkId, note) { await rest(`coach_links?id=eq.${linkId}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { client_note: note, client_note_at: new Date().toISOString() } }); }
-  async function answer(id, st) { await rest(`assignments?id=eq.${id}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { status: st, answered_at: new Date().toISOString() } }); pending = pending.filter(a => a.id !== id); }
+  async function answer(id, st) { await rest(`assignments?id=eq.${id}`, { method: 'PATCH', headers: { prefer: 'return=minimal' }, body: { status: st, answered_at: new Date().toISOString() } }); pending = pending.filter(a => a.id !== id); Object.values(threads).forEach(t => t.items.forEach(it => { if (it.id === id) it.status = st; })); }
   async function clientSide() {
     const c = S.coach;
     if (!c || !c.cloud) { pending = []; return; }
@@ -324,6 +325,47 @@ const Cloud = (() => {
       const name = c.name; S.coach = null; pending = []; save(); toast(`${name} ended coaching. Your plan and data stay.`); return;
     }
     pending = await rest(`assignments?select=id,payload,created_at&link_id=eq.${c.linkId}&status=eq.sent&order=created_at`);
+  }
+
+  /* ---------- messages between a coach and a client ---------- */
+  let unread = {};                 // linkId -> unread messages from the other person, oldest first
+  const threads = {};              // linkId -> { items, at }
+  const loadingThread = {};
+  const SEEN = 'groundwork.msgSeen';
+  let notifyHook = null;           // set by the app: (newMessages) => void
+  async function checkInbox() {
+    if (!signedIn()) return false;
+    const rows = await rest(`messages?select=id,link_id,body,created_at&read_at=is.null&sender_id=neq.${me()}&order=created_at&limit=200`);
+    const next = {}; rows.forEach(r => (next[r.link_id] = next[r.link_id] || []).push(r));
+    const sig = o => Object.keys(o).sort().map(k => k + ':' + o[k].map(x => x.id).join(',')).join('|');
+    const changed = sig(next) !== sig(unread);
+    unread = next;
+    const seen = new Set(ls.get(SEEN) || []), fresh = rows.filter(r => !seen.has(r.id) && Date.now() - Date.parse(r.created_at) < 2 * 864e5);
+    if (fresh.length) { rows.forEach(r => seen.add(r.id)); ls.set(SEEN, [...seen].slice(-300)); if (notifyHook) try { notifyHook(fresh); } catch (e) { /* ignore */ } }
+    return changed;
+  }
+  async function loadThread(linkId) {
+    if (loadingThread[linkId]) return loadingThread[linkId];
+    loadingThread[linkId] = (async () => {
+      const [msgs, asg] = await Promise.all([
+        rest(`messages?select=id,sender_id,body,created_at,read_at&link_id=eq.${linkId}&order=created_at.desc&limit=200`),
+        rest(`assignments?select=id,coach_id,payload,status,created_at&link_id=eq.${linkId}&order=created_at.desc&limit=50`),
+      ]);
+      const items = msgs.map(m => ({ kind: 'msg', id: m.id, mine: m.sender_id === me(), body: m.body, at: m.created_at, read: !!m.read_at }))
+        .concat(asg.map(a => ({ kind: 'plan', id: a.id, mine: a.coach_id === me(), payload: a.payload || {}, status: a.status, at: a.created_at })))
+        .sort((x, y) => (x.at < y.at ? -1 : 1));
+      threads[linkId] = { items, at: Date.now() };
+      if ((unread[linkId] || []).length) await markRead(linkId);
+      return threads[linkId];
+    })().finally(() => { delete loadingThread[linkId]; });
+    return loadingThread[linkId];
+  }
+  async function markRead(linkId) { delete unread[linkId]; await rest('rpc/mark_messages_read', { method: 'POST', body: { link: linkId } }).catch(() => null); }
+  async function sendMessage(linkId, body) {
+    const r = await rest('messages', { method: 'POST', headers: { prefer: 'return=representation' }, body: { link_id: linkId, sender_id: me(), body } });
+    const m = r[0], t = threads[linkId] || (threads[linkId] = { items: [], at: Date.now() });
+    t.items.push({ kind: 'msg', id: m.id, mine: true, body: m.body, at: m.created_at, read: false });
+    return m;
   }
 
   /* ---------- links from emails (confirm address / reset password) ---------- */
@@ -343,6 +385,8 @@ const Cloud = (() => {
     signUp, signIn, signOut, recover, setPassword, deleteAccount, afterSignIn, syncNow, markDirty, keepLocal, useRemote, schedule,
     roster: () => roster, rosterAge: () => Date.now() - rosterAt, rosterBusy: () => !!rosterLoading, loadRoster, invite, endLink, assign, saveNote,
     acceptInvite, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
+    checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
+    unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; },
   };
 })();
 
@@ -361,7 +405,7 @@ const Cloud = (() => {
   const _render = render;
   render = function () {
     _render();
-    if (S.onboarded && coachOn() && Cloud.signedIn() && UI.tab === 'clients' && !Cloud.rosterBusy() && Cloud.rosterAge() > 60000)
+    if (S.onboarded && coachOn() && Cloud.signedIn() && (UI.tab === 'clients' || !Cloud.roster()) && !Cloud.rosterBusy() && Cloud.rosterAge() > 60000)
       Cloud.loadRoster().then(() => { const a = document.activeElement; if (!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) render(); }).catch(() => null);
   };
 
@@ -403,6 +447,7 @@ const Cloud = (() => {
       const mode = s.mode || 'signin';
       const titles = { signin: ['Sign in', 'Pick up where you left off'], signup: ['Create your account', 'Back up and sync your progress'], reset: ['Reset your password', 'We\'ll email you a link'] };
       return sheetHead(titles[mode][0], titles[mode][1])
+        + (s.reason && !s.done ? `<div class="banner">${icon('info', 18)}<span>${esc(s.reason)}</span></div>` : '')
         + (s.done ? `<div class="banner">${icon('check', 18)}<span>${esc(s.done)}</span></div>` : '')
         + `<div class="field"><label for="acct-email">Email</label><input class="input" id="acct-email" type="email" autocomplete="email" inputmode="email" data-acct="email" value="${esc(s.email || '')}"></div>
         ${mode !== 'reset' ? `<div class="field"><label for="acct-pw">Password</label><input class="input" id="acct-pw" type="password" autocomplete="${mode === 'signup' ? 'new-password' : 'current-password'}" data-acct="pw" value="${esc(s.pw || '')}">${mode === 'signup' ? '<span class="tiny faint">At least 8 characters</span>' : ''}</div>` : ''}
@@ -456,6 +501,7 @@ const Cloud = (() => {
         const res = await Cloud.afterSignIn();
         UI.stack = []; UI.sheet = null;
         if (res === 'choose') { UI.sheet = { type: 'cloudChoice' }; render(); return; }
+        if (s.after && S.onboarded) { UI.sheet = { type: s.after }; render(); toast('Signed in. Now enter your coach\'s code.'); return; }
         render();
         toast(res === 'restored' ? 'Welcome back. Your data is restored.' : s.mode === 'signup' ? 'Account created. Your data is backed up.' : (S.onboarded ? 'Signed in. Your data is backed up.' : 'Signed in. Finish setup and your data backs up automatically.'));
       } catch (e) { if (UI.sheet === s) { s.busy = false; s.error = Cloud.friendlyAuthError(e); render(); } }
@@ -481,9 +527,13 @@ const Cloud = (() => {
         await navigator.clipboard.writeText(text); toast('Invite copied. Paste it into a message.');
       } catch (e) { /* share cancelled */ }
     },
-    'cloud-assign-open': () => { const a = Cloud.pending()[0]; if (!a) return; pushSheet({ type: 'assignReview', payload: Object.assign({}, a.payload, { sentAt: dateKey(new Date(a.created_at)) }), assignId: a.id, tall: true }); },
+    'cloud-assign-open': t => { const id = t && t.dataset && t.dataset.id, a = Cloud.pending().find(x => !id || x.id === id); if (!a) { toast('That plan was already answered'); return; } pushSheet({ type: 'assignReview', payload: Object.assign({}, a.payload, { sentAt: dateKey(new Date(a.created_at)) }), assignId: a.id, tall: true }); },
     'assign-decline': async () => {
       const s = UI.sheet; try { await Cloud.answer(s.assignId, 'declined'); closeAll(); toast('Declined. Your plan stays as it is.'); } catch (e) { toast('Couldn\'t reach the server. Try again.'); }
+    },
+    'coach-enable': () => {
+      if (!Cloud.signedIn()) { pushSheet({ type: 'account', mode: 'signup', email: '', pw: '', after: 'coachEnable', reason: 'Coaching needs a free account so you and your coach stay in sync. Already have one? Tap "I already have an account".' }); return; }
+      pushSheet({ type: 'coachEnable' });
     },
     'join-code': () => {
       const code = val('join-code').toUpperCase().replace(/[^A-F0-9]/g, '');
@@ -529,10 +579,73 @@ const Cloud = (() => {
     const el = e.target; if (!el || !el.dataset) return;
     if (el.dataset.acct && UI.sheet) UI.sheet[el.dataset.acct] = el.value;
   });
-  document.addEventListener('change', e => {
-    const el = e.target; if (!el || !el.dataset || el.dataset.clmsg == null || !(S.coach && S.coach.cloud)) return;
-    const note = el.value.trim().slice(0, 500);
-    Cloud.setClientNote(S.coach.linkId, note).then(() => { S.coach.note = note; save(); toast('Sent to your coach'); }).catch(() => toast('Couldn\'t send. Check your connection.'));
+  /* ---------- messages ---------- */
+  UI.msgDraft = UI.msgDraft || {};
+  document.addEventListener('input', e => {
+    const el = e.target; if (!el || !el.dataset || el.dataset.msgdraft == null) return;
+    UI.msgDraft[el.dataset.msgdraft] = el.value;
+    el.style.height = 'auto'; el.style.height = Math.min(140, el.scrollHeight + 2) + 'px';
+  });
+  document.addEventListener('keydown', e => {
+    const el = e.target; if (!el || !el.dataset || el.dataset.msgdraft == null) return;
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); ACT['msg-send']({ dataset: { link: el.dataset.msgdraft } }); }
+  });
+  ACT['msg-send'] = async t => {
+    const link = t.dataset.link, body = (UI.msgDraft[link] || '').trim().slice(0, 2000);
+    if (!body) { const el = document.getElementById('msg-input'); if (el) el.focus(); return; }
+    UI.msgDraft[link] = ''; const el = document.getElementById('msg-input'); if (el) { el.value = ''; el.style.height = ''; }
+    try { await Cloud.sendMessage(link, body); paintThread(); }
+    catch (e) { UI.msgDraft[link] = body; if (el) el.value = body; toast(/row-level|policy/i.test(e.message) ? 'This coaching link has ended, so messages can\'t be sent.' : 'Couldn\'t send. Check your connection and try again.'); }
+  };
+  ACT['open-coach-tab'] = () => { UI.stack = []; UI.sheet = null; UI.tab = coachOn() ? 'clients' : 'coach'; render(); window.scrollTo(0, document.body.scrollHeight); };
+  ACT['coach-inbox'] = () => {
+    const ids = Object.keys(Cloud.unread()).filter(id => findClient(id));
+    UI.tab = 'clients'; UI.stack = []; UI.sheet = null;
+    if (ids.length) UI.sheet = { type: 'client', id: ids[0], tab: 'chat', tall: true };
+    render();
+  };
+  // Keep an open conversation fresh, and the inbox checked, while the app is on screen.
+  const openThread = () => { const el = document.getElementById('gw-thread'); return el ? el.dataset.link : null; };
+  window.paintThread = () => {
+    const el = document.getElementById('gw-thread'); if (!el) return;
+    el.innerHTML = threadBody(el.dataset.link, el.dataset.name || '');
+    el.scrollTop = el.scrollHeight;
+  };
+  const _renderMsg = render;
+  render = function () {
+    _renderMsg();
+    const link = openThread();
+    if (link && Cloud.signedIn()) {
+      paintThread();
+      const t = Cloud.thread(link);
+      if ((!t || Date.now() - t.at > 15000 || Cloud.unread(link).length) && !Cloud.threadBusy(link)) Cloud.loadThread(link).then(() => { paintThread(); refreshIfIdle(); }).catch(() => null);
+    }
+  };
+  let tick = 0;
+  setInterval(async () => {
+    if (!Cloud.signedIn() || document.visibilityState !== 'visible') return;
+    tick++;
+    const link = openThread();
+    try {
+      if (link) { const before = (Cloud.thread(link) || { items: [] }).items.length; await Cloud.loadThread(link); if (Cloud.thread(link).items.length !== before) paintThread(); }
+      if (tick % 3 === 0 && await Cloud.checkInbox()) refreshIfIdle();
+    } catch (e) { /* offline: try again next tick */ }
+  }, 15000);
+  function refreshIfIdle() { const a = document.activeElement; if (!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) render(); }
+  // New messages: a phone notification when the app isn't in front, otherwise a toast (unless that chat is open).
+  let notifId = 0;
+  Cloud.onMessages(fresh => {
+    const shown = openThread();
+    fresh.forEach(m => {
+      if (m.link_id === shown && document.visibilityState === 'visible') return;
+      const who = S.coach && S.coach.linkId === m.link_id ? S.coach.name : ((findClient(m.link_id) || {}).name || 'Your client');
+      const body = m.body.length > 140 ? m.body.slice(0, 137) + '…' : m.body;
+      if (document.visibilityState === 'visible') { toast(`${who}: ${body}`); return; }
+      if (typeof Native !== 'undefined' && Native.isNative && S.reminders && S.reminders.browser)
+        Native.call('LocalNotifications', 'schedule', { notifications: [{ id: 7960 + (notifId++ % 20), title: `Message from ${who}`, body, schedule: { at: new Date(Date.now() + 1000), allowWhileIdle: true }, extra: { act: 'coachmsg' } }] }).catch(() => null);
+      else { try { if (S.reminders && S.reminders.browser && 'Notification' in window && Notification.permission === 'granted') new Notification(`Message from ${who}`, { body, tag: 'gw-' + m.link_id }); } catch (e) { /* not available */ } }
+    });
+    refreshIfIdle();
   });
 
   /* ---------- reminders: a new plan from the coach, or a sync choice ---------- */
@@ -543,6 +656,18 @@ const Cloud = (() => {
     if (state.coach && state.coach.cloud) out = out.filter(r => r.id !== 'coachupd');
     const p = Cloud.pending();
     if (p.length && state.coach) out.unshift({ id: 'cloudplan', level: 'high', title: `New plan from ${state.coach.name}`, body: p[0].payload && p[0].payload.note ? `“${p[0].payload.note}”` : 'Review it and choose whether to use it.', action: 'cloud-assign-open', actionLabel: 'Review plan', icon: 'user' });
+    const today = todayKey(), un = Cloud.unread();
+    if (state.coach && state.coach.cloud) {
+      const m = un[state.coach.linkId] || [], lastM = m[m.length - 1];
+      if (lastM && state.dismissed['msg_' + lastM.id] !== today) out.unshift({ id: 'msg_' + lastM.id, level: 'high', title: m.length > 1 ? `${m.length} new messages from ${state.coach.name}` : `Message from ${state.coach.name}`, body: lastM.body.length > 120 ? lastM.body.slice(0, 117) + '…' : lastM.body, action: 'open-coach-tab', actionLabel: 'Reply', icon: 'chat' });
+    }
+    if (coachOn()) {
+      const ids = Object.keys(un).filter(id => (findClient(id) || {}).cloud), all = ids.flatMap(id => un[id]), lastM = all.sort((a, b) => (a.created_at < b.created_at ? -1 : 1))[all.length - 1];
+      if (lastM && state.dismissed['msg_' + lastM.id] !== today) {
+        const name = (findClient(lastM.link_id) || {}).name || 'A client';
+        out.unshift({ id: 'msg_' + lastM.id, level: 'high', title: ids.length > 1 ? `New messages from ${ids.length} clients` : all.length > 1 ? `${all.length} new messages from ${name}` : `Message from ${name}`, body: lastM.body.length > 120 ? lastM.body.slice(0, 117) + '…' : lastM.body, action: 'coach-inbox', actionLabel: 'Reply', icon: 'chat' });
+      }
+    }
     if (Cloud.status.conflict) out.unshift({ id: 'cloudconflict', level: 'high', title: 'Your data changed on another device', body: 'Choose which copy to keep so both stay in sync.', action: 'cloud-resolve', actionLabel: 'Choose', icon: 'info' });
     return out;
   };
@@ -560,3 +685,30 @@ const Cloud = (() => {
     kick();
   }, 300);
 })();
+
+/* ================= message thread rendering (used by the Coach tab and the coach's client view) ================= */
+function threadBody(link, otherName) {
+  const t = typeof Cloud !== 'undefined' && Cloud.thread(link);
+  const first = otherName || 'them';
+  if (!t) return `<div class="empty small muted" style="padding:24px 0">Loading messages…</div>`;
+  if (!t.items.length) return `<div class="empty" style="padding:22px 8px">${icon('chat', 26)}<span>No messages yet. Messages here go straight to ${esc(first)}.</span></div>`;
+  let lastDay = '';
+  const dayLabel = k => k === todayKey() ? 'Today' : k === addDays(todayKey(), -1) ? 'Yesterday' : shortDate(k);
+  const time = iso => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const lastMine = [...t.items].reverse().find(x => x.kind === 'msg' && x.mine);
+  return t.items.map(it => {
+    const day = dateKey(new Date(it.at)), sep = day !== lastDay ? `<div class="msg-day">${dayLabel(day)}</div>` : ''; lastDay = day;
+    if (it.kind === 'plan') {
+      const a = it.payload, prog = a.program && PROGRAM_BY_ID[a.program];
+      const what = [prog ? prog.name : a.workouts && a.workouts.length ? `${a.workouts.length} workout${a.workouts.length > 1 ? 's' : ''}` : '', a.targets ? `${fmtInt(a.targets.protein * 4 + a.targets.carbs * 4 + a.targets.fat * 9)} kcal targets` : ''].filter(Boolean).join(' + ') || 'a note';
+      const st = it.status === 'accepted' ? 'Accepted' : it.status === 'declined' ? 'Declined' : it.mine ? 'Waiting for a reply' : '';
+      return sep + `<div class="msg-plan">${icon('dumbbell', 16)}<div class="grow"><b>${it.mine ? 'You sent a plan' : `${esc(first)} sent you a plan`}</b>: ${esc(what)}${a.note ? `<br><span class="muted">“${esc(a.note)}”</span>` : ''}<br><span class="tiny faint">${time(it.at)}${st ? ' · ' + st : ''}</span></div>${!it.mine && it.status === 'sent' ? `<button class="btn train sm" data-act="cloud-assign-open" data-id="${it.id}">Review</button>` : ''}</div>`;
+    }
+    return sep + `<div class="msg ${it.mine ? 'me' : 'them'}"><div class="bubble">${esc(it.body).replace(/\n/g, '<br>')}</div><span class="tiny faint">${time(it.at)}${it === lastMine && it.read ? ' · Seen' : ''}</span></div>`;
+  }).join('');
+}
+function threadHtml(link, otherName) {
+  const first = otherName || 'them';
+  return `<div class="thread" id="gw-thread" data-link="${esc(link)}" data-name="${esc(otherName || '')}" role="log" aria-live="polite" aria-label="Messages with ${esc(otherName || '')}">${threadBody(link, otherName)}</div>
+    <div class="compose"><textarea class="input" id="msg-input" rows="1" maxlength="2000" placeholder="Message ${esc(first)}" aria-label="Message ${esc(first)}" data-msgdraft="${esc(link)}">${esc((UI.msgDraft || {})[link] || '')}</textarea><button class="btn train" data-act="msg-send" data-link="${esc(link)}">Send</button></div>`;
+}

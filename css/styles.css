@@ -420,3 +420,29 @@ details.pantry summary::-webkit-details-marker { display: none; }
 button.card { font: inherit; color: inherit; text-align: left; width: 100%; cursor: pointer; }
 .client-card .stats { margin: 0; }
 .chart .bar.steps { fill: var(--train); }
+
+/* Coach tab: messages */
+.tab { position: relative; }
+.tab .badge { top: 2px; right: calc(50% - 22px); }
+.tab[data-tab="coach"][aria-current="page"], .tab[data-tab="clients"][aria-current="page"] { color: var(--train); }
+.seg .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); vertical-align: middle; margin-left: 2px; }
+.card.chat { gap: 10px; }
+.thread { display: flex; flex-direction: column; gap: 8px; max-height: min(56vh, 520px); overflow-y: auto; padding: 2px 2px 4px; overscroll-behavior: contain; }
+.sheet .thread { max-height: 48vh; }
+.msg { display: flex; flex-direction: column; gap: 2px; max-width: 82%; }
+.msg.me { align-self: flex-end; align-items: flex-end; }
+.msg.them { align-self: flex-start; }
+.msg .bubble { padding: 9px 13px; border-radius: 18px; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.msg.me .bubble { background: var(--train); color: var(--train-ink); border-bottom-right-radius: 6px; }
+.msg.them .bubble { background: var(--surface-2); color: var(--ink); border-bottom-left-radius: 6px; }
+.msg-day { align-self: center; font-size: 11.5px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; padding: 4px 0; }
+.msg-plan { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; font-size: 13.5px; background: var(--surface); }
+.msg-plan > svg { flex: none; color: var(--train); }
+.compose { display: flex; gap: 8px; align-items: flex-end; }
+.compose textarea { flex: 1; min-width: 0; resize: none; min-height: 44px; max-height: 140px; line-height: 1.35; }
+/* Coach tab: switched off */
+.locked { position: relative; min-height: 520px; }
+.locked-preview { display: flex; flex-direction: column; gap: 12px; filter: grayscale(1); opacity: .4; pointer-events: none; user-select: none; }
+.locked-cta { position: absolute; left: 10px; right: 10px; top: 56px; align-items: center; text-align: center; gap: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.18); }
+.ni-lg { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--train); }
+.avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-weight: 800; }

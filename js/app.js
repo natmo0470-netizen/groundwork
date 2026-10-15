@@ -22,7 +22,7 @@ function render() {
   if (!S.onboarded) {
     root.innerHTML = viewOnboarding();
   } else {
-    const views = { today: viewToday, train: viewTrain, food: viewFood, progress: viewProgress, clients: typeof viewClients === 'function' ? viewClients : viewToday };
+    const views = { today: viewToday, train: viewTrain, food: viewFood, progress: viewProgress, clients: typeof viewClients === 'function' ? viewClients : viewToday, coach: typeof viewCoach === 'function' ? viewCoach : viewToday };
     root.innerHTML = `<div class="app">${header()}<main class="view" id="view">${typeof tipBanner === 'function' ? tipBanner(UI.tab) : ''}${views[UI.tab]()}</main>${tabBar()}</div>`
       + (S.activeWorkout && UI.loggerOpen ? viewLogger() : '')
       + (UI.rest && S.activeWorkout && UI.loggerOpen ? restBar() : '')

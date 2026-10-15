@@ -21,6 +21,15 @@ Sharing categories match the app: `workouts`, `nutrition` (daily totals only), `
 To rerun locally: create a database, run `local-shim.sql` (stands in for Supabase's `auth` schema), then
 `schema.sql`, then `permission-tests.sql`. Don't run `local-shim.sql` on Supabase.
 
+## Updates for an existing project
+
+New database pieces ship as numbered files in `migrations/`. Run each one once, in order, in the SQL Editor
+(each is safe to run twice). `schema.sql` always contains everything, for brand-new projects.
+
+| File | Adds |
+|---|---|
+| `migrations/002_messages.sql` | Coach ↔ client messages (`messages` table, read receipts) |
+
 ## Setting up your project (free plan is fine for testing)
 
 1. **Run the schema.** Dashboard → SQL Editor → New query → paste all of `schema.sql` → Run. It should finish

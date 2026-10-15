@@ -94,11 +94,27 @@ try {
   check('client receives the plan', r.ok && r.j.length === 1, r.j);
   r = await call(`/rest/v1/assignments?id=eq.${asg.id}`, { method: 'PATCH', token: client.token, body: { status: 'accepted', answered_at: new Date().toISOString() }, prefer: 'return=minimal' });
   check('client accepts the plan', r.ok, r.j);
+  // messages
+  r = await call('/rest/v1/messages', { method: 'POST', token: coach.token, body: { link_id: link.id, sender_id: coach.id, body: 'Welcome aboard' }, prefer: 'return=representation' });
+  check('messages table exists and coach can message (run migrations/002_messages.sql if this fails)', r.ok && r.j.length === 1, r.j);
+  r = await call(`/rest/v1/messages?select=id,body&read_at=is.null&sender_id=neq.${client.id}`, { token: client.token });
+  check('client sees the unread message', r.ok && r.j.length === 1 && r.j[0].body === 'Welcome aboard', r.j);
+  r = await call('/rest/v1/rpc/mark_messages_read', { method: 'POST', token: client.token, body: { link: link.id } });
+  check('client marks it read', r.ok && r.j === 1, r.j);
+  r = await call('/rest/v1/messages', { method: 'POST', token: client.token, body: { link_id: link.id, sender_id: coach.id, body: 'pretending to be the coach' } });
+  check('client can NOT send as the coach', !r.ok, r.status);
+  r = await call('/rest/v1/messages', { method: 'POST', token: client.token, body: { link_id: link.id, sender_id: client.id, body: 'Thanks!' }, prefer: 'return=minimal' });
+  check('client replies', r.ok, r.j);
+  r = await call(`/rest/v1/messages?id=eq.00000000-0000-0000-0000-000000000000`, { method: 'PATCH', token: coach.token, body: { body: 'edited' } });
+  r = await call(`/rest/v1/messages?select=body&link_id=eq.${link.id}&order=created_at`, { token: coach.token });
+  check('coach reads the conversation', r.ok && r.j.map(x => x.body).join('|') === 'Welcome aboard|Thanks!', r.j);
   r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: client.token, body: { share: Object.assign({}, share, { nutrition: true, paused: true }) }, prefer: 'return=minimal' });
   r = await call(`/rest/v1/workouts?select=id&user_id=eq.${client.id}`, { token: coach.token });
   check('pause hides everything from the coach', r.ok && r.j.length === 0, r.j);
   r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: coach.token, body: { status: 'ended' }, prefer: 'return=minimal' });
   check('coach can end the link', r.ok, r.j);
+  r = await call('/rest/v1/messages', { method: 'POST', token: client.token, body: { link_id: link.id, sender_id: client.id, body: 'after the end' } });
+  check('no messages after the link ends', !r.ok, r.status);
 } catch (e) { check('run', false, e.message); }
 finally {
   for (const u of users) {

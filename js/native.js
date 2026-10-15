@@ -137,6 +137,7 @@ const Native = (() => {
       UI.sheet = null; UI.stack = [];
       if (act === 'food') { UI.tab = 'food'; UI.foodDate = todayKey(); }
       else if (act === 'weight') { UI.tab = 'today'; render(); pushSheet({ type: 'weight' }); return; }
+      else if (act === 'coachmsg') { UI.tab = typeof coachOn === 'function' && coachOn() ? 'clients' : 'coach'; }
       else if (act === 'checkin') { UI.tab = 'today'; render(); if (ACT['open-checkin']) ACT['open-checkin'](); return; }
       else UI.tab = 'today';
       render();
