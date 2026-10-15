@@ -9,7 +9,7 @@ even with a modified app.
 | Who | Can | Can't |
 |---|---|---|
 | Any user | Read and write all of their own rows | See anyone else's rows |
-| Coach (active link) | Read the client's rows in categories the client shares; send assignments; keep private notes | Change client data or sharing; see individual food entries or photos; see anything while sharing is paused or after the client leaves |
+| Coach (active link) | Read the client's rows in categories the client shares; send assignments; keep private notes | Change client data or sharing; see individual food entries; see anything while sharing is paused or after the client leaves |
 | Client | Accept an invite with chosen sharing; change sharing or leave at any time; accept or decline assignments | Change which coach a link belongs to |
 | Seat limits | A coach's invited + active clients can't exceed their plan's seats (plans are set by the billing webhook) | |
 

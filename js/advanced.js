@@ -2,7 +2,7 @@
    Advanced view: effort per set (reps in reserve), warm-up and drop sets, supersets,
    weekly sets per muscle, training-day / rest-day carbs, refeeds and diet breaks.
    Standard and Advanced: custom workouts with editable sets/reps/rest, plate calculator,
-   strength charts, body measurements and progress photos. */
+   strength charts and body measurements. (Progress photos were removed in v1.13; see the cleanup below.) */
 
 function isAdvanced() { return S.onboarded && typeof modeOf === 'function' && modeOf() === 'advanced'; }
 function isGuidedView() { return typeof isGuided === 'function' && isGuided(); }
@@ -93,32 +93,17 @@ function measureCard() {
   return `<div class="card"><div class="card-head"><span class="eyebrow">Measurements</span><button class="link" data-act="measure-add">Log</button></div>
     ${last ? `<div class="stats">${MEASURES.filter(([k]) => last[k]).slice(0, 3).map(([k, l]) => { const d = first && first !== last && first[k] ? cmToDisp(last[k]) - cmToDisp(first[k]) : 0; return `<div class="stat"><div class="v">${cmToDisp(last[k])}<span class="unit">${lenUnit()}</span></div><div class="k">${l}${d ? ` · ${d > 0 ? '+' : ''}${Math.round(d * 10) / 10}` : ''}</div></div>`; }).join('')}</div>
       <div class="row between"><span class="small faint">Last logged ${shortDate(last.date)}</span>${bf ? `<span class="small">Est. body fat <b>${bf}%</b></span>` : ''}</div>`
-      : `<p class="small muted" style="margin:0">Waist and other measurements show changes the scale misses. Log them every 2–4 weeks.</p>`}
-    <button class="btn ghost sm" data-act="photos-open" style="align-self:flex-start">${icon('camera', 16)} Progress photos</button></div>`;
+      : `<p class="small muted" style="margin:0">Waist and other measurements show changes the scale misses. Log them every 2–4 weeks.</p>`}</div>`;
 }
 
-/* ================= progress photos (stored on this device only, in IndexedDB) ================= */
-const Photos = (() => {
-  let dbp = null;
-  function db() {
-    if (!dbp) dbp = new Promise((res, rej) => { try { const r = indexedDB.open('groundwork-photos', 1); r.onupgradeneeded = () => r.result.createObjectStore('photos', { keyPath: 'id' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } });
-    return dbp;
-  }
-  const tx = async (mode, fn) => { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('photos', mode); const st = t.objectStore('photos'); const out = fn(st); t.oncomplete = () => res(out && out.result !== undefined ? out.result : out); t.onerror = () => rej(t.error); }); };
-  async function add(file, pose) {
-    const img = await new Promise((res, rej) => { const u = URL.createObjectURL(file); const i = new Image(); i.onload = () => { URL.revokeObjectURL(u); res(i); }; i.onerror = rej; i.src = u; });
-    const scale = Math.min(1, 1080 / Math.max(img.width, img.height));
-    const c = document.createElement('canvas'); c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    const data = c.toDataURL('image/jpeg', 0.82);
-    const rec = { id: uid(), date: todayKey(), pose: pose || 'front', data };
-    await tx('readwrite', st => st.put(rec));
-    return rec;
-  }
-  const all = async () => { const r = await tx('readonly', st => st.getAll()); return (r || []).sort((a, b) => a.date < b.date ? -1 : 1); };
-  const remove = id => tx('readwrite', st => st.delete(id));
-  const clear = () => tx('readwrite', st => st.clear());
-  return { add, all, remove, clear };
+/* Progress photos were removed (v1.13): Groundwork doesn't keep photos of people.
+   Earlier versions stored them on the device only; this deletes any that are still there, once. */
+(() => {
+  try {
+    if (localStorage.getItem('groundwork.photosRemoved')) return;
+    if (window.indexedDB) indexedDB.deleteDatabase('groundwork-photos');
+    localStorage.setItem('groundwork.photosRemoved', '1');
+  } catch (e) { /* storage blocked: nothing to clean */ }
 })();
 
 /* ================= sheets ================= */
@@ -151,14 +136,6 @@ Object.assign(SHEETS, {
       + `<div class="grid2">${MEASURES.map(([k, l]) => `<div class="field"><label for="ms-${k}">${l}</label><input class="input" id="ms-${k}" inputmode="decimal" placeholder="${last[k] ? cmToDisp(last[k]) : ''}"></div>`).join('')}</div>
       <p class="tiny faint">Waist at the navel; hips at the widest point; arm and thigh at the widest point, relaxed; neck just below the Adam's apple. Neck + waist (+ hips for women) give an estimated body-fat percentage.</p>
       <button class="btn train block" data-act="measure-save">Save</button>`;
-  },
-  photos(s) {
-    const list = UI.photoList;
-    const body = !list ? '<p class="small muted">Loading…</p>' : !list.length ? `<p class="small muted">Take photos every 2–4 weeks in the same light, pose and clothing. They stay on this phone only; they're not included in backups or sent to a coach.</p>`
-      : `${list.length > 1 ? `<span class="label">First vs latest</span><div class="grid2"><figure class="ph"><img src="${list[0].data}" alt="First progress photo, ${shortDate(list[0].date)}"><figcaption>${shortDate(list[0].date)}</figcaption></figure><figure class="ph"><img src="${list[list.length - 1].data}" alt="Latest progress photo, ${shortDate(list[list.length - 1].date)}"><figcaption>${shortDate(list[list.length - 1].date)}</figcaption></figure></div>` : ''}
-        <span class="label">All photos</span><div class="ph-grid">${list.slice().reverse().map(p => `<figure class="ph"><img src="${p.data}" alt="Progress photo, ${shortDate(p.date)}"><figcaption>${shortDate(p.date)} <button class="link danger small" data-act="photo-del" data-id="${p.id}">Delete</button></figcaption></figure>`).join('')}</div>`;
-    return sheetHead('Progress photos', 'Private to this device') + body
-      + `<label class="btn train block" style="cursor:pointer">${icon('camera', 18)} Add a photo<input type="file" accept="image/*" capture="environment" id="photo-in" hidden></label>`;
   },
 });
 
@@ -270,8 +247,6 @@ Object.assign(ACT, {
     S.measurements = (S.measurements || []).filter(x => x.date !== m.date).concat([m]).sort((a, b) => a.date < b.date ? -1 : 1);
     save(); closeAll(); toast('Measurements saved');
   },
-  'photos-open': async () => { UI.photoList = null; pushSheet({ type: 'photos', tall: true }); try { UI.photoList = await Photos.all(); } catch (e) { UI.photoList = []; toast('Photos aren\'t available in this browser.'); } render(); },
-  'photo-del': t => confirmSheet('Delete this photo?', 'It will be removed from this device.', 'Delete', async () => { await Photos.remove(t.dataset.id); UI.photoList = await Photos.all(); pushSheet({ type: 'photos', tall: true }); }, true),
   'adv-cycle': () => { S.macros.cycle = !S.macros.cycle; save(); render(); },
   'adv-refeed': () => { const k = todayKey(); S.refeeds = S.refeeds || {}; if (S.refeeds[k]) delete S.refeeds[k]; else S.refeeds[k] = true; save(); render(); toast(S.refeeds[k] ? 'Refeed day: targets raised to maintenance' : 'Refeed removed'); },
   'adv-break': t => { const n = Number(t.dataset.v); const k = todayKey(); S.dietBreak = n ? { start: k, end: addDays(k, n - 1) } : null; save(); render(); toast(n ? `Diet break until ${shortDate(addDays(k, n - 1))}` : 'Diet break ended'); },
@@ -286,8 +261,4 @@ document.addEventListener('change', async e => {
   if (el.dataset.rir != null && S.activeWorkout) { const r = S.activeWorkout.items[+el.dataset.i].rows[+el.dataset.j]; if (el.value === '') delete r.rir; else r.rir = Number(el.value); save(); }
   if (el.dataset.cwname) { const w = S.plan.workouts.find(x => x.id === el.dataset.cwname); if (w) { w.name = el.value.trim() || 'My workout'; save(); render(); } }
   if (el.dataset.plates != null && UI.sheet && UI.sheet.type === 'plates') { UI.sheet.kg = dispToKg(S, el.value); render(); }
-  if (el.id === 'photo-in' && el.files && el.files[0]) {
-    try { await Photos.add(el.files[0]); UI.photoList = await Photos.all(); render(); toast('Photo saved on this device'); }
-    catch (err) { toast('Couldn\'t save that photo.'); }
-  }
 });

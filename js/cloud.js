@@ -6,7 +6,7 @@
      can't silently overwrite each other.
    - Coach-relevant data is also written to small tables (workouts, daily food totals, weights,
      measurements, activity, pain, flags). Row-level security lets a linked coach read only the
-     categories the client shares; individual foods and photos never leave the phone.
+     categories the client shares; individual foods never leave the phone.
    - Coaches invite with an 8-character code; plans arrive in the client's app to accept or decline.
    Hidden entirely until js/cloud-config.js has a project URL and key. */
 const Cloud = (() => {
@@ -449,7 +449,7 @@ const Cloud = (() => {
         <div class="row between" style="gap:10px"><div style="min-width:0"><div class="h3" style="overflow-wrap:anywhere">${esc(Cloud.email())}</div><div class="small muted" id="sync-line">${esc(syncLine())}</div></div></div>
         ${Cloud.status.conflict ? `<button class="btn train block" data-act="cloud-resolve">Choose which data to keep</button>` : ''}
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="cloud-sync">Sync now</button><button class="btn ghost sm" data-act="acct-signout">Sign out</button><button class="btn danger sm" data-act="acct-delete">Delete account</button></div>
-        <p class="tiny faint" style="margin:0">Your plan, logs and settings are backed up privately to your account. Progress photos stay on this phone.</p></div>`
+        <p class="tiny faint" style="margin:0">Your plan, logs and settings are backed up privately to your account.</p></div>`
     : `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
         <p class="small muted" style="margin:0">Back up your data and use Groundwork on more than one device. Coaches and clients connect live with an account.</p>
         <div class="grid2"><button class="btn train sm" data-act="acct-open" data-mode="signup">Create account</button><button class="btn ghost sm" data-act="acct-open" data-mode="signin">Sign in</button></div></div>`;

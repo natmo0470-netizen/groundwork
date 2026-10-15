@@ -414,7 +414,7 @@ Object.assign(ACT, {
 SHEETS.clientSend = () => sheetHead(`Update for ${esc(S.coach.name)}`, 'Your last 4 weeks of progress, limited to what you share')
   + `<div class="field"><label for="cs-note">Note to your coach (optional)</label><textarea class="input" id="cs-note" rows="3" placeholder="How did the week feel?"></textarea></div>
   ${S.health && S.health.on ? `<p class="small muted" style="margin:0">Includes your 7-day step and sleep averages from ${typeof HealthSync !== 'undefined' ? HealthSync.name() : 'your phone'}.</p>` : ''}
-  <p class="tiny faint">Encrypted so only your coach can open it. Progress photos are never included.</p>
+  <p class="tiny faint">Encrypted so only your coach can open it.</p>
   <button class="btn train block" data-act="client-send-go">${icon('share', 18)} Send update</button>`;
 
 document.addEventListener('change', e => {
@@ -449,7 +449,7 @@ function shareControls(sh, act, coachName) {
   return `<div class="stack" style="gap:8px"><span class="label">What ${esc(coachName || 'your coach')} can see</span>
     ${SHARE_CATS.map(([k, l, d]) => `<div class="toggle"><span class="small"><b>${l}</b><br><span class="faint">${d}</span></span><button class="switch" role="switch" aria-checked="${!sh.paused && !!sh[k]}" ${sh.paused ? 'disabled' : ''} data-act="${act}" data-k="${k}" aria-label="Share ${l}"></button></div>`).join('')}
     <div class="toggle"><span class="small"><b>Pause all sharing</b><br><span class="faint">Your coach then sees only your name and messages</span></span><button class="switch" role="switch" aria-checked="${!!sh.paused}" data-act="${act}" data-k="paused" aria-label="Pause all sharing"></button></div>
-    <p class="tiny faint" style="margin:0">Your coach can always send you plans and nutrition goals; nothing changes until you accept. Progress photos and individual foods are never shared.</p></div>`;
+    <p class="tiny faint" style="margin:0">Your coach can always send you plans and nutrition goals; nothing changes until you accept. Individual foods are never shared.</p></div>`;
 }
 /* Updates contain only what the client shares. */
 const _buildUpdateShare = buildUpdate;

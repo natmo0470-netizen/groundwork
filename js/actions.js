@@ -355,7 +355,7 @@ const ACT = {
     else if (val('imp-text')) apply(val('imp-text'));
     else toast('Paste a backup or choose a file');
   },
-  'reset-all': () => confirmSheet('Erase all data?', 'This removes your profile, plan, logs and records from this device. It can\'t be undone.', 'Erase everything', () => { Store.clear(); try { if (typeof Photos !== 'undefined') Photos.clear(); } catch (e) { /* ignore */ } S = defaultState(); UI.ob = null; UI.obStep = 0; UI.loggerOpen = false; UI.tab = 'today'; }, true),
+  'reset-all': () => confirmSheet('Erase all data?', 'This removes your profile, plan, logs and records from this device. It can\'t be undone.', 'Erase everything', () => { Store.clear(); S = defaultState(); UI.ob = null; UI.obStep = 0; UI.loggerOpen = false; UI.tab = 'today'; }, true),
   'chart-range': t => { UI.chartRange = Number(t.dataset.v); render(); },
 };
 
