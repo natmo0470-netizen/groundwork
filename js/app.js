@@ -109,7 +109,7 @@ function viewOnboarding() {
   let body = '';
   if (step === 1) {
     const metric = o.units === 'metric';
-    body = `<div class="stack"><span class="eyebrow">Step 1 of 5</span><h1 class="h1">About you</h1><p class="muted">Used to estimate how many calories you burn. Nothing leaves this device.</p></div>
+    body = `<div class="stack"><span class="eyebrow">Step 1 of 5</span><h1 class="h1">About you</h1><p class="muted">Used to estimate how many calories you burn. It stays private to you.</p></div>
       <div class="seg" role="group" aria-label="Units"><button data-act="ob-set" data-k="units" data-v="imperial" aria-pressed="${!metric}">lb · ft/in</button><button data-act="ob-set" data-k="units" data-v="metric" aria-pressed="${metric}">kg · cm</button></div>
       <div class="field"><label for="ob-name">First name <span class="faint">(optional)</span></label><input class="input" id="ob-name" data-ob="name" value="${esc(o.name)}" autocomplete="given-name"></div>
       <div class="field"><span class="label">Sex <span class="faint">(for the calorie formula)</span></span><div class="seg"><button data-act="ob-set" data-k="sex" data-v="male" aria-pressed="${o.sex === 'male'}">Male</button><button data-act="ob-set" data-k="sex" data-v="female" aria-pressed="${o.sex === 'female'}">Female</button></div></div>

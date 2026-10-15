@@ -29,6 +29,7 @@ New database pieces ship as numbered files in `migrations/`. Run each one once, 
 | File | Adds |
 |---|---|
 | `migrations/002_messages.sql` | Coach ↔ client messages (`messages` table, read receipts) |
+| `migrations/003_invite_preview.sql` | Invite links show who invited you before you sign up (`invite_preview`) |
 
 ## Setting up your project (free plan is fine for testing)
 

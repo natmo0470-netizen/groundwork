@@ -26,4 +26,13 @@ edit('app/src/main/AndroidManifest.xml', s => {
     .concat(REMOVE.map(p => `    <uses-permission android:name="android.permission.health.${p}" tools:node="remove" />`));
   return s.replace('</manifest>', lines.join('\n') + '\n</manifest>');
 });
-console.log(`Android configured: version ${version} (${code}), minSdk 26, health permissions trimmed`);
+// Invite links: groundwork://join/CODE opens the app straight into the join flow.
+edit('app/src/main/AndroidManifest.xml', s => s.includes('android:scheme="groundwork"') ? s : s.replace('</activity>',
+  `    <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="groundwork" android:host="join" />
+            </intent-filter>
+        </activity>`));
+console.log(`Android configured: version ${version} (${code}), minSdk 26, health permissions trimmed, invite links`);

@@ -368,6 +368,10 @@ const Cloud = (() => {
     return m;
   }
 
+  /* ---------- invite links ---------- */
+  const inviteLink = code => { const b = String(cfg().inviteBase || 'https://natmo0470-netizen.github.io/groundwork/'); return (/\/$|\.html?$/.test(b) ? b : b + '/') + '?join=' + code; };
+  async function invitePreview(code) { const r = await api('/rest/v1/rpc/invite_preview', { method: 'POST', anon: true, body: { code } }); return (r && r[0]) || null; }
+
   /* ---------- links from emails (confirm address / reset password) ---------- */
   function readAuthLink() {
     if (!configured() || !/access_token=/.test(location.hash || '')) return null;
@@ -386,7 +390,7 @@ const Cloud = (() => {
     roster: () => roster, rosterAge: () => Date.now() - rosterAt, rosterBusy: () => !!rosterLoading, loadRoster, invite, endLink, assign, saveNote,
     acceptInvite, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
-    unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; },
+    unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
   };
 })();
 
@@ -471,12 +475,15 @@ const Cloud = (() => {
         <button class="btn train block" data-act="np-save">Save password</button>`;
     },
     cloudInvite(s) {
-      const msg = `Join me on Groundwork: open Settings → Coaching → Join with a code, and enter ${s.code}`;
-      return sheetHead(`Invite code for ${esc(s.name)}`, 'Each code works once')
-        + `<div class="card" style="box-shadow:none;align-items:center;text-align:center"><div class="mid-num" style="font-size:36px;letter-spacing:.12em" id="invite-code">${esc(s.code)}</div><span class="small muted">${esc(s.name)} enters this in Groundwork → Settings → Coaching → Join with a code.</span></div>
-        <button class="btn train block" data-act="cloud-share-code" data-text="${esc(msg)}">${icon('share', 18)} Send code</button>
-        <button class="btn ghost block" data-act="close-sheet">Done</button>
-        <p class="tiny faint" style="margin:0">Once ${esc(s.name.split(' ')[0])} joins, their progress appears here automatically, limited to what they choose to share.</p>`;
+      const link = Cloud.inviteLink(s.code), coachName = (S.coachMode && S.coachMode.name) || S.profile.name || 'Your coach';
+      const msg = `${coachName} invited you to train together on Groundwork. Tap to join: ${link}`;
+      return sheetHead(`Invite ${esc(s.name)}`, 'Send this link. It works once.')
+        + `<div class="card" style="box-shadow:none;gap:8px"><span class="label">Invite link</span><div class="invite-link" id="invite-link">${esc(link)}</div>
+          <span class="small muted">${esc(s.name)} taps it, creates an account, chooses what to share and answers a few setup questions, then lands in their Coach tab, linked to you.</span></div>
+        <button class="btn train block" data-act="cloud-share-code" data-text="${esc(msg)}">${icon('share', 18)} Send invite link</button>
+        <button class="btn ghost block" data-act="cloud-copy-link" data-text="${esc(link)}">${icon('copy', 18)} Copy link</button>
+        <p class="small muted" style="margin:0;text-align:center">Or they can enter code <b class="num" id="invite-code" style="letter-spacing:.08em">${esc(s.code)}</b> in Groundwork → Coach tab → Enable coaching.</p>
+        <button class="btn ghost block" data-act="close-sheet">Done</button>`;
     },
   });
 
@@ -519,12 +526,13 @@ const Cloud = (() => {
     'acct-delete': () => confirmSheet('Delete your account?', 'This permanently deletes your account and everything stored in the cloud, including coach links. Data on this phone stays until you erase it in Settings.', 'Delete account', async () => {
       try { await Cloud.deleteAccount(); render(); toast('Account deleted'); } catch (e) { toast('Couldn\'t delete the account: ' + (e.message || 'try again')); }
     }, true),
+    'cloud-copy-link': async t => { try { await navigator.clipboard.writeText(t.dataset.text); toast('Link copied'); } catch (e) { toast('Press and hold the link to copy it'); } },
     'cloud-share-code': async t => {
       const text = t.dataset.text;
       try {
         if (typeof Native !== 'undefined' && Native.isNative) { await Native.call('Share', 'share', { title: 'Groundwork invite', text, dialogTitle: 'Send invite code' }); return; }
         if (navigator.share) { await navigator.share({ title: 'Groundwork invite', text }); return; }
-        await navigator.clipboard.writeText(text); toast('Invite copied. Paste it into a message.');
+        await navigator.clipboard.writeText(text); toast('Invite copied. Paste it into a text or email.');
       } catch (e) { /* share cancelled */ }
     },
     'cloud-assign-open': t => { const id = t && t.dataset && t.dataset.id, a = Cloud.pending().find(x => !id || x.id === id); if (!a) { toast('That plan was already answered'); return; } pushSheet({ type: 'assignReview', payload: Object.assign({}, a.payload, { sentAt: dateKey(new Date(a.created_at)) }), assignId: a.id, tall: true }); },

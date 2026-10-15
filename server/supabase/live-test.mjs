@@ -64,6 +64,10 @@ try {
   r = await call('/rest/v1/coach_links', { method: 'POST', token: coach.token, body: { coach_id: coach.id, client_label: 'Live Client' }, prefer: 'return=representation' });
   const link = r.ok && r.j[0];
   check('coach creates invite code', !!link && /^[0-9A-F]{8}$/.test(link.invite_code), r.j);
+  r = await call('/rest/v1/rpc/invite_preview', { method: 'POST', body: { code: link.invite_code.toLowerCase() } });
+  check('invite link shows who invited you, before sign-up (run migrations/003_invite_preview.sql if this fails)', r.ok && r.j.length === 1 && r.j[0].coach_name === 'Live Coach' && r.j[0].client_label === 'Live Client', r.j);
+  r = await call('/rest/v1/rpc/invite_preview', { method: 'POST', body: { code: 'FFFFFFFF' } });
+  check('made-up codes show nothing', r.ok && r.j.length === 0, r.j);
   r = await call('/rest/v1/workouts?select=id', { token: coach.token });
   check('coach sees nothing before the client joins', r.ok && r.j.length === 0, r.j);
   const share = { workouts: true, nutrition: false, body: true, activity: false, wellbeing: true, paused: false };
@@ -71,6 +75,8 @@ try {
   check('client joins with the code', r.ok && r.j === link.id, r.j);
   r = await call('/rest/v1/rpc/accept_invite', { method: 'POST', token: client.token, body: { code: link.invite_code, share } });
   check('code works only once', !r.ok, r.j);
+  r = await call('/rest/v1/rpc/invite_preview', { method: 'POST', body: { code: link.invite_code } });
+  check('used invite links show nothing', r.ok && r.j.length === 0, r.j);
   r = await call(`/rest/v1/workouts?select=id&user_id=eq.${client.id}`, { token: coach.token });
   check('coach sees shared training', r.ok && r.j.length === 1, r.j);
   r = await call(`/rest/v1/weights?select=day&user_id=eq.${client.id}`, { token: coach.token });

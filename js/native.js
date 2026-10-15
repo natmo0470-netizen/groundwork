@@ -145,7 +145,7 @@ const Native = (() => {
     queueSync();
   }
 
-  return { isNative, platform, available, call, syncRest, haptic, setAwake, shareFile, notifPermission, queueSync, syncReminders, clearReminders, plannedNotifications, boot };
+  return { isNative, platform, available, call, listen, syncRest, haptic, setAwake, shareFile, notifPermission, queueSync, syncReminders, clearReminders, plannedNotifications, boot };
 })();
 
 /* ---------- hooks into the app ---------- */

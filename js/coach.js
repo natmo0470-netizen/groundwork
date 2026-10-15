@@ -446,9 +446,9 @@ const SHARE_CATS = [
 ];
 function defaultShare() { const s = { paused: false }; SHARE_CATS.forEach(([k, , , on]) => { s[k] = on; }); return s; }
 function shareControls(sh, act, coachName) {
-  return `<div class="stack" style="gap:8px"><span class="label">What ${esc((coachName || 'your coach').split(' ')[0])} can see</span>
+  return `<div class="stack" style="gap:8px"><span class="label">What ${esc(coachName || 'your coach')} can see</span>
     ${SHARE_CATS.map(([k, l, d]) => `<div class="toggle"><span class="small"><b>${l}</b><br><span class="faint">${d}</span></span><button class="switch" role="switch" aria-checked="${!sh.paused && !!sh[k]}" ${sh.paused ? 'disabled' : ''} data-act="${act}" data-k="${k}" aria-label="Share ${l}"></button></div>`).join('')}
-    <div class="toggle"><span class="small"><b>Pause all sharing</b><br><span class="faint">Updates then carry only your name and note</span></span><button class="switch" role="switch" aria-checked="${!!sh.paused}" data-act="${act}" data-k="paused" aria-label="Pause all sharing"></button></div>
+    <div class="toggle"><span class="small"><b>Pause all sharing</b><br><span class="faint">Your coach then sees only your name and messages</span></span><button class="switch" role="switch" aria-checked="${!!sh.paused}" data-act="${act}" data-k="paused" aria-label="Pause all sharing"></button></div>
     <p class="tiny faint" style="margin:0">Your coach can always send you plans and nutrition goals; nothing changes until you accept. Progress photos and individual foods are never shared.</p></div>`;
 }
 /* Updates contain only what the client shares. */

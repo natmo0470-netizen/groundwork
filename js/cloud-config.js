@@ -6,4 +6,6 @@
 const CLOUD_CONFIG = {
   url: 'https://eavcynlwjpwigrvfuvzd.supabase.co',
   anonKey: 'sb_publishable_uWQzbQu29-2DiaP03_fbzA_l_js2neM',
+  // Where invite links point (the hosted web app). Change to your domain when it's ready.
+  inviteBase: 'https://natmo0470-netizen.github.io/groundwork/',
 };

@@ -278,6 +278,16 @@ returns int language sql security definer set search_path = public as $$
   select count(*)::int from u;
 $$;
 
+-- ---------- invite links: who sent this invite? (readable before signing in) ----------
+create or replace function public.invite_preview(code text)
+returns table (coach_name text, client_label text)
+language sql stable security definer set search_path = public as $$
+  select coalesce(nullif(p.display_name, ''), 'Your coach'), l.client_label
+  from coach_links l join profiles p on p.id = l.coach_id
+  where l.invite_code = upper(invite_preview.code) and l.status = 'invited' and l.client_id is null;
+$$;
+grant execute on function public.invite_preview(text) to anon, authenticated;
+
 -- ---------- account deletion (required by both app stores) ----------
 -- Deletes the signed-in user's account and, through cascades, every row they own.
 create or replace function public.delete_my_account() returns void language sql security definer set search_path = public as $$

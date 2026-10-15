@@ -1,4 +1,4 @@
-# Groundwork — v1.10
+# Groundwork — v1.11
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -39,7 +39,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Meal plans | Household: add family members (adults with editable calories; children and teens get a U.S. Dietary Guidelines recommendation by age, sex and activity, adjustable ±20%; which meals they eat, foods they avoid); everyone shares recipes in their own portion, grocery list covers all. 7-day plans from 71 built-in recipes, servings scaled to hit calorie and protein targets; diet styles, foods to avoid, meals and snacks per day, quick meals, cook-once-eat-twice leftovers, budget mode; swap, lock and log any meal |
 | Grocery list | Built from the plan, grouped by aisle, amounts rounded to what you'd buy, cost estimate, pantry check, add your own items, copy/share, one-tap search links for Instacart, Walmart, Kroger and Amazon Fresh; whole-list Instacart hand-off ready to switch on (see server/README.md) |
 | Data | Download a backup file or copy it as text; restore from file or text on another device; erase all |
-| Account & sync | Optional email account: private cloud backup, sync across phones with a version check (choose which copy to keep if two devices changed), password reset, delete account. Coaches invite with an 8-character code; client progress syncs live, limited by the client's sharing choices and enforced in the database; plans arrive in the client's app to accept or decline. Coach tab (Clients tab for coaches) with a message thread; new messages and plans show in the reminders bell, on the tab badge, and as a phone notification when the app is in the background |
+| Account & sync | Optional email account: private cloud backup, sync across phones with a version check (choose which copy to keep if two devices changed), password reset, delete account. Coaches invite with an 8-character code; client progress syncs live, limited by the client's sharing choices and enforced in the database; plans arrive in the client's app to accept or decline. Coaches send an invite link that walks the client through joining (who invited you → account → what to share → setup → Coach tab); Coach tab (Clients tab for coaches) with a message thread; new messages and plans show in the reminders bell, on the tab badge, and as a phone notification when the app is in the background |
 
 ## Files
 
