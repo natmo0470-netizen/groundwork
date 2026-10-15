@@ -16,6 +16,7 @@ create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text not null default '',
   is_coach boolean not null default false,
+  synced_at timestamptz,                                                 -- last time the app synced (shown to a linked coach)
   created_at timestamptz not null default now()
 );
 
@@ -31,9 +32,11 @@ create table public.coach_links (
   coach_id uuid not null references public.profiles (id) on delete cascade,
   client_id uuid references public.profiles (id) on delete cascade,     -- null until the invite is accepted
   client_label text not null default '',                                 -- the name the coach typed
-  invite_code text unique not null default encode(extensions.gen_random_bytes(9), 'hex'),
+  invite_code text unique not null default upper(encode(extensions.gen_random_bytes(4), 'hex')),  -- 8 characters, easy to type
   status text not null default 'invited' check (status in ('invited', 'active', 'ended')),
   share jsonb not null default '{"workouts": true, "nutrition": true, "body": true, "activity": false, "wellbeing": true, "paused": false}',
+  client_note text not null default '',                                  -- a short message from the client to the coach
+  client_note_at timestamptz,
   created_at timestamptz not null default now(),
   accepted_at timestamptz,
   unique (coach_id, client_id)
@@ -42,9 +45,15 @@ create table public.coach_links (
 -- ---------- the client's data, by sharing category ----------
 -- workouts
 create table public.workouts (
-  id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
-  day date not null, name text not null, duration_min int, sets jsonb not null default '[]',
+  id text not null,                                  -- created on the phone
+  day date not null, name text not null, duration_min int, sets jsonb not null default '[]', prs int not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, id)
+);
+create table public.training_summary (                -- shared with 'workouts'
+  user_id uuid primary key default auth.uid() references public.profiles (id) on delete cascade,
+  plan_name text, days_per_week int, planned_14 int, done_14 int, goal text, experience text,
   updated_at timestamptz not null default now()
 );
 -- nutrition: coaches see daily totals only; individual entries stay private
@@ -65,6 +74,10 @@ create table public.weights (
   day date not null, kg numeric(5, 2) not null, source text,
   primary key (user_id, day)
 );
+create table public.body_profile (                    -- shared with 'body'
+  user_id uuid primary key default auth.uid() references public.profiles (id) on delete cascade,
+  age int, sex text, height_cm numeric(5, 1)
+);
 create table public.measurements (
   user_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
   day date not null, values jsonb not null,
@@ -78,9 +91,10 @@ create table public.activity_days (
 );
 -- wellbeing
 create table public.pain_reports (
-  id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
-  day date not null, exercise_id text, area text, kind text check (kind in ('sharp', 'ache'))
+  id text not null,
+  day date not null, exercise_id text, area text, kind text check (kind in ('sharp', 'ache')),
+  primary key (user_id, id)
 );
 create table public.health_flags (
   user_id uuid primary key default auth.uid() references public.profiles (id) on delete cascade,
@@ -133,6 +147,8 @@ alter table public.food_day_totals enable row level security;
 alter table public.food_entries enable row level security;
 alter table public.weights enable row level security;
 alter table public.measurements enable row level security;
+alter table public.training_summary enable row level security;
+alter table public.body_profile enable row level security;
 alter table public.activity_days enable row level security;
 alter table public.pain_reports enable row level security;
 alter table public.health_flags enable row level security;
@@ -165,6 +181,10 @@ create policy coach_food_totals on public.food_day_totals for select using (coac
 create policy own_food_entries on public.food_entries for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy own_weights on public.weights for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy coach_weights on public.weights for select using (coach_can_see(user_id, 'body'));
+create policy own_training_summary on public.training_summary for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy coach_training_summary on public.training_summary for select using (coach_can_see(user_id, 'workouts'));
+create policy own_body_profile on public.body_profile for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy coach_body_profile on public.body_profile for select using (coach_can_see(user_id, 'body'));
 create policy own_measurements on public.measurements for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy coach_measurements on public.measurements for select using (coach_can_see(user_id, 'body'));
 create policy own_activity on public.activity_days for all using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -214,7 +234,7 @@ begin
   if new.client_id is distinct from old.client_id and not (old.client_id is null and old.status = 'invited' and new.client_id = auth.uid() and new.status = 'active') then
     raise exception 'This part of a coach link can''t be changed';
   end if;
-  if auth.uid() = old.coach_id and (new.share <> old.share or (new.status <> old.status and new.status <> 'ended')) then
+  if auth.uid() = old.coach_id and (new.share <> old.share or new.client_note <> old.client_note or (new.status <> old.status and new.status <> 'ended')) then
     raise exception 'Only the client can change what they share';
   end if;
   if old.status = 'ended' and new.status <> 'ended' then
@@ -224,8 +244,15 @@ begin
 end; $$;
 create trigger coach_links_guard before update on public.coach_links for each row execute function public.guard_link_update();
 
+-- ---------- account deletion (required by both app stores) ----------
+-- Deletes the signed-in user's account and, through cascades, every row they own.
+create or replace function public.delete_my_account() returns void language sql security definer set search_path = public as $$
+  delete from auth.users where id = auth.uid();
+$$;
+
 -- ---------- indexes for coach dashboards ----------
 create index on public.workouts (user_id, day desc);
+create index on public.coach_links (coach_id) where status in ('invited', 'active');
 create index on public.pain_reports (user_id, day desc);
 create index on public.food_entries (user_id, day desc);
 create index on public.coach_links (client_id) where status = 'active';

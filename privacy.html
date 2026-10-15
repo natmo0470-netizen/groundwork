@@ -26,12 +26,12 @@
 <body>
 <main>
   <h1>Groundwork Privacy Policy</h1>
-  <p class="meta">Effective October 14, 2026 · updated for v1.8</p>
+  <p class="meta">Effective October 14, 2026 · updated for v1.9</p>
 
-  <div class="card"><p style="margin:0"><b>The short version:</b> Groundwork has no accounts, no ads and no analytics. Everything you enter stays on your device. We don't collect, sell or share your personal data.</p></div>
+  <div class="card"><p style="margin:0"><b>The short version:</b> Groundwork has no ads and no analytics, and works fully without an account. If you create an optional account, your data is backed up privately so you can use it on more than one device. We don't sell or share your personal data, and you can delete your account at any time.</p></div>
 
   <h2>What the app stores, and where</h2>
-  <p>Your profile (age, height, weight, goal), workouts, food log, body-weight entries, meal plans, household members and settings are saved only in the app's storage on your phone or in your browser. Nobody else, including us, can see it. Deleting the app or using <b>Settings → Erase all data</b> removes it.</p>
+  <p>Your profile (age, height, weight, goal), workouts, food log, body-weight entries, meal plans, household members and settings are saved in the app's storage on your phone or in your browser. Without an account, that is the only place they exist: nobody else, including us, can see them, and deleting the app or using <b>Settings → Erase all data</b> removes them.</p>
   <p>Backups are files you create and save yourself (for example to Files, Google Drive or email). We never receive them.</p>
 
   <h2>When the app connects to the internet</h2>
@@ -43,11 +43,17 @@
     <tr><td>Website version only: fonts</td><td>A standard request for font files (includes your IP address). The phone app bundles its fonts and doesn't make this request.</td><td><a href="https://policies.google.com/privacy">Google Fonts</a></td></tr>
   </table>
 
+  <h2>Accounts and cloud sync (optional)</h2>
+  <p>You can create an account with your email address and a password (<b>Settings → Account &amp; sync</b>). When you're signed in, a copy of your app data (profile, plan, workouts, food log, weigh-ins, measurements, pain reports, settings and, if connected, daily step, sleep and heart-rate summaries) is stored in your account so you can restore it on another device. Progress photos are never uploaded.</p>
+  <p>Account data is stored with our database provider, <a href="https://supabase.com/privacy">Supabase</a>, in the United States, encrypted in transit and at rest. Database rules allow only you to read your data, except what you choose to share with a coach (below). We don't use it for advertising and don't sell it.</p>
+  <p><b>Deleting your account:</b> <b>Settings → Account &amp; sync → Delete account</b> permanently removes your account and all of its cloud data, including coach links, straight away. Data on your phone stays until you erase it. Signing out keeps your cloud data so you can sign in again later.</p>
+
   <h2>Apple Health and Health Connect</h2>
-  <p>If you connect Apple Health (iPhone) or Health Connect (Android), Groundwork reads your steps, active calories, sleep, resting heart rate, body weight and workouts recorded by other apps, and writes the body weight you log in Groundwork. This data is used only to show your activity and recovery in the app. It stays on your phone, is never used for advertising, and is never sold or shared with anyone. You can turn access off at any time in the Health app (iPhone) or Health Connect settings (Android), or in Groundwork's Settings.</p>
+  <p>If you connect Apple Health (iPhone) or Health Connect (Android), Groundwork reads your steps, active calories, sleep, resting heart rate, body weight and workouts recorded by other apps, and writes the body weight you log in Groundwork. This data is used only to show your activity and recovery in the app. If you have an account, daily summaries (steps, active calories, sleep minutes, resting heart rate) are included in your private cloud copy; individual samples are not. It is never used for advertising, and is never sold or shared with anyone. You can turn access off at any time in the Health app (iPhone) or Health Connect settings (Android), or in Groundwork's Settings.</p>
 
   <h2>Working with a coach</h2>
-  <p>If you link with a coach, nothing is sent automatically. When you tap <b>Send update</b>, the app creates a file with your last 4 weeks of workouts, daily food totals, weigh-ins, measurements, any pain reports and, if you've connected Apple Health or Health Connect, your 7-day step and sleep averages, and you choose how to send it (message, email, AirDrop). After the invite, these files are encrypted (AES-256-GCM) with a key only you and your coach's app hold. Progress photos are never included. A coach's copy of your data lives only on their device, and you can unlink at any time.</p>
+  <p><b>With accounts:</b> you join a coach by entering their invite code and choosing what they can see: training, daily nutrition totals (never individual foods), body (weigh-ins, measurements, age, height), phone and watch activity, and pain and health flags. Your coach can then read only those categories, enforced by the database, and only while you're linked. You can change the choices, pause all sharing or leave at any time in <b>Settings → Coaching</b>, and the change applies immediately. Your coach can send you plans and nutrition goals, which change nothing until you accept them.</p>
+  <p><b>Without accounts:</b> if you link with a coach using an invite file, nothing is sent automatically. When you tap <b>Send update</b>, the app creates a file with your last 4 weeks of workouts, daily food totals, weigh-ins, measurements, any pain reports and, if you've connected Apple Health or Health Connect, your 7-day step and sleep averages, and you choose how to send it (message, email, AirDrop). After the invite, these files are encrypted (AES-256-GCM) with a key only you and your coach's app hold. Progress photos are never included. A coach's copy of your data lives only on their device, and you can unlink at any time.</p>
 
   <h2>Progress photos and backups</h2>
   <p>Progress photos are stored only on your device and are not included in backups or coach updates. Backups can be protected with a password; protected backups are encrypted (AES-256-GCM) and can't be opened without it.</p>
@@ -65,7 +71,7 @@
   <p>Groundwork gives general fitness and nutrition guidance, not medical advice. Check with a doctor before starting a new exercise or diet program, especially if you have a health condition or are pregnant.</p>
 
   <h2>Changes and contact</h2>
-  <p>If a future version adds accounts or cloud sync, this policy will be updated before that feature ships and you'll be asked before any data leaves your device. Questions: <a href="https://github.com/natmo0470-netizen/groundwork/issues">open an issue on GitHub</a>.</p>
+  <p>If we change what the app collects, this policy will be updated before the change ships. Questions or data requests: <a href="https://github.com/natmo0470-netizen/groundwork/issues">open an issue on GitHub</a>.</p>
 </main>
 </body>
 </html>

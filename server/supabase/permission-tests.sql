@@ -6,12 +6,11 @@ insert into coach_plans values ('00000000-0000-0000-0000-0000000000c0', 'starter
 set role authenticated;
 -- client writes their own data
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
-insert into workouts (day, name, sets) values ('2026-10-12', 'Upper A', '[["bb_bench",80,8]]');
+insert into workouts (id, day, name, sets) values ('w1', '2026-10-12', 'Upper A', '[["bb_bench",80,8]]');
 insert into food_day_totals (day, kcal, protein) values ('2026-10-12', 2100, 150);
-insert into food_entries (day, meal, item) values ('2026-10-12', 'lunch', '{"name":"Chicken"}');
 insert into weights (day, kg) values ('2026-10-12', 82.5);
 insert into activity_days (day, steps) values ('2026-10-12', 9000);
-insert into pain_reports (day, area, kind) values ('2026-10-12', 'Knee', 'sharp');
+insert into pain_reports (id, day, area, kind) values ('p1', '2026-10-12', 'Knee', 'sharp');
 -- coach invites (seat 1 of 2)
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000c0';
 insert into coach_links (coach_id, client_label, invite_code) values ('00000000-0000-0000-0000-0000000000c0', 'Riley', 'CODE1');

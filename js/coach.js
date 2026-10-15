@@ -1,4 +1,5 @@
-/* Groundwork — Coach tools (file-based until cloud sync in Phase 5).
+/* Groundwork — Coach tools. With an account (cloud.js) coaching is live: invite codes, synced progress
+   and plans delivered in the app. Without one, everything below still works with files.
    Coach: turns on Coach mode, gets a Clients tab with a seat limit by plan, invites clients,
    assigns programs / their own workouts / macro targets, and reads clients' progress updates.
    Client: joins a coach with an invite, receives plans, and sends weekly updates.
@@ -13,7 +14,9 @@ const COACH_PLANS = [
 ];
 const coachOn = () => !!(S.coachMode && S.coachMode.on);
 const coachPlan = () => COACH_PLANS.find(p => p.id === (S.coachMode && S.coachMode.plan)) || COACH_PLANS[0];
-const clients = () => (S.coachMode && S.coachMode.clients) || [];
+/* A function declaration so cloud.js can add the live roster in front of the clients kept on this phone. */
+function clients() { return (S.coachMode && S.coachMode.clients) || []; }
+const cloudOn = () => (typeof Cloud !== 'undefined' && Cloud.signedIn());
 const findClient = id => clients().find(c => c.id === id);
 function ago(k) { if (!k) return 'never'; const d = daysBetween(k, todayKey()); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`; }
 
@@ -98,12 +101,12 @@ function viewClients() {
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn train sm" data-act="coach-add">${icon('plus', 16)} Add client</button><button class="btn ghost sm" data-act="coach-import">${icon('download', 16)} Open a client update</button><button class="btn ghost sm" data-act="coach-plan">Seats</button></div></div>
     ${list.length ? list.map(c => { const d = c.data, fl = clientFlags(d), tr = weightTrend(d);
       return `<button class="card client-card" data-act="client-open" data-id="${c.id}" style="text-align:left">
-        <div class="row between"><div><div class="h3">${esc(c.name)}</div><div class="small muted">${d ? `Update ${ago(d.sentAt.slice(0, 10))}` : c.linked ? 'Linked · waiting for first update' : 'Invite sent'}${d && d.plan ? ' · ' + esc(d.plan.name) : ''}</div></div><span class="chev">${icon('chevR', 18)}</span></div>
+        <div class="row between"><div><div class="h3">${esc(c.name)}</div><div class="small muted">${d ? `${d.cloud ? 'Synced' : 'Update'} ${ago(d.sentAt.slice(0, 10))}` : c.linked ? 'Linked · waiting for first update' : c.cloud ? `Invite code ${esc(c.code)} · not joined yet` : 'Invite sent'}${d && d.plan ? ' · ' + esc(d.plan.name) : ''}</div></div><span class="chev">${icon('chevR', 18)}</span></div>
         ${d ? `<div class="stats"><div class="stat"><div class="v">${d.adherence ? `${d.adherence.done}/${d.adherence.planned}` : '—'}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">Weight 3 wk (${wUnit(S)})</div></div><div class="stat"><div class="v">${(() => { const l = (d.food || []).filter(x => x.logged).slice(-7); return l.length ? fmtInt(l.reduce((s, x) => s + x.kcal, 0) / l.length) : '—'; })()}</div><div class="k">Avg kcal</div></div></div>` : ''}
         ${fl.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${fl.map(([t, k]) => `<span class="tag ${k === 'warn' ? 'fuel' : ''}">${t}</span>`).join('')}</div>` : ''}
       </button>`; }).join('')
-      : `<div class="card"><div class="empty">${icon('user', 28)}<span>Add your first client. They join with an invite file, then send you weekly updates.</span><button class="btn ghost sm" data-act="coach-sample">Try it with a sample client</button></div></div>`}
-    <p class="tiny faint">Client data arrives only when a client sends you an update, and is stored on this device. Live sync arrives with accounts in a later version.</p>`;
+      : `<div class="card"><div class="empty">${icon('user', 28)}<span>${cloudOn() ? 'Add your first client. They join with a code and their progress syncs here.' : 'Add your first client. They join with an invite file, then send you weekly updates.'}</span><button class="btn ghost sm" data-act="coach-sample">Try it with a sample client</button></div></div>`}
+    <p class="tiny faint">${cloudOn() ? 'Client progress syncs from their app, limited to what each client chooses to share.' : 'Client data arrives only when a client sends you an update, and is stored on this device. Sign in (Settings → Account) for live sync.'}</p>`;
 }
 
 /* ================= sheets ================= */
@@ -114,8 +117,14 @@ Object.assign(SHEETS, {
       + `<div class="card" style="box-shadow:none"><span class="eyebrow">Your coach</span>
         ${c ? `<div class="row between"><div><div class="h3">${esc(c.name)}</div><div class="small muted">Linked ${shortDate(c.linkedAt)} · last update sent ${ago(c.lastSent)}</div></div></div>
           ${shareControls(c.share || defaultShare(), 'share-set', c.name)}
-          <button class="btn train block" data-act="client-send">${icon('share', 18)} Send update to ${esc(c.name.split(' ')[0])}</button>
-          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="client-import">Open a file from your coach</button><button class="btn danger sm" data-act="client-leave">Leave coach</button></div>`
+          ${c.cloud ? `<p class="small muted" style="margin:0">${icon('check', 14)} Your progress syncs to ${esc(c.name)} automatically. New plans show up on your Today screen.</p>
+          <div class="field"><label for="cl-msg">Message to ${esc(c.name)}</label><textarea class="input" id="cl-msg" rows="2" data-clmsg placeholder="How's the week going?">${esc(c.note || '')}</textarea></div>
+          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn danger sm" data-act="client-leave">Leave coach</button></div>`
+          : `<button class="btn train block" data-act="client-send">${icon('share', 18)} Send update to ${esc(c.name.split(' ')[0])}</button>
+          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="client-import">Open a file from your coach</button><button class="btn danger sm" data-act="client-leave">Leave coach</button></div>`}`
+        : cloudOn() ? `<p class="small muted" style="margin:0">Got a code from a coach? Enter it to link up. Your coach can then send you plans and targets, and sees the progress you choose to share.</p>
+          <div class="row" style="gap:8px"><input class="input" id="join-code" placeholder="8-character code" autocapitalize="characters" autocomplete="off" maxlength="9" style="text-transform:uppercase;letter-spacing:.1em" aria-label="Invite code"><button class="btn train" data-act="join-code">Join</button></div>
+          <button class="link small" data-act="client-import" style="align-self:flex-start">Got an invite file instead?</button>`
         : `<p class="small muted" style="margin:0">Got an invite from a coach? Open it here to link up. Your coach can then send you plans and targets, and you send back weekly updates.</p><button class="btn ghost block" data-act="client-import">Open coach invite</button>`}</div>
       <div class="card" style="box-shadow:none"><span class="eyebrow">Coach mode</span>
         <div class="toggle"><span class="small"><b>I'm a coach</b><br><span class="faint">Adds a Clients tab to manage clients, assign programs and macros, and review their progress.</span></span><button class="switch" role="switch" aria-checked="${coachOn()}" data-act="coach-toggle" aria-label="Coach mode"></button></div>
@@ -132,8 +141,10 @@ Object.assign(SHEETS, {
     return sheetHead('Add a client', full ? 'All seats are in use' : `${coachPlan().seats - clients().length} seats left`)
       + (full ? `<p class="muted">Your ${coachPlan().name} plan covers ${coachPlan().seats} clients. Move up a plan or remove a client to add another.</p><button class="btn train block" data-act="coach-plan">See plans</button>`
         : `<div class="field"><label for="ca-name">Client name</label><input class="input" id="ca-name" placeholder="e.g. Jordan"></div>
-        <p class="small muted">Creates an invite file to send by text, email or AirDrop. Your client opens it in Groundwork → Settings → Coaching.</p>
-        <button class="btn train block" data-act="coach-invite">${icon('share', 18)} Create and send invite</button>`);
+        ${cloudOn() ? `<p class="small muted">Creates an 8-character code. Your client enters it in Groundwork → Settings → Coaching, chooses what to share, and their progress syncs to you.</p>
+        <button class="btn train block" data-act="coach-invite">Create invite code</button>`
+        : `<p class="small muted">Creates an invite file to send by text, email or AirDrop. Your client opens it in Groundwork → Settings → Coaching.</p>
+        <button class="btn train block" data-act="coach-invite">${icon('share', 18)} Create and send invite</button>`}`);
   },
   client(s) {
     const c = findClient(s.id); if (!c) return sheetHead('Client', '');
@@ -143,15 +154,17 @@ Object.assign(SHEETS, {
     const tabs = `<div class="seg">${[['overview', 'Overview'], ['training', 'Training'], ['food', 'Nutrition'], ['plan', 'Assign']].map(([k, l]) => `<button data-act="client-tab" data-v="${k}" aria-pressed="${(s.tab || 'overview') === k}">${l}</button>`).join('')}</div>`;
     let body = '';
     const tab = s.tab || 'overview';
+    if (c.cloud && !c.linked) return sheetHead(esc(c.name), 'Invite not used yet') + `<div class="card" style="box-shadow:none;align-items:center;text-align:center"><div class="mid-num" style="font-size:32px;letter-spacing:.12em">${esc(c.code)}</div><span class="small muted">${esc(c.name)} enters this code in Groundwork → Settings → Coaching.</span></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="coach-reinvite" data-id="${c.id}">${icon('share', 16)} Send code again</button><button class="btn danger sm" data-act="coach-remove" data-id="${c.id}">Cancel invite</button></div>`;
     if (!d && tab !== 'plan') body = `<div class="empty">${icon('download', 26)}<span>No update yet. Ask ${esc(c.name)} to tap <b>Send update to coach</b>, then open the file here.</span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="coach-reinvite" data-id="${c.id}">Resend invite</button><button class="btn ghost sm" data-act="coach-import">Open update</button></div>`;
     else if (tab === 'training' && hidden('workouts')) body = notShared('training details');
     else if (tab === 'food' && hidden('nutrition')) body = notShared('nutrition');
     else if (tab === 'overview') {
       const fl = clientFlags(d), tr = weightTrend(d), pseudo = { weights: d.weights || [], profile: { units: S.profile.units } };
-      body = `<div class="small muted">Update ${ago(d.sentAt.slice(0, 10))} · ${GOALS[d.profile.goal] ? GOALS[d.profile.goal].label : ''} · ${d.profile.age ? d.profile.age + ' y · ' : ''}${esc(d.plan ? d.plan.name : 'no plan')}</div>
+      body = `<div class="small muted">${d.cloud ? 'Synced' : 'Update'} ${ago(d.sentAt.slice(0, 10))} · ${GOALS[d.profile.goal] ? GOALS[d.profile.goal].label : ''} · ${d.profile.age ? d.profile.age + ' y · ' : ''}${esc(d.plan ? d.plan.name : 'no plan')}</div>
         ${fl.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${fl.map(([t, k]) => `<span class="tag ${k === 'warn' ? 'fuel' : ''}">${t}</span>`).join('')}</div>` : ''}
-        ${d.note ? `<div class="banner">${icon('chat', 18)}<span><b>${esc(c.name)}:</b> ${esc(d.note)}</span></div>` : ''}
+        ${d.note ? `<div class="banner">${icon('chat', 18)}<span><b>${esc(c.name)}${d.noteAt ? ' · ' + ago(d.noteAt.slice(0, 10)) : ''}:</b> ${esc(d.note)}</span></div>` : ''}
         ${sh ? `<p class="tiny muted" style="margin:0">${sh.paused ? `${esc(c.name)} has paused sharing.` : `Sharing: ${SHARE_CATS.filter(([k]) => sh[k]).map(([, l]) => l).join(', ') || 'nothing'}${SHARE_CATS.some(([k]) => !sh[k]) ? ` · Not sharing: ${SHARE_CATS.filter(([k]) => !sh[k]).map(([, l]) => l).join(', ')}` : ''}`}</p>` : ''}
         <div class="stats"><div class="stat"><div class="v">${d.adherence ? `${d.adherence.done}/${d.adherence.planned}` : '—'}</div><div class="k">Sessions 2 wk</div></div><div class="stat"><div class="v">${(d.weights || []).length ? kgToDisp(S, d.weights[d.weights.length - 1].kg) : '—'}</div><div class="k">Weight (${wUnit(S)})</div></div><div class="stat"><div class="v">${tr == null ? '—' : (tr > 0 ? '+' : '') + kgToDisp(S, tr)}</div><div class="k">3-wk change</div></div></div>
         ${hidden('body') ? '<p class="small faint">Weigh-ins and measurements aren\'t shared.</p>' : (weightChart(pseudo, 60) || '<p class="small faint">Not enough weigh-ins for a chart yet.</p>')}
@@ -180,10 +193,10 @@ Object.assign(SHEETS, {
         ${a.targets ? `<div class="grid2"><div class="field"><label for="as-p">Protein (g)</label><input class="input" id="as-p" inputmode="numeric" data-as="p" value="${a.p}"></div><div class="field"><label for="as-c">Carbs (g)</label><input class="input" id="as-c" inputmode="numeric" data-as="c" value="${a.c}"></div><div class="field"><label for="as-f">Fat (g)</label><input class="input" id="as-f" inputmode="numeric" data-as="f" value="${a.f}"></div><div class="field"><span class="label">Calories</span><div class="mid-num" style="padding-top:6px">${fmtInt(a.p * 4 + a.c * 4 + a.f * 9)}</div></div></div>` : ''}
         <div class="field"><label for="as-note">Note to ${esc(c.name)}</label><textarea class="input" id="as-note" rows="2" data-as="note" placeholder="e.g. Great week. Adding a 4th day.">${esc(a.note || '')}</textarea></div>
         <button class="btn train block" data-act="as-send">${icon('share', 18)} Send to ${esc(c.name)}</button>
-        ${c.lastAssign ? `<p class="tiny faint">Last sent ${ago(c.lastAssign)}.</p>` : ''}`;
+        ${c.lastAssign ? `<p class="tiny faint">Last sent ${ago(c.lastAssign)}${c.lastAssignStatus === 'accepted' ? ' · accepted' : c.lastAssignStatus === 'declined' ? ' · declined' : c.lastAssignStatus === 'sent' ? ' · waiting for ' + esc(c.name.split(' ')[0]) : ''}.</p>` : ''}`;
     }
-    return sheetHead(esc(c.name), c.linked ? 'Linked client' : 'Invite sent') + tabs + body
-      + (tab === 'overview' ? `<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="coach-import">Open new update</button><button class="btn danger sm" data-act="coach-remove" data-id="${c.id}">Remove client</button></div>` : '');
+    return sheetHead(esc(c.name), c.cloud ? 'Live client' : c.linked ? 'Linked client' : 'Invite sent') + tabs + body
+      + (tab === 'overview' ? `<div class="row" style="gap:8px;flex-wrap:wrap">${c.cloud ? '' : '<button class="btn ghost sm" data-act="coach-import">Open new update</button>'}<button class="btn danger sm" data-act="coach-remove" data-id="${c.id}">Remove client</button></div>` : '');
   },
   coachImport(s) {
     return sheetHead(s.title || 'Open a coach file', 'Choose the file you received, or paste its text')
@@ -205,7 +218,7 @@ Object.assign(SHEETS, {
         ${a.workouts && a.workouts.length ? `<div class="li"><span class="grow"><span class="t">${a.workouts.length} workout${a.workouts.length > 1 ? 's' : ''} from your coach</span><br><span class="d">${a.workouts.map(w => esc(w.name)).join(', ')} · ${a.days.length} days a week</span></span></div>` : ''}
         ${a.targets ? `<div class="li"><span class="grow"><span class="t">Targets: ${fmtInt(a.targets.protein * 4 + a.targets.carbs * 4 + a.targets.fat * 9)} kcal</span><br><span class="d">${a.targets.protein} g protein · ${a.targets.carbs} g carbs · ${a.targets.fat} g fat</span></span></div>` : ''}</div>
       <p class="small faint">Accepting replaces your current plan${a.targets ? ' and targets' : ''}. Your history and records stay.</p>
-      <button class="btn train block" data-act="assign-accept">Accept</button>`;
+      <button class="btn train block" data-act="assign-accept">Accept</button>${s.assignId ? '<button class="btn ghost block" data-act="assign-decline">Decline</button>' : ''}`;
   },
 });
 
@@ -252,10 +265,10 @@ const _viewTodayCoach = viewToday;
 viewToday = () => {
   const html = _viewTodayCoach();
   if (!S.coach) return html;
-  const c = S.coach, due = !c.lastSent || daysBetween(c.lastSent, todayKey()) >= 7;
+  const c = S.coach, due = !c.cloud && (!c.lastSent || daysBetween(c.lastSent, todayKey()) >= 7);
   const card = `<div class="card train"><div class="card-head"><span class="eyebrow">Your coach · ${esc(c.name)}</span>${due ? '<span class="tag fuel">Update due</span>' : ''}</div>
     ${c.lastAssign && c.lastAssign.note ? `<p class="small" style="margin:0">“${esc(c.lastAssign.note)}”</p>` : ''}
-    <button class="btn ${due ? 'train' : 'ghost'} sm" data-act="client-send" style="align-self:flex-start">${icon('share', 16)} Send update</button></div>`;
+    ${c.cloud ? `<span class="small muted">${icon('check', 14)} Progress syncs automatically</span>` : `<button class="btn ${due ? 'train' : 'ghost'} sm" data-act="client-send" style="align-self:flex-start">${icon('share', 16)} Send update</button>`}</div>`;
   const marker = '<div class="card fuel">';
   return html.includes(marker) ? html.replace(marker, card + marker) : html + card;
 };
@@ -269,6 +282,11 @@ Object.assign(ACT, {
   'coach-add': () => pushSheet({ type: 'coachAdd' }),
   'coach-invite': async () => {
     const name = val('ca-name'); if (!name) { toast('Add your client\'s name'); return; }
+    if (cloudOn()) {
+      try { const l = await Cloud.invite(name); UI.stack = []; UI.sheet = { type: 'cloudInvite', name, code: l.invite_code }; render(); }
+      catch (e) { toast(/seats/i.test(e.message) ? e.message + '. Remove a client or change plan.' : 'Couldn\'t create the invite: ' + (e.message || 'try again')); }
+      return;
+    }
     if (!GWCrypto.ok()) { toast('Secure files aren\'t available in this browser'); return; }
     const c = { id: 'cl_' + uid(), name, key: GWCrypto.newKey(), invitedAt: todayKey(), linked: false, data: null, notes: '' };
     S.coachMode.clients.push(c); save();
@@ -276,9 +294,15 @@ Object.assign(ACT, {
     await sendCoachFile(inv, 'groundwork-invite-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Groundwork coach invite');
     UI.stack = []; UI.sheet = { type: 'coachSent', sub: `Invite for ${name}. They open it in Settings → Coaching.`, encrypted: false }; render();
   },
-  'coach-reinvite': async t => { const c = findClient(t.dataset.id); const inv = { gw: 'coach', v: 1, type: 'invite', coachId: S.coachMode.id, coachName: S.coachMode.name || 'Your coach', clientId: c.id, clientName: c.name, key: c.key }; await sendCoachFile(inv, 'groundwork-invite', 'Groundwork coach invite'); pushSheet({ type: 'coachSent', sub: `Invite for ${c.name}` }); },
+  'coach-reinvite': async t => { const c = findClient(t.dataset.id); if (c.cloud) { pushSheet({ type: 'cloudInvite', name: c.name, code: c.code }); return; } const inv = { gw: 'coach', v: 1, type: 'invite', coachId: S.coachMode.id, coachName: S.coachMode.name || 'Your coach', clientId: c.id, clientName: c.name, key: c.key }; await sendCoachFile(inv, 'groundwork-invite', 'Groundwork coach invite'); pushSheet({ type: 'coachSent', sub: `Invite for ${c.name}` }); },
   'coach-sample': () => { const c = { id: 'cl_' + uid(), name: 'Sample: Jordan', key: GWCrypto.ok() ? GWCrypto.newKey() : '', invitedAt: todayKey(), linked: true, sample: true, data: sampleClient(), notes: '' }; S.coachMode.clients.push(c); save(); render(); },
-  'coach-remove': t => confirmSheet('Remove this client?', 'Their data is deleted from this device and the seat is freed. They keep everything on their own phone.', 'Remove', () => { S.coachMode.clients = clients().filter(c => c.id !== t.dataset.id); save(); closeAll(); toast('Client removed'); }, true),
+  'coach-remove': t => {
+    const c = findClient(t.dataset.id);
+    if (c && c.cloud) return confirmSheet(c.linked ? 'Remove this client?' : 'Cancel this invite?', c.linked ? 'You lose access to their data straight away and the seat is freed. They keep everything in their own account.' : 'The code stops working and the seat is freed.', c.linked ? 'Remove' : 'Cancel invite', async () => {
+      try { await Cloud.endLink(c.id); await Cloud.loadRoster(); closeAll(); toast(c.linked ? 'Client removed' : 'Invite cancelled'); } catch (e) { toast('Couldn\'t reach the server. Try again.'); }
+    }, true);
+    confirmSheet('Remove this client?', 'Their data is deleted from this device and the seat is freed. They keep everything on their own phone.', 'Remove', () => { S.coachMode.clients = (S.coachMode.clients || []).filter(x => x.id !== t.dataset.id); save(); closeAll(); toast('Client removed'); }, true);
+  },
   'client-open': t => pushSheet({ type: 'client', id: t.dataset.id, tab: 'overview', tall: true }),
   'client-tab': t => { UI.sheet.tab = t.dataset.v; render(); },
   'as-mode': t => { UI.sheet.assign.mode = t.dataset.v; render(); },
@@ -294,6 +318,11 @@ Object.assign(ACT, {
     if (a.targets) payload.targets = { protein: Math.round(a.p), carbs: Math.round(a.c), fat: Math.round(a.f) };
     if (a.mode === 'none' && !a.targets && !a.note) { toast('Nothing to send yet'); return; }
     if (c.sample) { toast('This is a sample client, so nothing is sent'); return; }
+    if (c.cloud) {
+      try { await Cloud.assign(c, payload); c.lastAssign = todayKey(); c.lastAssignStatus = 'sent'; closeAll(); toast(`Sent. ${c.name.split(' ')[0]} sees it in their app to accept.`); }
+      catch (e) { toast('Couldn\'t send: ' + (e.message || 'check your connection')); }
+      return;
+    }
     const env = await sealFor('assign', S.coachMode.id, c.id, c.key, payload);
     await sendCoachFile(env, 'groundwork-plan-for-' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), 'Plan from your coach');
     c.lastAssign = todayKey(); save();
@@ -307,7 +336,7 @@ Object.assign(ACT, {
     let o;
     try { o = parseCoachText(f ? await readFile(f) : val('cf-text')); } catch (e) { toast('That isn\'t a Groundwork coach file'); return; }
     if (o.type === 'invite') {
-      if (S.coach && S.coach.id !== o.coachId) { toast(`You're already linked to ${S.coach.name}. Leave first to switch coaches.`); return; }
+      if (S.coach && (S.coach.cloud || S.coach.id !== o.coachId)) { toast(`You're already linked to ${S.coach.name}. Leave first to switch coaches.`); return; }
       UI.stack = []; UI.sheet = { type: 'coachJoin', invite: o, share: defaultShare(), tall: true }; render(); return;
     }
     if (o.type === 'assign') {
@@ -345,7 +374,7 @@ SHEETS.clientSend = () => sheetHead(`Update for ${esc(S.coach.name)}`, 'Your las
 document.addEventListener('change', e => {
   const el = e.target; if (!el || !el.dataset) return;
   if (el.dataset.coachname != null && S.coachMode) { S.coachMode.name = el.value.trim(); save(); }
-  if (el.dataset.clnotes) { const c = findClient(el.dataset.clnotes); if (c) { c.notes = el.value; save(); } }
+  if (el.dataset.clnotes) { const c = findClient(el.dataset.clnotes); if (c) { c.notes = el.value; if (c.cloud) Cloud.saveNote(c.id, c.notes).catch(() => toast('Couldn\'t save notes. Check your connection.')); else save(); } }
   if (el.dataset.as && UI.sheet && UI.sheet.assign) { const a = UI.sheet.assign, k = el.dataset.as; a[k] = ['p', 'c', 'f'].includes(k) ? Number(el.value) || 0 : el.value; if (['p', 'c', 'f'].includes(k)) render(); }
 });
 

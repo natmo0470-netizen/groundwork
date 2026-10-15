@@ -1,4 +1,4 @@
-# Groundwork — v1.8
+# Groundwork — v1.9
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -39,6 +39,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Meal plans | Household: add family members (adults with editable calories; children and teens get a U.S. Dietary Guidelines recommendation by age, sex and activity, adjustable ±20%; which meals they eat, foods they avoid); everyone shares recipes in their own portion, grocery list covers all. 7-day plans from 71 built-in recipes, servings scaled to hit calorie and protein targets; diet styles, foods to avoid, meals and snacks per day, quick meals, cook-once-eat-twice leftovers, budget mode; swap, lock and log any meal |
 | Grocery list | Built from the plan, grouped by aisle, amounts rounded to what you'd buy, cost estimate, pantry check, add your own items, copy/share, one-tap search links for Instacart, Walmart, Kroger and Amazon Fresh; whole-list Instacart hand-off ready to switch on (see server/README.md) |
 | Data | Download a backup file or copy it as text; restore from file or text on another device; erase all |
+| Account & sync | Optional email account: private cloud backup, sync across phones with a version check (choose which copy to keep if two devices changed), password reset, delete account. Coaches invite with an 8-character code; client progress syncs live, limited by the client's sharing choices and enforced in the database; plans arrive in the client's app to accept or decline |
 
 ## Files
 
@@ -55,14 +56,16 @@ js/mealui.js        meal plan + grocery screens
 server/             optional Instacart and recipe-service functions (Cloudflare Workers)
 server/supabase/    Phase 5 cloud database: schema with sharing enforced by row-level security, tests, setup notes
 js/anim.js          animated exercise demos (stick-figure poses solved with inverse kinematics)
-js/store.js         storage adapter (swap for a cloud database in Phase 5)
+js/store.js         on-device storage (cloud.js syncs it when signed in)
 js/calc.js          calorie/macro math and units
 js/planner.js       plan builder, day switching, progression, personal records
 js/programs.js      ready-made programs
 js/guide.js         experience views, tips, first-week checklist, guides
 js/advanced.js      advanced lifter tools
 js/safety.js        health check, pain reports, encrypted backups, food-data checks
-js/coach.js         coach mode and client linking (file-based)
+js/coach.js         coach mode and client linking (live with an account, or by file)
+js/cloud-config.js  Supabase project URL and public key (empty = cloud features hidden)
+js/cloud.js         accounts, backup and sync, live coaching (Supabase REST, no SDK)
 js/native.js        phone features (no-op on the website)
 js/health.js        Apple Health / Health Connect (phone app only)
 scripts/android-config.js  Android project settings applied in the cloud build
@@ -76,7 +79,7 @@ js/ui.js, app.js, screens.js, actions.js   screens and interactions
 
 ## Known limits in v1
 
-- Data lives in one browser on one device. To move it: Settings → Back up → Download backup file, send the file to the other device, then Settings → Restore there. Cloud sync arrives in Phase 5.
+- Without an account, data lives in one browser on one device (move it with a backup file). With an account (Settings → Account & sync) it backs up and syncs; cloud features appear once `js/cloud-config.js` has the project URL and key.
 - Browser notifications only fire while the app is open. Reminders with the app closed come with the Phase 2 store app.
 - Online food search needs internet access and may be blocked inside some embedded viewers. The built-in list and Quick add always work.
 - Live barcode scanning needs a camera and a secure page (https or the file opened on your computer). The published Claude link can't use the camera or reach the food database; use the hosted or local copy for scanning.
