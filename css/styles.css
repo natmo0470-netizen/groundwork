@@ -454,3 +454,16 @@ button.card { font: inherit; color: inherit; text-align: left; width: 100%; curs
 .join-list > div { display: flex; gap: 12px; align-items: flex-start; }
 .join-list > div > svg { flex: none; color: var(--train); margin-top: 2px; }
 .invite-link { font: 600 14px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); overflow-wrap: anywhere; user-select: all; }
+/* My meals */
+.meal-card { gap: 10px; }
+.meal-open { display: flex; flex-direction: column; gap: 4px; background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; width: 100%; }
+.ing-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ing-row:last-child { border-bottom: 0; }
+.ing-main { background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; min-width: 0; }
+.ing-main .t { font-weight: 600; overflow-wrap: anywhere; }
+.ing-main .d { font-size: 12.5px; color: var(--ink-3); }
+.ing-row .kcal { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.icon-btn.sm { width: 32px; height: 32px; }
+.mb-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mb-cols > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mb-totals { gap: 10px; }

@@ -1,4 +1,4 @@
-# Groundwork — v1.11
+# Groundwork — v1.12
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -37,6 +37,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | Phone app (Phase 2) | Android and iOS via Capacitor: reminders scheduled on the phone (arrive with the app closed; choose workout and food-log times), haptics, screen kept awake during workouts, backups through the share sheet, Android back button, bundled fonts, camera for barcode scanning |
 | Tester feedback | Settings → Send feedback: ease rating, area, what's confusing or missing; copy all to send |
 | Meal plans | Household: add family members (adults with editable calories; children and teens get a U.S. Dietary Guidelines recommendation by age, sex and activity, adjustable ±20%; which meals they eat, foods they avoid); everyone shares recipes in their own portion, grocery list covers all. 7-day plans from 71 built-in recipes, servings scaled to hit calorie and protein targets; diet styles, foods to avoid, meals and snacks per day, quick meals, cook-once-eat-twice leftovers, budget mode; swap, lock and log any meal |
+| My meals | Build a meal from ingredients (built-in foods, grocery ingredient catalog, your foods, USDA / Open Food Facts, or your own label numbers) in g, oz, lb, cups, spoons, ml or servings; set how many servings it makes and the cooked weight; get calories and macros per serving and for the batch, plus how much to portion out; log it like any food; duplicate, edit, or save a meal-plan recipe to tweak |
 | Grocery list | Built from the plan, grouped by aisle, amounts rounded to what you'd buy, cost estimate, pantry check, add your own items, copy/share, one-tap search links for Instacart, Walmart, Kroger and Amazon Fresh; whole-list Instacart hand-off ready to switch on (see server/README.md) |
 | Data | Download a backup file or copy it as text; restore from file or text on another device; erase all |
 | Account & sync | Optional email account: private cloud backup, sync across phones with a version check (choose which copy to keep if two devices changed), password reset, delete account. Coaches invite with an 8-character code; client progress syncs live, limited by the client's sharing choices and enforced in the database; plans arrive in the client's app to accept or decline. Coaches send an invite link that walks the client through joining (who invited you → account → what to share → setup → Coach tab); Coach tab (Clients tab for coaches) with a message thread; new messages and plans show in the reminders bell, on the tab badge, and as a phone notification when the app is in the background |
@@ -53,6 +54,7 @@ js/foods.js         built-in food list + Open Food Facts search
 js/recipes.js       ingredient catalog (nutrition, price, diet flags) + recipe library
 js/mealplan.js      meal plan generator, grocery list, store links, optional services config
 js/mealui.js        meal plan + grocery screens
+js/meals.js         My meals: meal builder with unit conversion and per-serving macros
 server/             optional Instacart and recipe-service functions (Cloudflare Workers)
 server/supabase/    Phase 5 cloud database: schema with sharing enforced by row-level security, tests, setup notes
 js/anim.js          animated exercise demos (stick-figure poses solved with inverse kinematics)
