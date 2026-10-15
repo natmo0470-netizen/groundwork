@@ -7,13 +7,13 @@
    messages. After the invite, files are encrypted with a key only the coach and that client hold.
    File envelope: { gw: 'coach', v: 1, type: 'invite' | 'assign' | 'update', coachId, clientId, ... } */
 
-/* Coach plans by client seats. Prices are the proposal in the monetization plan and stay hidden
+/* Coach plans by client seats (prices decided October 2026). They stay hidden
    (showPrices: false) until store / web billing is switched on. */
 const COACH_PLANS = [
-  { id: 'starter', name: 'Starter', seats: 5, monthly: 9 },
-  { id: 'growth', name: 'Growth', seats: 15, monthly: 19 },
-  { id: 'pro', name: 'Pro', seats: 40, monthly: 39 },
-  { id: 'studio', name: 'Studio', seats: 100, monthly: 79 },
+  { id: 'starter', name: 'Starter', seats: 5, monthly: 12 },
+  { id: 'growth', name: 'Growth', seats: 15, monthly: 25 },
+  { id: 'pro', name: 'Pro', seats: 40, monthly: 49 },
+  { id: 'studio', name: 'Studio', seats: 100, monthly: 99 },
 ];
 const PRICING = { showPrices: false, trialDays: 14 };
 /* Coach tools need an active coach plan on the account (checked by the server). Without accounts

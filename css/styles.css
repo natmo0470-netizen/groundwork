@@ -471,3 +471,7 @@ button.card { font: inherit; color: inherit; text-align: left; width: 100%; curs
 .link.danger { color: var(--bad); }
 .sheet.still { animation: none; }
 .scrim:has(+ .sheet.still) { animation: none; }
+
+/* Free-plan card (plus.js): quiet, below the user's own content, dismissible for the day */
+.card.promo { position: relative; gap: 6px; border-style: dashed; }
+.card.promo .card-head .x { width: 30px; height: 30px; border: 0; background: none; color: var(--ink-3); border-radius: 8px; display: grid; place-items: center; margin: -6px -6px -6px 0; }
