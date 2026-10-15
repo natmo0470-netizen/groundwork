@@ -363,7 +363,8 @@ const SHEETS = {
       <div class="field"><label for="fb-confusing">What was confusing or got in your way?</label><textarea class="input" id="fb-confusing" rows="3" data-fb="confusing">${esc(d.confusing || '')}</textarea></div>
       <div class="field"><label for="fb-missing">What's missing that you'd want?</label><textarea class="input" id="fb-missing" rows="3" data-fb="missing">${esc(d.missing || '')}</textarea></div>
       <button class="btn train block" data-act="fb-save">Save feedback</button>
-      ${past ? `<div class="divider"></div><div class="row between"><span class="small muted">${past} note${past > 1 ? 's' : ''} saved on this device</span><button class="link" data-act="fb-copy">${icon('copy', 16)} Copy all to send</button></div>` : ''}`;
+      ${past ? `<div class="divider"></div><div class="row between"><span class="small muted">${past} note${past > 1 ? 's' : ''} saved on this device</span><button class="link" data-act="fb-copy">${icon('copy', 16)} Copy all to send</button></div>` : ''}
+      <p class="tiny faint" style="margin:0">Or email <a href="mailto:support@movla.app?subject=Movla%20feedback">support@movla.app</a>. We read everything.</p>`;
   },
 
   exportData(s) {
