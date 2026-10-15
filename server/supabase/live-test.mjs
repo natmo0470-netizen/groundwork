@@ -14,6 +14,7 @@ async function call(path, { method = 'GET', token, body, prefer } = {}) {
   return { status: r.status, ok: r.ok, j };
 }
 const tag = Date.now().toString(36);
+const coachEmail = `gw-live-${tag}-coach@example.com`;
 async function signup(role) {
   for (const dom of ['example.com', 'groundworktest.dev', 'mailinator.com']) {
     const email = `gw-live-${tag}-${role}@${dom}`;
@@ -25,6 +26,13 @@ async function signup(role) {
   throw new Error('Signup rejected every test email domain');
 }
 const users = [];
+// Coach tools need a coach plan (migration 006). The test grants one to its throwaway coach with the project's
+// secret key, passed in from the SUPABASE_SECRET_KEY GitHub secret; it never appears in logs.
+const SECRET = process.env.SUPABASE_SECRET_KEY || '';
+async function admin(path, method, body) {
+  const r = await fetch(URL_ + path, { method, headers: { apikey: SECRET, authorization: SECRET.startsWith('eyJ') ? 'Bearer ' + SECRET : undefined, 'content-type': 'application/json', prefer: 'return=minimal' }, body: body == null ? undefined : JSON.stringify(body) });
+  return r.ok;
+}
 try {
   const settings = await call('/auth/v1/settings');
   check('project reachable with publishable key', settings.ok, settings.status);
@@ -32,6 +40,8 @@ try {
   check('confirm email off (autoconfirm)', settings.j && settings.j.mailer_autoconfirm === true, settings.j && settings.j.mailer_autoconfirm);
   const anonRead = await call('/rest/v1/app_state?select=user_id');
   check('signed-out visitors see no data', anonRead.ok ? anonRead.j.length === 0 : anonRead.status === 401, anonRead);
+  check('SUPABASE_SECRET_KEY secret is set (GitHub → Settings → Secrets → Actions)', !!SECRET);
+  if (SECRET) check('grant a coach plan to the test coach', await admin('/rest/v1/grants', 'POST', { email: coachEmail, kind: 'coach', plan: 'studio', seats: 100, note: 'live test' }));
   const coach = await signup('coach'); users.push(coach);
   const client = await signup('client'); users.push(client);
   check('sign up returns a session', !!coach.token && !!client.token);
@@ -61,6 +71,13 @@ try {
   r = await up(client.token, 'weights', 'user_id,day', [{ user_id: client.id, day: today, kg: 80.5, source: null }]);
   check('weights upsert', r.ok, r.j);
   // coaching
+  r = await call('/rest/v1/coach_links', { method: 'POST', token: client.token, body: { coach_id: client.id, client_label: 'Nope' }, prefer: 'return=representation' });
+  check('no coach plan, no invites (run migrations/006_plans.sql if this fails)', !r.ok, r.j);
+  r = await call('/rest/v1/entitlements', { method: 'POST', token: client.token, body: { user_id: client.id, kind: 'coach', plan: 'studio', seats: 100, source: 'grant' } });
+  check('people can NOT give themselves a plan', !r.ok, r.status);
+  r = await call('/rest/v1/rpc/claim_grants', { method: 'POST', token: coach.token, body: {} });
+  r = await call('/rest/v1/rpc/my_access', { method: 'POST', token: coach.token, body: {} });
+  check('granted coach plan shows up', r.ok && r.j.some(x => x.kind === 'coach' && x.seats === 100), r.j);
   r = await call('/rest/v1/coach_links', { method: 'POST', token: coach.token, body: { coach_id: coach.id, client_label: 'Live Client' }, prefer: 'return=representation' });
   const link = r.ok && r.j[0];
   check('coach creates invite code', !!link && /^[0-9A-F]{8}$/.test(link.invite_code), r.j);
@@ -85,6 +102,8 @@ try {
   check('coach can NOT see unshared nutrition', r.ok && r.j.length === 0, r.j);
   r = await call(`/rest/v1/app_state?select=user_id&user_id=eq.${client.id}`, { token: coach.token });
   check('coach can NOT see the client\'s full app data', r.ok && r.j.length === 0, r.j);
+  r = await call('/rest/v1/rpc/my_access', { method: 'POST', token: client.token, body: {} });
+  check('the client gets Plus through the coach', r.ok && r.j.some(x => x.kind === 'plus' && x.plan === 'coached'), r.j);
   r = await call(`/rest/v1/profiles?select=display_name&id=eq.${coach.id}`, { token: client.token });
   check('client sees the coach\'s name', r.ok && r.j[0] && r.j[0].display_name === 'Live Coach', r.j);
   r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: coach.token, body: { share: Object.assign({}, share, { nutrition: true }) }, prefer: 'return=minimal' });
@@ -147,6 +166,7 @@ finally {
     check(`delete test account (${u.email.split('-').pop()})`, r.ok, r.j);
   }
   if (users[1]) { const r = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: users[1].email, password: 'Live-test-' + tag } }); check('deleted account can no longer sign in', !r.ok, r.status); }
+  if (SECRET) await admin(`/rest/v1/grants?email=eq.${encodeURIComponent(coachEmail)}`, 'DELETE');
   console.log(results.join('\n')); if (process.env.GITHUB_ACTIONS) console.log(`::notice title=REST checks::` + results.join('%0A')); console.log(failed ? `\n${failed} check(s) failed` : '\nAll live checks passed');
   process.exit(failed ? 1 : 0);
 }

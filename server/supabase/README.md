@@ -32,6 +32,26 @@ New database pieces ship as numbered files in `migrations/`. Run each one once, 
 | `migrations/003_invite_preview.sql` | Invite links show who invited you before you sign up (`invite_preview`) |
 | `migrations/004_rejoin.sql` | A client can rejoin a coach they were linked to before; clearer join errors |
 | `migrations/005_safety.sql` | Message reports, health-data consent and terms timestamps, size limits |
+| `migrations/006_plans.sql` | Plans and access: coach tools need an active coach plan; free plans granted by email; coach business profiles |
+
+## Plans, coaches and free accounts
+
+- Coach tools unlock only when `my_access()` reports an active **coach** plan for the account; seat limits come from that plan.
+  Nobody can give themselves a plan: `entitlements` rows are written only by `claim_grants()` (from your grants) and,
+  at launch, by the billing webhook.
+- **Free plans for friends and family:** add a row to `grants` with their email (see `admin.sql`). It's applied the next
+  time that person opens the app signed in. Turn **Confirm email** back on before granting plans to people outside your
+  test group; while it's off, someone could sign up with another person's email and claim their grant.
+- Clients of a coach with an active plan get Plus free (`my_access()` returns `plus` / `coached`); a coach whose plan lapses
+  keeps reading access for 14 days.
+- `admin.sql` has ready-to-run snippets: grant, list, revoke, end a plan, list open reports.
+
+## The live test (GitHub Actions → Cloud live test)
+
+It signs up throwaway accounts on the real project, checks every permission, then deletes them. Since coach tools need a
+coach plan, it grants one to its test coach using the project's **secret key**: Supabase → Project Settings → API Keys →
+Secret keys → copy, then GitHub → the repo → Settings → Secrets and variables → Actions → New repository secret, named
+`SUPABASE_SECRET_KEY`. The key stays in GitHub's secret store and never appears in logs or in the app.
 
 ## Setting up your project (free plan is fine for testing)
 

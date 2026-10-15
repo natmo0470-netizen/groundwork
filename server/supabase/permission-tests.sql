@@ -2,7 +2,7 @@
 -- users: coach C, client A, other user X
 insert into auth.users values ('00000000-0000-0000-0000-0000000000c0'), ('00000000-0000-0000-0000-0000000000a1'), ('00000000-0000-0000-0000-0000000000f9');
 insert into profiles (id, display_name, is_coach) values ('00000000-0000-0000-0000-0000000000c0', 'Coach Dana', true), ('00000000-0000-0000-0000-0000000000a1', 'Riley', false), ('00000000-0000-0000-0000-0000000000f9', 'Stranger', false);
-insert into coach_plans values ('00000000-0000-0000-0000-0000000000c0', 'starter', 2);
+insert into entitlements (user_id, kind, plan, seats, source) values ('00000000-0000-0000-0000-0000000000c0', 'coach', 'starter', 2, 'grant');
 set role authenticated;
 -- client writes their own data
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
@@ -63,3 +63,29 @@ update coach_links set share = '{"workouts":true,"nutrition":true,"body":true,"a
 select 'T14 share still client-set' as t, share->>'workouts' as workouts from coach_links where client_label = 'Sam';
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000f9';
 update coach_links set status = 'active' where client_label = 'Sam' and false;
+
+-- ---------- plans and access (migration 006) ----------
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000d2', 'friend@example.com'), ('00000000-0000-0000-0000-0000000000e3', 'nocoach@example.com');
+insert into profiles (id, display_name) values ('00000000-0000-0000-0000-0000000000d2', 'Friend'), ('00000000-0000-0000-0000-0000000000e3', 'Wannabe');
+insert into grants (email, kind, plan, seats, months, note) values ('FRIEND@example.com', 'coach', 'pro', 40, 6, 'test'), ('friend@example.com', 'plus', 'plus', null, null, 'test');
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000e3';
+insert into coach_links (coach_id, client_label) values ('00000000-0000-0000-0000-0000000000e3', 'X');
+select 'T15 no plan, no invites' as t, (select count(*) from coach_links where coach_id = '00000000-0000-0000-0000-0000000000e3') as links;
+insert into entitlements (user_id, kind, plan, seats, source) values ('00000000-0000-0000-0000-0000000000e3', 'coach', 'studio', 100, 'grant');
+select 'T16 users cannot give themselves plans' as t, (select count(*) from entitlements) as visible;
+select 'T17 grants table is private' as t, (select count(*) from grants) as visible;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000d2';
+select 'T18 claim grants (case-insensitive email)' as t, claim_grants() as claimed;
+select 'T18b claim again does nothing' as t, claim_grants() as again, (select string_agg(kind || ':' || plan || ':' || coalesce(seats::text, '-'), ',' order by kind) from my_access()) as access;
+select 'T19 granted coach can invite' as t, (select count(*) from coach_links where coach_id = '00000000-0000-0000-0000-0000000000d2') as before_invite;
+insert into coach_links (coach_id, client_label, invite_code) values ('00000000-0000-0000-0000-0000000000d2', 'Pal', 'CODEF');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000e3';
+select 'T20 client joins' as t, accept_invite('CODEF', null) is not null as ok;
+select 'T20b client gets free Plus' as t, (select string_agg(kind || ':' || plan, ',') from my_access()) as client_access;
+reset role;
+update entitlements set ends_at = now() - interval '20 days' where user_id = '00000000-0000-0000-0000-0000000000d2' and kind = 'coach';
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000e3';
+select 'T21 lapsed coach: client loses free Plus' as t, (select count(*) from my_access()) as access;

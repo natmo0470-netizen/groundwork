@@ -84,7 +84,7 @@ const Cloud = (() => {
   async function signIn(mail, password) { setSession(await api('/auth/v1/token?grant_type=password', { method: 'POST', anon: true, body: { email: mail, password } })); }
   async function recover(mail) { await api('/auth/v1/recover', { method: 'POST', anon: true, body: { email: mail } }); }
   async function setPassword(password) { await api('/auth/v1/user', { method: 'PUT', body: { password } }); }
-  function signedOutLocally() { clearTimeout(timer); setSession(null); meta = freshMeta(); saveMeta(); roster = null; rosterAt = 0; status.state = 'idle'; status.error = ''; status.conflict = null; pending = []; unread = {}; Object.keys(threads).forEach(k => delete threads[k]); }
+  function signedOutLocally() { clearTimeout(timer); setSession(null); meta = freshMeta(); saveMeta(); roster = null; rosterAt = 0; status.state = 'idle'; status.error = ''; status.conflict = null; pending = []; unread = {}; access = null; ls.set(AKEY, null); Object.keys(threads).forEach(k => delete threads[k]); }
   async function signOut() { try { await api('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* signing out locally is enough */ } signedOutLocally(); }
   async function deleteAccount() { await rest('rpc/delete_my_account', { method: 'POST', body: {} }); signedOutLocally(); }
 
@@ -205,6 +205,7 @@ const Cloud = (() => {
       try {
         if (!(await loadConsent())) { status.state = 'consent'; status.error = ''; return; }
         await pushProfile();
+        await refreshAccess().catch(() => null);
         if (!status.conflict) {
           const ri = await remoteInfo();
           if (ri && ri.version > (meta.version || 0)) {
@@ -397,6 +398,23 @@ const Cloud = (() => {
     return m;
   }
 
+  /* ---------- plans and access (coach plans, Plus, free plans granted by email) ---------- */
+  const AKEY = 'groundwork.access';
+  let access = ls.get(AKEY) || null;   // { userId, rows: [{kind, plan, seats, source, ends_at}], at }
+  const accessRows = () => (access && access.userId === me() ? access.rows || [] : []);
+  const live = r => !r.ends_at || Date.parse(r.ends_at) > Date.now();
+  async function refreshAccess() {
+    if (!signedIn()) return;
+    await rest('rpc/claim_grants', { method: 'POST', body: {} }).catch(() => null);
+    const rows = await rest('rpc/my_access', { method: 'POST', body: {} });
+    access = { userId: me(), rows: Array.isArray(rows) ? rows : [], at: Date.now() }; ls.set(AKEY, access);
+  }
+  const hasCoach = () => accessRows().some(r => r.kind === 'coach' && live(r));
+  const hasPlus = () => accessRows().some(r => live(r));            // coaches and coached clients get Plus too
+  function coachAccess() { return accessRows().filter(r => r.kind === 'coach' && live(r)).sort((a, b) => (b.seats || 0) - (a.seats || 0))[0] || null; }
+  function plusSource() { const r = accessRows().filter(live); return r.find(x => x.kind === 'plus' && x.source !== 'coach') || r.find(x => x.kind === 'coach') || r.find(x => x.source === 'coach') || null; }
+  async function saveCoachProfile(p) { await upsert('coach_profiles', 'user_id', [Object.assign({ user_id: me(), updated_at: new Date().toISOString() }, p)]); }
+
   /* ---------- reports ---------- */
   async function report(r) {
     await rest('reports', { method: 'POST', headers: { prefer: 'return=minimal' }, body: { reporter_id: me(), link_id: r.linkId || null, message_id: r.messageId || null, reported_body: r.body ? String(r.body).slice(0, 2000) : null, reason: r.reason, details: (r.details || '').slice(0, 1000) } });
@@ -425,7 +443,7 @@ const Cloud = (() => {
     acceptInvite, activeLink, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
-    needsConsent, recordConsent, report,
+    needsConsent, recordConsent, report, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile,
   };
 })();
 
@@ -452,9 +470,9 @@ const Cloud = (() => {
   const _ob = viewOnboarding;
   viewOnboarding = function () {
     let html = _ob();
-    if (UI.obStep === 0 && !Cloud.signedIn()) html = html.replace('<button class="btn ghost block" data-act="seed-demo">Explore with sample data</button>', '$&<button class="btn ghost block" data-act="acct-open" data-mode="signin">I have an account · Sign in</button>');
+    if (UI.obStep === 0 && !Cloud.signedIn()) html = html.replace('<button class="btn ghost block" data-act="seed-demo">Explore with sample data</button>', '$&<button class="btn ghost block" data-act="acct-open" data-mode="signin">I have an account · Sign in</button><button class="link" data-act="coach-start" style="align-self:center">I\'m a personal trainer or coach</button>');
     if (UI.obStep === 0) { const site = CLOUD_CONFIG.inviteBase || 'https://natmo0470-netizen.github.io/groundwork/'; html = html.replace('</div></div></div>', `<p class="tiny faint" style="text-align:center;margin:4px 0 0"><a href="${site}privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Consumer health data</a> · <a href="${site}terms.html" target="_blank" rel="noopener">Terms</a></p></div></div></div>`); }
-    if (UI.sheet && ['account', 'cloudChoice', 'newPassword', 'cloudConsent'].includes(UI.sheet.type)) html += `<div class="scrim" data-act="close-sheet"></div>${sheetHtml()}`;
+    if (UI.sheet && ['account', 'cloudChoice', 'newPassword', 'cloudConsent', 'coachStart'].includes(UI.sheet.type)) html += `<div class="scrim" data-act="close-sheet"></div>${sheetHtml()}`;
     if (UI.toast) html += `<div class="toast" role="status">${esc(UI.toast)}</div>`;
     return html;
   };
@@ -474,6 +492,7 @@ const Cloud = (() => {
     ? `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
         <div class="row between" style="gap:10px"><div style="min-width:0"><div class="h3" style="overflow-wrap:anywhere">${esc(Cloud.email())}</div><div class="small muted" id="sync-line">${esc(syncLine())}</div></div></div>
         ${Cloud.status.conflict ? `<button class="btn train block" data-act="cloud-resolve">Choose which data to keep</button>` : ''}${Cloud.needsConsent() ? `<button class="btn train block" data-act="cloud-consent">Review and continue</button>` : ''}
+        ${(() => { const c = Cloud.coachAccess(), p = Cloud.plusSource(); const end = r => r && r.ends_at ? ` until ${shortDate(dateKey(new Date(r.ends_at)))}` : ''; return c ? `<p class="small" style="margin:0">${icon('check', 14)} Coach plan: up to ${c.seats} clients${c.source === 'grant' ? ' (complimentary)' : ''}${end(c)}</p>` : p ? `<p class="small" style="margin:0">${icon('check', 14)} Groundwork Plus${p.source === 'coach' ? ' from your coach' : p.source === 'grant' ? ' (complimentary)' : ''}${end(p)}</p>` : ''; })()}
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="cloud-sync">Sync now</button><button class="btn ghost sm" data-act="acct-signout">Sign out</button><button class="btn danger sm" data-act="acct-delete">Delete account</button></div>
         <p class="tiny faint" style="margin:0">Your plan, logs and settings are backed up privately to your account.</p></div>`
     : `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
@@ -556,6 +575,7 @@ const Cloud = (() => {
       try {
         const res = await Cloud.afterSignIn();
         if (res === 'choose') { UI.sheet = { type: 'cloudChoice' }; render(); return; }
+        if (after === 'coachStart') { UI.sheet = { type: 'coachStart', step: 'business', tall: true }; render(); return; }
         if (after && S.onboarded) { UI.sheet = { type: after }; render(); return; }
         toast(res === 'restored' ? 'Welcome back. Your data is restored.' : 'Thanks. Your data is backed up.');
       } catch (e) { toast('Couldn\'t reach the server. Your data will sync when you\'re back online.'); }
@@ -595,6 +615,7 @@ const Cloud = (() => {
         UI.stack = []; UI.sheet = null;
         if (res === 'consent') { UI.sheet = { type: 'cloudConsent', after: s.after }; render(); return; }
         if (res === 'choose') { UI.sheet = { type: 'cloudChoice' }; render(); return; }
+        if (s.after === 'coachStart') { UI.sheet = Object.assign({ type: 'coachStart', tall: true }, s.afterState || {}); render(); return; }
         if (s.after && S.onboarded) { UI.sheet = { type: s.after }; render(); toast('Signed in. Now enter your coach\'s code.'); return; }
         render();
         toast(res === 'restored' ? 'Welcome back. Your data is restored.' : s.mode === 'signup' ? 'Account created. Your data is backed up.' : (S.onboarded ? 'Signed in. Your data is backed up.' : 'Signed in. Finish setup and your data backs up automatically.'));

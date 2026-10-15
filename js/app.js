@@ -275,7 +275,7 @@ function gymPicker(d, act) {
   const adjusted = g && !(g.items.length === d.items.length && g.items.every(x => d.items.includes(x)));
   return `<div class="stack" style="gap:8px"><span class="label">Where do you train?</span>
     <div class="chips scroll">${GYM_PRESETS.map(x => `<button class="chip" data-act="${act}" data-id="${x.id}" aria-pressed="${d.gym === x.id}">${esc(x.name)}</button>`).join('')}</div>
-    ${g ? `<p class="small muted">${esc(g.note)} ${adjusted ? '<b>Adjusted for your club.</b>' : 'Untick anything your club doesn\'t have.'}</p>` : `<p class="tiny faint">Pick your gym to load its typical equipment. Not listed? Use Full gym or tick items below.</p>`}</div>`;
+    ${g ? `<p class="small muted">${esc(g.note)} ${adjusted ? '<b>Adjusted for your club.</b>' : 'Untick anything your club doesn\'t have.'}</p>${g.id.match(/^(hotel|home|garage)/) ? '' : '<p class="tiny faint" style="margin:0">Typical equipment for this chain, not an official list. Gym names are trademarks of their owners; Groundwork isn\'t affiliated with them.</p>'}` : `<p class="tiny faint">Pick your gym to load its typical equipment. Not listed? Use Full gym or tick items below.</p>`}</div>`;
 }
 function equipSetGym(d, id) {
   if (d.gym === id) { d.gym = null; return; }

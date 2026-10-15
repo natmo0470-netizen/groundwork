@@ -7,13 +7,24 @@
    messages. After the invite, files are encrypted with a key only the coach and that client hold.
    File envelope: { gw: 'coach', v: 1, type: 'invite' | 'assign' | 'update', coachId, clientId, ... } */
 
+/* Coach plans by client seats. Prices are the proposal in the monetization plan and stay hidden
+   (showPrices: false) until store / web billing is switched on. */
 const COACH_PLANS = [
-  { id: 'starter', name: 'Starter', seats: 10, price: '$25/mo' },
-  { id: 'pro', name: 'Pro', seats: 30, price: '$55/mo' },
-  { id: 'studio', name: 'Studio', seats: 75, price: '$99/mo' },
+  { id: 'starter', name: 'Starter', seats: 5, monthly: 9 },
+  { id: 'growth', name: 'Growth', seats: 15, monthly: 19 },
+  { id: 'pro', name: 'Pro', seats: 40, monthly: 39 },
+  { id: 'studio', name: 'Studio', seats: 100, monthly: 79 },
 ];
-const coachOn = () => !!(S.coachMode && S.coachMode.on);
-const coachPlan = () => COACH_PLANS.find(p => p.id === (S.coachMode && S.coachMode.plan)) || COACH_PLANS[0];
+const PRICING = { showPrices: false, trialDays: 14 };
+/* Coach tools need an active coach plan on the account (checked by the server). Without accounts
+   switched on (local builds), coach mode works as before. */
+const coachAllowed = () => typeof Cloud === 'undefined' || !Cloud.configured() || Cloud.hasCoach();
+const coachOn = () => !!(S.coachMode && S.coachMode.on) && coachAllowed();
+const coachPlan = () => {
+  const a = typeof Cloud !== 'undefined' && Cloud.configured() && Cloud.coachAccess();
+  if (a) { const p = COACH_PLANS.find(x => x.id === a.plan); return { id: a.plan, name: p ? p.name : 'Coach', seats: a.seats || (p ? p.seats : 0), source: a.source, ends_at: a.ends_at }; }
+  return COACH_PLANS.find(p => p.id === (S.coachMode && S.coachMode.plan)) || COACH_PLANS[0];
+};
 /* A function declaration so cloud.js can add the live roster in front of the clients kept on this phone. */
 function clients() { return (S.coachMode && S.coachMode.clients) || []; }
 const cloudOn = () => (typeof Cloud !== 'undefined' && Cloud.signedIn());
@@ -125,15 +136,16 @@ Object.assign(SHEETS, {
           <div class="row" style="gap:8px"><input class="input" id="join-code" placeholder="8-character code" autocapitalize="characters" autocomplete="off" maxlength="9" style="text-transform:uppercase;letter-spacing:.1em" aria-label="Invite code"><button class="btn train" data-act="join-code">Join</button></div>
           <button class="link small" data-act="client-import" style="align-self:flex-start">Got an invite file instead?</button>`
         : `<p class="small muted" style="margin:0">Got an invite from a coach? Open it here to link up. Your coach can then send you plans and targets, and you send back weekly updates.</p><button class="btn ghost block" data-act="client-import">Open coach invite</button>`}</div>
-      <div class="card" style="box-shadow:none"><span class="eyebrow">Coach mode</span>
-        <div class="toggle"><span class="small"><b>I'm a coach</b><br><span class="faint">Adds a Clients tab to manage clients, assign programs and macros, and review their progress.</span></span><button class="switch" role="switch" aria-checked="${coachOn()}" data-act="coach-toggle" aria-label="Coach mode"></button></div>
+      <div class="card" style="box-shadow:none"><span class="eyebrow">Coach tools</span>
+        ${coachAllowed() ? `<div class="toggle"><span class="small"><b>Show coach tools</b><br><span class="faint">${typeof Cloud !== 'undefined' && Cloud.configured() ? `Your plan: ${esc(coachPlan().name)}, up to ${coachPlan().seats} clients. ` : ''}Adds the Clients tab to manage clients, assign plans and macros, and review their progress.</span></span><button class="switch" role="switch" aria-checked="${coachOn()}" data-act="coach-toggle" aria-label="Show coach tools"></button></div>`
+          : `<p class="small muted" style="margin:0">Are you a personal trainer or coach? Manage clients, send programs and nutrition targets, and message clients, with your clients using Groundwork free.</p><button class="btn train block" data-act="coach-start">Become a coach</button>`}
         ${coachOn() ? `<div class="field"><label for="coach-name">Your name (shown to clients)</label><input class="input" id="coach-name" data-coachname value="${esc(S.coachMode.name || '')}"></div>` : ''}</div>`;
   },
   coachPlan() {
     const cur = coachPlan();
     return sheetHead('Coach plans', 'Plans by number of client seats; clients use Groundwork free while linked')
-      + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="coach-plan-pick" data-id="${p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">Free during early access</span></span>${cur.id === p.id ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`).join('')}</div>
-      <p class="tiny faint">Coaching is free during early access. Paid plans will be offered through the App Store and Google Play, with notice before anything changes.</p>`;
+      + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="coach-plan-pick" data-id="${p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${PRICING.showPrices ? `$${p.monthly}/month` : 'Early access'}</span></span>${cur.id === p.id ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`).join('')}</div>
+      <p class="tiny faint">${PRICING.showPrices ? `Billed monthly; ${PRICING.trialDays}-day free trial.` : 'Coach plans are set up by the Groundwork team during early access. Paid plans open at launch, with notice before anything changes.'}</p>`;
   },
   coachAdd(s) {
     const full = clients().length >= coachPlan().seats;
@@ -323,9 +335,9 @@ viewToday = () => {
 /* ================= actions ================= */
 Object.assign(ACT, {
   'coaching-open': () => pushSheet({ type: 'coaching' }),
-  'coach-toggle': () => { S.coachMode = S.coachMode || { on: false, plan: 'starter', clients: [], name: S.profile.name || '', id: 'co_' + uid() }; S.coachMode.on = !S.coachMode.on; if (!S.coachMode.on && UI.tab === 'clients') UI.tab = 'today'; save(); render(); toast(S.coachMode.on ? 'Coach mode on: see the Clients tab' : 'Coach mode off. Client data is kept.'); },
+  'coach-toggle': () => { if (!coachAllowed()) { ACT['coach-start'](); return; } S.coachMode = S.coachMode || { on: false, plan: 'starter', clients: [], name: S.profile.name || '', id: 'co_' + uid() }; S.coachMode.on = !S.coachMode.on; if (!S.coachMode.on && UI.tab === 'clients') UI.tab = 'today'; save(); render(); toast(S.coachMode.on ? 'Coach mode on: see the Clients tab' : 'Coach mode off. Client data is kept.'); },
   'coach-plan': () => pushSheet({ type: 'coachPlan' }),
-  'coach-plan-pick': t => { const p = COACH_PLANS.find(x => x.id === t.dataset.id); if (clients().length > p.seats) { toast(`You have ${clients().length} clients; ${p.name} covers ${p.seats}.`); return; } S.coachMode.plan = p.id; save(); popSheet(); toast(`${p.name} plan: up to ${p.seats} clients`); },
+  'coach-plan-pick': t => { if (typeof Cloud !== 'undefined' && Cloud.configured()) { toast(coachPlan().id === t.dataset.id ? 'That\'s your current plan' : 'Plan changes open at launch. During early access, ask the Groundwork team.'); return; } const p = COACH_PLANS.find(x => x.id === t.dataset.id); if (clients().length > p.seats) { toast(`You have ${clients().length} clients; ${p.name} covers ${p.seats}.`); return; } S.coachMode.plan = p.id; save(); popSheet(); toast(`${p.name} plan: up to ${p.seats} clients`); },
   'coach-add': () => pushSheet({ type: 'coachAdd' }),
   'coach-invite': async () => {
     const name = val('ca-name'); if (!name) { toast('Add your client\'s name'); return; }

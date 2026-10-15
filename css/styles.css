@@ -469,3 +469,5 @@ button.card { font: inherit; color: inherit; text-align: left; width: 100%; curs
 .msg.them button.bubble { border: 0; font: inherit; text-align: left; cursor: pointer; }
 .msg.them button.bubble[aria-expanded="true"] { outline: 2px solid var(--line); }
 .link.danger { color: var(--bad); }
+.sheet.still { animation: none; }
+.scrim:has(+ .sheet.still) { animation: none; }

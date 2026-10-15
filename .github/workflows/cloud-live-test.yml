@@ -18,6 +18,8 @@ jobs:
           node-version: 20
       - name: Database permissions (REST)
         run: node server/supabase/live-test.mjs
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       - name: The app against the project
         run: |
           npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium

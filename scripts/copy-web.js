@@ -21,6 +21,8 @@ if (fonts.every(([pkg]) => fs.existsSync(path.join(nm, pkg)))) {
     }
   }
   fs.writeFileSync(path.join(out, 'css', 'fonts.css'), css);
+  // The fonts are under the SIL Open Font License, which asks that the license travel with the font files.
+  for (const [pkg] of fonts) { const lic = ['LICENSE', 'LICENSE.md', 'OFL.txt'].map(f => path.join(nm, pkg, f)).find(f => fs.existsSync(f)); if (lic) fs.copyFileSync(lic, path.join(out, 'fonts', `${pkg}-LICENSE.txt`)); }
   const idx = path.join(out, 'index.html');
   let html = fs.readFileSync(idx, 'utf8');
   html = html.replace(/<link rel="preconnect"[^>]*>\s*/g, '')
