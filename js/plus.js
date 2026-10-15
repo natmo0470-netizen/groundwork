@@ -3,14 +3,17 @@
    lifts the daily barcode-scan limit. Coaches, coached clients and complimentary (friends and
    family) accounts get Plus through Cloud.hasPlus(). Builds without accounts (no cloud config)
    have no limits and no cards.
-   Cards: our own tips ("house" cards) and, once an Amazon Associates tag is set, a few plain
-   product links with the disclosure Amazon requires. No ad network, no tracking, nothing is sent
-   anywhere when a card is shown. */
+   Cards: our own tips ("house" cards) and, once the RitFit affiliate IDs (Awin) are set, a plain
+   link to home-gym gear the person doesn't have yet, shown only to people who train at home.
+   No ad network, no tracking, nothing is sent anywhere when a card is shown. */
 const PLUS = {
   freeScans: 3,                 // barcode lookups a day on the free plan
   monthly: 2.99, yearly: 19.99,
   showPrices: false,            // switch on with in-app purchases (RevenueCat / store billing)
-  amazonTag: '',                // Amazon Associates tracking ID, e.g. 'yourtag-20'. Empty hides product cards.
+  // RitFit affiliate links through Awin. Both IDs come from your Awin account once RitFit approves you:
+  // awinmid = RitFit's advertiser ID (on its programme page), awinaffid = your publisher ID (top of the dashboard).
+  // Either blank hides product cards.
+  partner: { name: 'RitFit', site: 'https://www.ritfitsports.com', awinmid: '', awinaffid: '' },
 };
 
 const Plus = (() => {
@@ -46,15 +49,22 @@ const Plus = (() => {
     { id: 'coach', eyebrow: 'Tip', title: 'Working with a trainer?', body: 'Your coach can send your program and targets straight to the app, and their clients get Plus free.', act: 'tab', id2: 'coach', label: 'See coaching' },
     { id: 'plus', eyebrow: 'Groundwork Plus', title: 'Keep it clean', body: 'Plus hides this card and gives you unlimited barcode scans. Everything else stays free.', act: 'plus-open', label: 'See Plus' },
   ];
+  // Home-gym gear, each tied to the equipment it adds to your plan. A card only offers gear you don't have.
   const PRODUCTS = [
-    { id: 'scale', title: 'A kitchen food scale', body: 'The single most useful tool for accurate logging. Any digital scale that reads in grams works.', q: 'digital food scale grams' },
-    { id: 'bands', title: 'Resistance bands', body: 'A cheap way to add home exercises and warm-ups.', q: 'resistance bands set' },
-    { id: 'shaker', title: 'A shaker bottle', body: 'Makes hitting your protein target on busy days easier.', q: 'protein shaker bottle' },
-    { id: 'containers', title: 'Meal prep containers', body: 'Portion your My meals recipes for the week.', q: 'glass meal prep containers' },
+    { id: 'dumbbell', title: 'Adjustable dumbbells', body: 'One pair replaces a rack of weights and unlocks most of the exercises in your plan.', q: 'adjustable dumbbells' },
+    { id: 'bench', title: 'A weight bench', body: 'Adds presses, rows and step-ups to your home workouts.', q: 'weight bench' },
+    { id: 'bands', title: 'Resistance bands', body: 'A cheap way to add pulling exercises, warm-ups and assistance.', q: 'resistance bands' },
+    { id: 'pullup_bar', title: 'A pull-up bar', body: 'The simplest way to train your back at home.', q: 'pull up bar' },
+    { id: 'barbell', title: 'A power rack', body: 'Squats, bench and overhead press, safely, in a garage gym.', q: 'power rack' },
   ];
+  const partnerOn = () => !!(PLUS.partner && PLUS.partner.awinmid && PLUS.partner.awinaffid);
+  // Commercial gyms (gym presets that aren't home_ or garage) and "Full gym" already have the gear.
+  const atHome = () => { const e = S.equipment || {}; return !e.fullGym && (!e.gym || /^home|garage/.test(e.gym)); };
+  const wanted = () => (partnerOn() && atHome() ? PRODUCTS.filter(p => !((S.equipment && S.equipment.items) || []).includes(p.id)) : []);
+  const partnerLink = q => `https://www.awin1.com/cread.php?awinmid=${encodeURIComponent(PLUS.partner.awinmid)}&awinaffid=${encodeURIComponent(PLUS.partner.awinaffid)}&ued=${encodeURIComponent(PLUS.partner.site + '/search?q=' + encodeURIComponent(q))}`;
   const hidden = () => (store.get(HKEY) || '') === todayKey();
   function pick(place) {
-    const pool = HOUSE.concat(PLUS.amazonTag ? PRODUCTS.map(p => Object.assign({ product: true }, p)) : []);
+    const pool = HOUSE.concat(wanted().map(p => Object.assign({ product: true }, p)));
     const seed = Math.floor(Date.now() / 864e5) + (place === 'food' ? 1 : 0);
     return pool[seed % pool.length];
   }
@@ -63,10 +73,10 @@ const Plus = (() => {
     const c = pick(place);
     const x = `<button class="x" data-act="card-hide" aria-label="Hide for today">${icon('x', 16)}</button>`;
     if (c.product) {
-      const url = `https://www.amazon.com/s?k=${encodeURIComponent(c.q)}&tag=${encodeURIComponent(PLUS.amazonTag)}`;
-      return `<div class="card promo"><div class="card-head"><span class="eyebrow">Sponsored · Amazon</span>${x}</div><b>${esc(c.title)}</b><span class="small muted">${esc(c.body)}</span>
-        <a class="btn ghost sm" href="${url}" target="_blank" rel="noopener sponsored" style="align-self:flex-start">${icon('external', 16)} Browse on Amazon</a>
-        <span class="tiny faint">As an Amazon Associate, Groundwork earns from qualifying purchases. <button class="link" data-act="plus-open">Hide these with Plus</button></span></div>`;
+      const n = esc(PLUS.partner.name);
+      return `<div class="card promo"><div class="card-head"><span class="eyebrow">Sponsored · ${n}</span>${x}</div><b>${esc(c.title)}</b><span class="small muted">${esc(c.body)}</span>
+        <a class="btn ghost sm" href="${partnerLink(c.q)}" target="_blank" rel="noopener sponsored" style="align-self:flex-start">${icon('external', 16)} See it at ${n}</a>
+        <span class="tiny faint">Groundwork earns a commission if you buy through this link, at no cost to you. <button class="link" data-act="plus-open">Hide these with Plus</button></span></div>`;
     }
     return `<div class="card promo"><div class="card-head"><span class="eyebrow">${esc(c.eyebrow)}</span>${x}</div><b>${esc(c.title)}</b><span class="small muted">${esc(c.body)}</span>
       <button class="link" data-act="${c.act}"${c.id2 ? ` data-id="${c.id2}"` : ''} style="align-self:flex-start">${esc(c.label)}</button></div>`;
