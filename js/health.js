@@ -1,12 +1,25 @@
 /* Groundwork — Apple Health / Android Health Connect (Phase 3, on-phone data only).
-   Reads: daily steps, active calories, sleep, resting heart rate, body weight and workouts
-   recorded by other apps and watches. Writes: body weight logged in Groundwork.
-   Data stays on the phone. No accounts or outside servers: Garmin, Fitbit and Strava
-   sign-ins come later. Uses @capgo/capacitor-health; does nothing on the website. */
+   Reads: daily steps, active calories, sleep, resting heart rate, body weight, body fat and workouts
+   recorded by other apps, watches and smart scales (Garmin, Fitbit, Samsung, Oura, Withings, Renpho,
+   Strava… all write to these hubs; devices.js has the setup steps). Writes: body weight logged in Groundwork.
+   Data stays on the phone. Uses @capgo/capacitor-health; does nothing on the website. */
+
+/* Friendly names for the apps that write into Apple Health / Health Connect (Android reports package names). */
+const HEALTH_SOURCES = [
+  [/garmin/i, 'Garmin'], [/fitbit|google\.android\.apps\.fitness|com\.google\.android\.apps\.health/i, 'Fitbit'], [/samsung|shealth/i, 'Samsung Health'],
+  [/oura/i, 'Oura'], [/whoop/i, 'WHOOP'], [/withings|healthmate/i, 'Withings'], [/renpho/i, 'Renpho'], [/eufy|eufylife/i, 'Eufy'],
+  [/strava/i, 'Strava'], [/polar/i, 'Polar'], [/coros/i, 'COROS'], [/wahoo/i, 'Wahoo'], [/zepp|amazfit|huami/i, 'Zepp'], [/peloton/i, 'Peloton'],
+  [/apple\.health|com\.apple|watch/i, 'Apple Watch'],
+];
+function sourceLabel(raw) {
+  const s = String(raw || ''); if (!s || /groundwork/i.test(s)) return '';
+  const hit = HEALTH_SOURCES.find(([re]) => re.test(s)); if (hit) return hit[1];
+  return /^[a-z]+(\.[a-z0-9_]+)+$/i.test(s) ? '' : s.slice(0, 24);   // unknown package name → no label
+}
 
 const HealthSync = (() => {
   const PLUGIN = 'Health';
-  const READ = ['steps', 'calories', 'sleep', 'restingHeartRate', 'weight', 'workouts'];
+  const READ = ['steps', 'calories', 'sleep', 'restingHeartRate', 'weight', 'bodyFat', 'workouts'];
   const WRITE = ['weight'];
   const ok = () => typeof Native !== 'undefined' && Native.isNative && Native.available(PLUGIN);
   const call = (m, o) => Native.call(PLUGIN, m, o);
@@ -49,16 +62,16 @@ const HealthSync = (() => {
     Object.keys(out).forEach(k => { out[k] = Math.round(out[k]); });
     return out;
   }
-  async function samplesByDay(dataType, days) {
+  async function samplesByDay(dataType, days, withSource) {
     const r = await call('readSamples', { dataType, startDate: iso(dayStart(addDays(todayKey(), -(days - 1)))), endDate: iso(Date.now()), limit: 300, ascending: true });
-    const out = {}; (r.samples || []).forEach(s => { out[localKey(s.startDate)] = s.value; });
+    const out = {}; (r.samples || []).forEach(s => { out[localKey(s.startDate)] = withSource ? { v: s.value, from: sourceLabel(s.sourceName || s.sourceId || s.platformId) } : s.value; });
     return out;
   }
   async function otherWorkouts(days) {
     const r = await call('queryWorkouts', { startDate: iso(dayStart(addDays(todayKey(), -(days - 1)))), endDate: iso(Date.now()), limit: 50 });
     return (r.workouts || []).filter(w => !/groundwork/i.test(w.sourceName || '')).map(w => ({
       date: localKey(w.startDate), type: String(w.workoutType || 'other').replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim(),
-      minutes: Math.round((w.duration || 0) / 60), kcal: w.totalEnergyBurned ? Math.round(w.totalEnergyBurned) : null, source: w.sourceName || '',
+      minutes: Math.round((w.duration || 0) / 60), kcal: w.totalEnergyBurned ? Math.round(w.totalEnergyBurned) : null, source: sourceLabel(w.sourceName || w.sourceId || ''),
     }));
   }
 
@@ -74,10 +87,20 @@ const HealthSync = (() => {
     await step('rhr', () => samplesByDay('restingHeartRate', 21));
     await step('workouts', () => otherWorkouts(14));
     try { // weigh-ins from a smart scale or other apps fill days you didn't log here
-      const w = await samplesByDay('weight', 30); let added = 0;
-      Object.entries(w).forEach(([k, kg]) => { if (kg > 20 && kg < 400 && !S.weights.some(x => x.date === k)) { S.weights.push({ date: k, kg: Math.round(kg * 100) / 100, source: 'health' }); added++; } });
+      const w = await samplesByDay('weight', 30, true); let added = 0;
+      Object.entries(w).forEach(([k, x]) => {
+        const kg = Number(x.v); if (!(kg > 20 && kg < 400)) return;
+        const mine = S.weights.find(y => y.date === k);
+        if (!mine) { S.weights.push({ date: k, kg: Math.round(kg * 100) / 100, source: 'health', from: x.from || '' }); added++; }
+        else if (mine.source === 'health' && x.from && !mine.from) mine.from = x.from;
+      });
       if (added) S.weights.sort((a, b) => a.date < b.date ? -1 : 1);
     } catch (e) { /* ignore */ }
+    await step('bodyFat', async () => { // percent from a smart scale; some sources report 0.22 for 22%
+      const r = await samplesByDay('bodyFat', 60, true), out = {};
+      Object.entries(r).forEach(([k, x]) => { let v = Number(x.v); if (v > 0 && v <= 1) v *= 100; if (v >= 2 && v <= 70) out[k] = { pct: Math.round(v * 10) / 10, from: x.from || '' }; });
+      return out;
+    });
     d.syncedAt = new Date().toISOString();
     syncing = false;
     save(); render();
@@ -87,7 +110,7 @@ const HealthSync = (() => {
     const t = new Date(parseKey(k).getTime() + 7 * 3600e3);
     try { await call('saveSample', { dataType: 'weight', value: Math.round(kg * 100) / 100, startDate: iso(t), endDate: iso(t) }); } catch (e) { /* write may be denied */ }
   }
-  return { ok, name, available, connect, disconnect, sync, writeWeight, openSettings: () => call('openHealthConnectSettings') };
+  return { ok, name, available, connect, disconnect, sync, writeWeight, openSettings: () => call('openHealthConnectSettings'), sourceLabel };
 })();
 
 /* ================= derived numbers ================= */
@@ -135,7 +158,8 @@ Object.assign(SHEETS, {
   health_connect() {
     const on = !!(S.health && S.health.on), nm = HealthSync.name();
     return sheetHead(nm, 'Use data from your phone and watch')
-      + `<p class="muted" style="margin:0">Groundwork reads <b>steps, active calories, sleep, resting heart rate, weigh-ins and workouts</b> from other apps, and saves the weight you log here back to ${nm}. Nothing leaves your phone.</p>
+      + `<p class="muted" style="margin:0">Groundwork reads <b>steps, active calories, sleep, resting heart rate, weigh-ins, body fat and workouts</b> from other apps, and saves the weight you log here back to ${nm}. Nothing leaves your phone.</p>
+      <button class="li" data-act="devices-open"><span class="ni">${icon('bolt', 20)}</span><span class="grow"><span class="t">Set up your watch or scale</span><br><span class="d">Garmin, Fitbit, Samsung, Oura, Withings, Renpho, Strava and more</span></span><span class="chev">${icon('chevR', 18)}</span></button>
       <div class="toggle"><span class="small"><b>Connect ${nm}</b><br><span class="faint">${on ? 'Connected' + (S.healthData && S.healthData.syncedAt ? ' · last sync ' + new Date(S.healthData.syncedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') : 'You choose what to share on the next screen'}</span></span><button class="switch" role="switch" aria-checked="${on}" data-act="health-toggle" aria-label="Connect ${nm}"></button></div>
       ${on ? `<div class="field"><label for="hc-goal">Daily step goal</label><select class="input" id="hc-goal" data-stepgoal>${[5000, 6000, 7000, 8000, 10000, 12000, 15000].map(v => `<option value="${v}" ${(S.health.stepGoal || 8000) === v ? 'selected' : ''}>${fmtInt(v)}</option>`).join('')}</select></div>
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="health-sync">Sync now</button>${Native.platform === 'android' ? `<button class="btn ghost sm" data-act="health-settings">Health Connect permissions</button>` : ''}</div>
@@ -151,7 +175,7 @@ SHEETS.settings = s => {
   if (!HealthSync.ok()) return html;
   const on = !!(S.health && S.health.on);
   return html.replace('<div class="card" style="box-shadow:none" id="set-profile">',
-    `<div class="card" style="box-shadow:none"><span class="eyebrow">Phone and watch data</span><button class="li" data-act="health-open"><span class="ni">${icon('heart', 20)}</span><span class="grow"><span class="t">${HealthSync.name()}</span><br><span class="d">${on ? 'Connected: steps, sleep, heart rate, weight, workouts' : 'Bring in steps, sleep and workouts from your watch'}</span></span><span class="chev">${icon('chevR', 18)}</span></button></div>
+    `<div class="card" style="box-shadow:none"><span class="eyebrow">Phone and watch data</span><button class="li" data-act="health-open"><span class="ni">${icon('heart', 20)}</span><span class="grow"><span class="t">${HealthSync.name()}</span><br><span class="d">${on ? 'Connected: steps, sleep, heart rate, weight, body fat, workouts' : 'Bring in data from your watch or smart scale'}</span></span><span class="chev">${icon('chevR', 18)}</span></button></div>
     <div class="card" style="box-shadow:none" id="set-profile">`);
 };
 const _viewTodayHealth = viewToday;

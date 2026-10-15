@@ -15,8 +15,8 @@ edit('app/src/main/res/values/strings.xml', s => s.includes('health_connect_priv
   s.replace('</resources>', '    <string name="health_connect_privacy_policy_url">https://natmo0470-netizen.github.io/groundwork/privacy.html</string>\n</resources>'));
 // Permissions: camera for barcode scanning; Health Connect trimmed to only what Groundwork reads and writes,
 // because the Play Console asks you to justify every declared health permission.
-const KEEP = ['READ_STEPS', 'READ_ACTIVE_CALORIES_BURNED', 'READ_SLEEP', 'READ_RESTING_HEART_RATE', 'READ_WEIGHT', 'WRITE_WEIGHT', 'READ_EXERCISE'];
-const REMOVE = ['WRITE_STEPS', 'READ_DISTANCE', 'WRITE_DISTANCE', 'WRITE_ACTIVE_CALORIES_BURNED', 'READ_HEART_RATE', 'WRITE_HEART_RATE', 'WRITE_SLEEP',
+const KEEP = ['READ_STEPS', 'READ_ACTIVE_CALORIES_BURNED', 'READ_SLEEP', 'READ_RESTING_HEART_RATE', 'READ_WEIGHT', 'WRITE_WEIGHT', 'READ_BODY_FAT', 'READ_EXERCISE'];
+const REMOVE = ['WRITE_STEPS', 'WRITE_BODY_FAT', 'READ_DISTANCE', 'WRITE_DISTANCE', 'WRITE_ACTIVE_CALORIES_BURNED', 'READ_HEART_RATE', 'WRITE_HEART_RATE', 'WRITE_SLEEP',
   'READ_RESPIRATORY_RATE', 'WRITE_RESPIRATORY_RATE', 'READ_OXYGEN_SATURATION', 'WRITE_OXYGEN_SATURATION', 'WRITE_RESTING_HEART_RATE',
   'READ_HEART_RATE_VARIABILITY', 'WRITE_HEART_RATE_VARIABILITY', 'READ_HEALTH_DATA_HISTORY'];
 edit('app/src/main/AndroidManifest.xml', s => {
