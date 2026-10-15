@@ -131,9 +131,9 @@ Object.assign(SHEETS, {
   },
   coachPlan() {
     const cur = coachPlan();
-    return sheetHead('Coach plans', 'Pay per client seat; clients use Groundwork free while linked')
-      + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="coach-plan-pick" data-id="${p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">${p.price}</span></span>${cur.id === p.id ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`).join('')}</div>
-      <p class="tiny faint">Billing isn't switched on in this test version, so any plan can be tried free. Subscriptions start with the Pro launch.</p>`;
+    return sheetHead('Coach plans', 'Plans by number of client seats; clients use Groundwork free while linked')
+      + `<div class="list">${COACH_PLANS.map(p => `<button class="li" data-act="coach-plan-pick" data-id="${p.id}"><span class="grow"><span class="t">${p.name} · up to ${p.seats} clients</span><br><span class="d">Free during early access</span></span>${cur.id === p.id ? '<span class="tag train">Current</span>' : `<span class="chev">${icon('chevR', 18)}</span>`}</button>`).join('')}</div>
+      <p class="tiny faint">Coaching is free during early access. Paid plans will be offered through the App Store and Google Play, with notice before anything changes.</p>`;
   },
   coachAdd(s) {
     const full = clients().length >= coachPlan().seats;
@@ -198,7 +198,7 @@ Object.assign(SHEETS, {
         ${c.lastAssign ? `<p class="tiny faint">Last sent ${ago(c.lastAssign)}${c.lastAssignStatus === 'accepted' ? ' · accepted' : c.lastAssignStatus === 'declined' ? ' · declined' : c.lastAssignStatus === 'sent' ? ' · waiting for ' + esc(c.name.split(' ')[0]) : ''}.</p>` : ''}`;
     }
     return sheetHead(esc(c.name), c.cloud ? 'Live client' : c.linked ? 'Linked client' : 'Invite sent') + tabs + body
-      + (tab === 'overview' ? `<div class="row" style="gap:8px;flex-wrap:wrap">${c.cloud ? '' : '<button class="btn ghost sm" data-act="coach-import">Open new update</button>'}<button class="btn danger sm" data-act="coach-remove" data-id="${c.id}">Remove client</button></div>` : '');
+      + (tab === 'overview' ? `<div class="row" style="gap:8px;flex-wrap:wrap">${c.cloud ? `<button class="btn ghost sm" data-act="msg-report" data-link="${esc(c.id)}">Report</button>` : '<button class="btn ghost sm" data-act="coach-import">Open new update</button>'}<button class="btn danger sm" data-act="coach-remove" data-id="${c.id}">Remove client</button></div>` : '');
   },
   coachImport(s) {
     return sheetHead(s.title || 'Open a coach file', 'Choose the file you received, or paste its text')
@@ -294,7 +294,8 @@ function viewCoach() {
   const pend = typeof Cloud !== 'undefined' ? Cloud.pending() : [];
   return head
     + pend.map(a => `<div class="card train"><div class="card-head"><span class="eyebrow">New plan from ${esc(c.name)}</span><span class="tag fuel">Needs your OK</span></div>${a.payload && a.payload.note ? `<p class="small" style="margin:0">“${esc(a.payload.note)}”</p>` : ''}<button class="btn train sm" data-act="cloud-assign-open" data-id="${a.id}" style="align-self:flex-start">Review plan</button></div>`).join('')
-    + `<div class="card chat"><span class="eyebrow">Messages</span>${threadHtml(c.linkId, c.name)}</div>` + planLine + sharing;
+    + `<div class="card chat"><span class="eyebrow">Messages</span>${threadHtml(c.linkId, c.name)}</div>` + planLine + sharing
+    + `<button class="link small muted" data-act="msg-report" data-link="${esc(c.linkId)}" style="align-self:center">Report a problem with ${esc(c.name)}</button>`;
 }
 SHEETS.coachEnable = () => sheetHead('Enable coaching', 'Enter the code your coach gave you')
   + `<div class="row" style="gap:8px"><input class="input" id="join-code" placeholder="8-character code" autocapitalize="characters" autocomplete="off" maxlength="9" style="text-transform:uppercase;letter-spacing:.1em" aria-label="Invite code"><button class="btn train" data-act="join-code">Next</button></div>

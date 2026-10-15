@@ -84,7 +84,7 @@ const Cloud = (() => {
   async function signIn(mail, password) { setSession(await api('/auth/v1/token?grant_type=password', { method: 'POST', anon: true, body: { email: mail, password } })); }
   async function recover(mail) { await api('/auth/v1/recover', { method: 'POST', anon: true, body: { email: mail } }); }
   async function setPassword(password) { await api('/auth/v1/user', { method: 'PUT', body: { password } }); }
-  function signedOutLocally() { setSession(null); meta = freshMeta(); saveMeta(); roster = null; rosterAt = 0; status.state = 'idle'; status.error = ''; status.conflict = null; pending = []; unread = {}; Object.keys(threads).forEach(k => delete threads[k]); }
+  function signedOutLocally() { clearTimeout(timer); setSession(null); meta = freshMeta(); saveMeta(); roster = null; rosterAt = 0; status.state = 'idle'; status.error = ''; status.conflict = null; pending = []; unread = {}; Object.keys(threads).forEach(k => delete threads[k]); }
   async function signOut() { try { await api('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* signing out locally is enough */ } signedOutLocally(); }
   async function deleteAccount() { await rest('rpc/delete_my_account', { method: 'POST', body: {} }); signedOutLocally(); }
 
@@ -132,8 +132,24 @@ const Cloud = (() => {
   };
   function hash(o) { const s = JSON.stringify(o); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + s.length.toString(36); }
 
+  /* ---------- consent to store health data in the account (asked at sign-up, or once for older accounts) ---------- */
+  const CKEY = 'groundwork.consent';
+  const consents = () => ls.get(CKEY) || {};
+  const consentAt = () => (me() && consents()[me()]) || null;
+  function recordConsent(at) { const c = consents(); c[me()] = at || new Date().toISOString(); ls.set(CKEY, c); }
+  const needsConsent = () => signedIn() && !consentAt();
+  async function loadConsent() {
+    if (consentAt()) return true;
+    const r = await rest(`profiles?select=health_consent_at&id=eq.${me()}`).catch(() => []);
+    if (r && r[0] && r[0].health_consent_at) { recordConsent(r[0].health_consent_at); return true; }
+    return false;
+  }
+  let profileExtras = true;   // false if the project hasn't added the consent columns yet (migration 005)
   async function pushProfile() {
-    await upsert('profiles', 'id', [{ id: me(), display_name: (S.coachMode && S.coachMode.on && S.coachMode.name) || (S.profile && S.profile.name) || '', is_coach: !!(S.coachMode && S.coachMode.on), synced_at: new Date().toISOString() }]);
+    const row = { id: me(), display_name: ((S.coachMode && S.coachMode.on && S.coachMode.name) || (S.profile && S.profile.name) || '').slice(0, 80), is_coach: !!(S.coachMode && S.coachMode.on), synced_at: new Date().toISOString() };
+    if (profileExtras && consentAt()) Object.assign(row, { health_consent_at: consentAt(), terms_accepted_at: consentAt() });
+    try { await upsert('profiles', 'id', [row]); }
+    catch (e) { if (profileExtras && /health_consent_at|terms_accepted_at|column/i.test(e.message)) { profileExtras = false; delete row.health_consent_at; delete row.terms_accepted_at; await upsert('profiles', 'id', [row]); } else throw e; }
   }
   async function pushTables() {
     const all = rowsFor(S), H = meta.hashes = meta.hashes || {}, from = addDays(todayKey(), -(DAY_WINDOW - 1));
@@ -187,6 +203,7 @@ const Cloud = (() => {
     running = (async () => {
       status.state = 'syncing';
       try {
+        if (!(await loadConsent())) { status.state = 'consent'; status.error = ''; return; }
         await pushProfile();
         if (!status.conflict) {
           const ri = await remoteInfo();
@@ -219,6 +236,7 @@ const Cloud = (() => {
 
   /* After signing in on this phone: decide whose data wins. */
   async function afterSignIn() {
+    if (!(await loadConsent())) { status.state = 'consent'; return 'consent'; }
     const ri = await remoteInfo();
     if (meta.userId && meta.userId !== me()) { meta = freshMeta(); saveMeta(); }
     if (!ri) { meta.version = 0; meta.dirty = true; meta.userId = me(); saveMeta(); await syncNow(); return 'pushed'; }
@@ -379,6 +397,11 @@ const Cloud = (() => {
     return m;
   }
 
+  /* ---------- reports ---------- */
+  async function report(r) {
+    await rest('reports', { method: 'POST', headers: { prefer: 'return=minimal' }, body: { reporter_id: me(), link_id: r.linkId || null, message_id: r.messageId || null, reported_body: r.body ? String(r.body).slice(0, 2000) : null, reason: r.reason, details: (r.details || '').slice(0, 1000) } });
+  }
+
   /* ---------- invite links ---------- */
   const inviteLink = code => { const b = String(cfg().inviteBase || 'https://natmo0470-netizen.github.io/groundwork/'); return (/\/$|\.html?$/.test(b) ? b : b + '/') + '?join=' + code; };
   async function invitePreview(code) { const r = await api('/rest/v1/rpc/invite_preview', { method: 'POST', anon: true, body: { code } }); return (r && r[0]) || null; }
@@ -402,6 +425,7 @@ const Cloud = (() => {
     acceptInvite, activeLink, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
+    needsConsent, recordConsent, report,
   };
 })();
 
@@ -429,7 +453,8 @@ const Cloud = (() => {
   viewOnboarding = function () {
     let html = _ob();
     if (UI.obStep === 0 && !Cloud.signedIn()) html = html.replace('<button class="btn ghost block" data-act="seed-demo">Explore with sample data</button>', '$&<button class="btn ghost block" data-act="acct-open" data-mode="signin">I have an account · Sign in</button>');
-    if (UI.sheet && ['account', 'cloudChoice', 'newPassword'].includes(UI.sheet.type)) html += `<div class="scrim" data-act="close-sheet"></div>${sheetHtml()}`;
+    if (UI.obStep === 0) { const site = CLOUD_CONFIG.inviteBase || 'https://natmo0470-netizen.github.io/groundwork/'; html = html.replace('</div></div></div>', `<p class="tiny faint" style="text-align:center;margin:4px 0 0"><a href="${site}privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Consumer health data</a> · <a href="${site}terms.html" target="_blank" rel="noopener">Terms</a></p></div></div></div>`); }
+    if (UI.sheet && ['account', 'cloudChoice', 'newPassword', 'cloudConsent'].includes(UI.sheet.type)) html += `<div class="scrim" data-act="close-sheet"></div>${sheetHtml()}`;
     if (UI.toast) html += `<div class="toast" role="status">${esc(UI.toast)}</div>`;
     return html;
   };
@@ -437,6 +462,7 @@ const Cloud = (() => {
   /* ---------- Settings: Account & sync ---------- */
   const syncLine = () => {
     const st = Cloud.status, m = Cloud.meta();
+    if (Cloud.needsConsent()) return 'Not backing up yet: confirm how your data is stored.';
     if (st.conflict) return 'Your data changed on another device. Choose which copy to keep.';
     if (st.state === 'syncing') return 'Syncing…';
     if (st.state === 'offline') return 'Offline. Changes sync when you\'re back online.';
@@ -447,7 +473,7 @@ const Cloud = (() => {
   const accountCard = () => Cloud.signedIn()
     ? `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
         <div class="row between" style="gap:10px"><div style="min-width:0"><div class="h3" style="overflow-wrap:anywhere">${esc(Cloud.email())}</div><div class="small muted" id="sync-line">${esc(syncLine())}</div></div></div>
-        ${Cloud.status.conflict ? `<button class="btn train block" data-act="cloud-resolve">Choose which data to keep</button>` : ''}
+        ${Cloud.status.conflict ? `<button class="btn train block" data-act="cloud-resolve">Choose which data to keep</button>` : ''}${Cloud.needsConsent() ? `<button class="btn train block" data-act="cloud-consent">Review and continue</button>` : ''}
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="cloud-sync">Sync now</button><button class="btn ghost sm" data-act="acct-signout">Sign out</button><button class="btn danger sm" data-act="acct-delete">Delete account</button></div>
         <p class="tiny faint" style="margin:0">Your plan, logs and settings are backed up privately to your account.</p></div>`
     : `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
@@ -458,6 +484,28 @@ const Cloud = (() => {
 
   /* ---------- sheets ---------- */
   Object.assign(SHEETS, {
+    cloudConsent(s) {
+      return sheetHead('How your data is stored', 'One question before we back up your data')
+        + `<p class="small muted" style="margin:0">With an account, Groundwork stores your workouts, food log, weigh-ins, measurements, pain reports, health-check answers and any phone or watch activity in your account, so you can use it on other devices and, if you choose, share it with a coach.</p>
+        <ul class="small muted" style="margin:0;padding-left:20px;display:grid;gap:4px"><li>Used only to run the app: never sold, never used for ads.</li><li>A coach sees only the categories you choose.</li><li>Export it any time, or delete your account and all of it.</li></ul>
+        ${consentBox(s.consent)}
+        ${s.error ? `<p class="small" role="alert" style="margin:0;color:var(--bad)">${esc(s.error)}</p>` : ''}
+        <button class="btn train block" data-act="consent-agree">Continue</button>
+        <button class="btn ghost block" data-act="consent-decline">Sign out instead</button>`;
+    },
+    report(s) {
+      if (s.done) return sheetHead('Thanks for reporting', 'We review reports within 24 hours')
+        + `<p class="small muted" style="margin:0">If someone is making you uncomfortable you can stop all contact now. ${coachOn() ? 'Removing a client ends the link and they can no longer message you.' : 'Leaving your coach ends the link: they can no longer message you or see your data.'}</p>
+        ${s.linkId ? `<button class="btn danger block" data-act="${coachOn() ? 'coach-remove' : 'client-leave'}" data-id="${esc(s.linkId)}">${coachOn() ? `Remove ${esc(s.name)}` : `Leave ${esc(s.name)}`}</button>` : ''}
+        <button class="btn ghost block" data-act="close-sheet">Done</button>`;
+      const R = [['harassment', 'Harassment or bullying'], ['inappropriate', 'Sexual or inappropriate'], ['unsafe', 'Unsafe advice (dieting, injury, self-harm)'], ['spam', 'Spam or a scam'], ['other', 'Something else']];
+      return sheetHead(s.messageId ? 'Report this message' : `Report ${esc(s.name)}`, 'Only our review team sees reports')
+        + (s.body ? `<div class="msg them" style="max-width:100%"><div class="bubble">${esc(s.body)}</div></div>` : '')
+        + `<div class="list">${R.map(([k, l]) => `<button class="li" data-act="report-reason" data-v="${k}" aria-pressed="${s.reason === k}"><span class="grow"><span class="t">${l}</span></span>${s.reason === k ? `<span class="tag train">${icon('check', 12)}</span>` : ''}</button>`).join('')}</div>
+        <div class="field"><label for="rp-details">Anything else we should know? <span class="faint">(optional)</span></label><textarea class="input" id="rp-details" rows="2" maxlength="1000" data-acct="details">${esc(s.details || '')}</textarea></div>
+        <button class="btn danger block" data-act="report-send" ${s.busy ? 'disabled' : ''}>Send report</button>
+        <p class="tiny faint" style="margin:0">If someone is in danger, contact local emergency services.</p>`;
+    },
     account(s) {
       const mode = s.mode || 'signin';
       const titles = { signin: ['Sign in', 'Pick up where you left off'], signup: ['Create your account', 'Back up and sync your progress'], reset: ['Reset your password', 'We\'ll email you a link'] };
@@ -469,7 +517,7 @@ const Cloud = (() => {
         ${s.error ? `<p class="small" role="alert" style="margin:0;color:var(--bad)">${esc(s.error)}</p>` : ''}
         <button class="btn train block" data-act="acct-submit" ${s.busy ? 'disabled' : ''}>${s.busy ? 'One moment…' : mode === 'signup' ? 'Create account' : mode === 'reset' ? 'Send reset link' : 'Sign in'}</button>
         <div class="row between" style="gap:10px;flex-wrap:wrap">${mode === 'signin' ? '<button class="link" data-act="acct-mode" data-mode="signup">Create an account</button><button class="link muted" data-act="acct-mode" data-mode="reset">Forgot password?</button>' : '<button class="link" data-act="acct-mode" data-mode="signin">I already have an account</button>'}</div>
-        ${mode === 'signup' ? '<p class="tiny faint" style="margin:0">Your data is stored privately to your account. See the <a href="privacy.html" target="_blank" rel="noopener">privacy policy</a>.</p>' : ''}`;
+        ${mode === 'signup' ? consentBox(s.consent) : ''}`;
     },
     cloudChoice() {
       const c = Cloud.status.conflict || {};
@@ -502,6 +550,31 @@ const Cloud = (() => {
   const busy = (on) => { if (UI.sheet) { UI.sheet.busy = on; render(); } };
   const minPw = 8;
   Object.assign(ACT, {
+    'consent-agree': async () => {
+      const s = UI.sheet; if (!s.consent) { s.error = 'Tick the box to continue, or sign out instead.'; render(); return; }
+      Cloud.recordConsent(); const after = s.after; UI.stack = []; UI.sheet = null; render();
+      try {
+        const res = await Cloud.afterSignIn();
+        if (res === 'choose') { UI.sheet = { type: 'cloudChoice' }; render(); return; }
+        if (after && S.onboarded) { UI.sheet = { type: after }; render(); return; }
+        toast(res === 'restored' ? 'Welcome back. Your data is restored.' : 'Thanks. Your data is backed up.');
+      } catch (e) { toast('Couldn\'t reach the server. Your data will sync when you\'re back online.'); }
+    },
+    'consent-decline': async () => { UI.stack = []; UI.sheet = null; await Cloud.signOut(); if (UI.join) { UI.join.step = 'account'; UI.join.mode = 'signin'; } render(); toast('Signed out. Your data stays on this phone.'); },
+    'cloud-consent': () => pushSheet({ type: 'cloudConsent' }),
+    'msg-select': t => { UI.msgSel = UI.msgSel === t.dataset.id ? null : t.dataset.id; if (window.paintThread) paintThread(); },
+    'msg-report': t => {
+      const link = t.dataset.link, th = Cloud.thread(link), m = th && th.items.find(x => x.id === t.dataset.id);
+      const name = S.coach && S.coach.linkId === link ? S.coach.name : ((findClient(link) || {}).name || 'this person');
+      UI.msgSel = null; pushSheet({ type: 'report', linkId: link, messageId: m ? m.id : null, body: m ? m.body : '', name, reason: null, details: '' });
+    },
+    'report-reason': t => { UI.sheet.reason = t.dataset.v; render(); },
+    'report-send': async () => {
+      const s = UI.sheet; if (!s.reason) { toast('Choose a reason'); return; }
+      s.busy = true; render();
+      try { await Cloud.report({ linkId: s.linkId, messageId: s.messageId, body: s.body, reason: s.reason, details: s.details }); s.busy = false; s.done = true; render(); }
+      catch (e) { s.busy = false; render(); toast('Couldn\'t send the report. Check your connection and try again.'); }
+    },
     'acct-open': t => pushSheet({ type: 'account', mode: t.dataset.mode || 'signin', email: '', pw: '' }),
     'acct-mode': t => { UI.sheet.mode = t.dataset.mode; UI.sheet.error = ''; UI.sheet.done = ''; render(); },
     'acct-submit': async () => {
@@ -509,15 +582,18 @@ const Cloud = (() => {
       if (!/^\S+@\S+\.\S+$/.test(mail)) { s.error = 'Enter your email address.'; render(); return; }
       if (s.mode !== 'reset' && !pw) { s.error = 'Enter your password.'; render(); return; }
       if (s.mode === 'signup' && pw.length < minPw) { s.error = `Use a password of at least ${minPw} characters.`; render(); return; }
+      if (s.mode === 'signup' && !s.consent) { s.error = 'Please agree to how your data is stored to create an account.'; render(); return; }
       s.error = ''; busy(true);
       try {
         if (s.mode === 'reset') { await Cloud.recover(mail); s.busy = false; s.done = 'If there\'s an account for that email, a reset link is on its way.'; render(); return; }
         if (s.mode === 'signup') {
           const r = await Cloud.signUp(mail, pw);
           if (r.confirm) { s.busy = false; s.mode = 'signin'; s.done = 'Check your email and tap the link to confirm, then sign in here.'; render(); return; }
+          Cloud.recordConsent();
         } else await Cloud.signIn(mail, pw);
         const res = await Cloud.afterSignIn();
         UI.stack = []; UI.sheet = null;
+        if (res === 'consent') { UI.sheet = { type: 'cloudConsent', after: s.after }; render(); return; }
         if (res === 'choose') { UI.sheet = { type: 'cloudChoice' }; render(); return; }
         if (s.after && S.onboarded) { UI.sheet = { type: s.after }; render(); toast('Signed in. Now enter your coach\'s code.'); return; }
         render();
@@ -596,7 +672,7 @@ const Cloud = (() => {
   // Fields typed into account sheets survive re-renders.
   document.addEventListener('input', e => {
     const el = e.target; if (!el || !el.dataset) return;
-    if (el.dataset.acct && UI.sheet) UI.sheet[el.dataset.acct] = el.value;
+    if (el.dataset.acct && UI.sheet) UI.sheet[el.dataset.acct] = el.type === 'checkbox' ? el.checked : el.value;
   });
   /* ---------- messages ---------- */
   UI.msgDraft = UI.msgDraft || {};
@@ -687,6 +763,7 @@ const Cloud = (() => {
         out.unshift({ id: 'msg_' + lastM.id, level: 'high', title: ids.length > 1 ? `New messages from ${ids.length} clients` : all.length > 1 ? `${all.length} new messages from ${name}` : `Message from ${name}`, body: lastM.body.length > 120 ? lastM.body.slice(0, 117) + '…' : lastM.body, action: 'coach-inbox', actionLabel: 'Reply', icon: 'chat' });
       }
     }
+    if (Cloud.needsConsent()) out.unshift({ id: 'cloudconsent', level: 'high', title: 'One question about your account', body: 'Confirm how your data is stored so we can back it up.', action: 'cloud-consent', actionLabel: 'Review', icon: 'info' });
     if (Cloud.status.conflict) out.unshift({ id: 'cloudconflict', level: 'high', title: 'Your data changed on another device', body: 'Choose which copy to keep so both stay in sync.', action: 'cloud-resolve', actionLabel: 'Choose', icon: 'info' });
     return out;
   };
@@ -700,7 +777,7 @@ const Cloud = (() => {
   setTimeout(async () => {
     if (!Cloud.signedIn()) return;
     if (linkType === 'recovery') { pushSheet({ type: 'newPassword', pw: '' }); return; }
-    if (linkType) { const r = await Cloud.afterSignIn().catch(() => null); if (r === 'choose') { UI.sheet = { type: 'cloudChoice' }; render(); } else if (r) toast('Email confirmed. You\'re signed in.'); return; }
+    if (linkType) { const r = await Cloud.afterSignIn().catch(() => null); if (r === 'consent') { UI.sheet = { type: 'cloudConsent' }; render(); } else if (r === 'choose') { UI.sheet = { type: 'cloudChoice' }; render(); } else if (r) toast('Email confirmed. You\'re signed in.'); return; }
     kick();
   }, 300);
 })();
@@ -723,11 +800,18 @@ function threadBody(link, otherName) {
       const st = it.status === 'accepted' ? 'Accepted' : it.status === 'declined' ? 'Declined' : it.mine ? 'Waiting for a reply' : '';
       return sep + `<div class="msg-plan">${icon('dumbbell', 16)}<div class="grow"><b>${it.mine ? 'You sent a plan' : `${esc(first)} sent you a plan`}</b>: ${esc(what)}${a.note ? `<br><span class="muted">“${esc(a.note)}”</span>` : ''}<br><span class="tiny faint">${time(it.at)}${st ? ' · ' + st : ''}</span></div>${!it.mine && it.status === 'sent' ? `<button class="btn train sm" data-act="cloud-assign-open" data-id="${it.id}">Review</button>` : ''}</div>`;
     }
-    return sep + `<div class="msg ${it.mine ? 'me' : 'them'}"><div class="bubble">${esc(it.body).replace(/\n/g, '<br>')}</div><span class="tiny faint">${time(it.at)}${it === lastMine && it.read ? ' · Seen' : ''}</span></div>`;
+    const sel = !it.mine && UI.msgSel === it.id;
+    return sep + `<div class="msg ${it.mine ? 'me' : 'them'}">${it.mine ? `<div class="bubble">` : `<button class="bubble" data-act="msg-select" data-id="${it.id}" aria-expanded="${sel}" aria-label="Message from ${esc(first)}. Tap for options">`}${esc(it.body).replace(/\n/g, '<br>')}${it.mine ? '</div>' : '</button>'}<span class="tiny faint">${time(it.at)}${it === lastMine && it.read ? ' · Seen' : ''}</span>${sel ? `<button class="link small danger" data-act="msg-report" data-link="${esc(link)}" data-id="${it.id}">${icon('info', 14)} Report message</button>` : ''}</div>`;
   }).join('');
 }
 function threadHtml(link, otherName) {
   const first = otherName || 'them';
   return `<div class="thread" id="gw-thread" data-link="${esc(link)}" data-name="${esc(otherName || '')}" role="log" aria-live="polite" aria-label="Messages with ${esc(otherName || '')}">${threadBody(link, otherName)}</div>
     <div class="compose"><textarea class="input" id="msg-input" rows="1" maxlength="2000" placeholder="Message ${esc(first)}" aria-label="Message ${esc(first)}" data-msgdraft="${esc(link)}">${esc((UI.msgDraft || {})[link] || '')}</textarea><button class="btn train" data-act="msg-send" data-link="${esc(link)}">Send</button></div>`;
+}
+
+/* Consent checkbox used at sign-up (account sheet, join flow) and for older accounts. */
+function consentBox(checked) {
+  const site = (typeof CLOUD_CONFIG !== 'undefined' && CLOUD_CONFIG.inviteBase) || 'https://natmo0470-netizen.github.io/groundwork/';
+  return `<label class="consent"><input type="checkbox" data-acct="consent" data-jf="consent" ${checked ? 'checked' : ''}><span class="small">I consent to Groundwork storing my workout, nutrition, body and health information in my account to run the app, as described in the <a href="${site}privacy.html#health-data" target="_blank" rel="noopener">Privacy Policy</a>, and I agree to the <a href="${site}terms.html" target="_blank" rel="noopener">Terms of Use</a>.</span></label>`;
 }

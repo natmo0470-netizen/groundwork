@@ -8,7 +8,7 @@ const page = async () => { const c = await b.newContext({ viewport: { width: 390
 try {
   const A = await page();
   await A.evaluate(() => { seedDemo(); S.demo = false; S.profile.name = 'UI Test'; save(); render(); ACT['acct-open']({ dataset: { mode: 'signup' } }); });
-  await A.fill('#acct-email', email); await A.fill('#acct-pw', pw); await A.click('[data-act=acct-submit]');
+  await A.fill('#acct-email', email); await A.fill('#acct-pw', pw); await A.check('.sheet .consent input'); await A.click('[data-act=acct-submit]');
   await A.waitForFunction(() => Cloud.signedIn() && !UI.sheet, null, { timeout: 20000 }).catch(() => null);
   check('sign up in the app', await A.evaluate(() => Cloud.signedIn()), await A.evaluate(() => UI.sheet && UI.sheet.error));
   await A.evaluate(() => Cloud.syncNow());

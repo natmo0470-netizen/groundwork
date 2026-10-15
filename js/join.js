@@ -60,10 +60,11 @@ const JoinFlow = (() => {
         ${up && !S.onboarded ? `<div class="field"><label for="jf-name">First name</label><input class="input" id="jf-name" data-jf="name" autocomplete="given-name" value="${esc(j.name || '')}"></div>` : ''}
         <div class="field"><label for="jf-email">Email</label><input class="input" id="jf-email" type="email" inputmode="email" autocomplete="email" data-jf="email" value="${esc(j.email || '')}"></div>
         <div class="field"><label for="jf-pw">Password</label><input class="input" id="jf-pw" type="password" autocomplete="${up ? 'new-password' : 'current-password'}" data-jf="pw" value="${esc(j.pw || '')}">${up ? '<span class="tiny faint">At least 8 characters</span>' : ''}</div>
+        ${up ? consentBox(j.consent) : ''}
         ${j.error ? `<p class="small" role="alert" style="margin:0;color:var(--bad)">${esc(j.error)}</p>` : ''}${j.notice ? `<div class="banner">${icon('info', 18)}<span>${esc(j.notice)}</span></div>` : ''}`,
         `<button class="btn train block" data-act="jf-account" ${j.busy ? 'disabled' : ''}>${j.busy ? 'One moment…' : up ? 'Create account' : 'Sign in'}</button>
          <button class="link" data-act="jf-mode" style="align-self:center">${up ? 'I already have an account' : 'I need to create an account'}</button>
-         <p class="tiny faint" style="margin:0;text-align:center">By continuing you agree to the <a href="privacy.html" target="_blank" rel="noopener">privacy policy</a>.</p>`);
+         ${up ? '' : `<p class="tiny faint" style="margin:0;text-align:center">Signing in? You'll be asked to confirm how your data is stored if you haven't before.</p>`}`);
     }
     if (j.step === 'share') return shell(`<div class="stack" style="gap:6px"><span class="eyebrow">${steps > 1 ? `Step ${stepNo} of ${steps}` : 'One step'}</span><h1 class="h1">What can ${coach} see?</h1>
         <p class="muted" style="margin:0">${coach} can always send you plans and nutrition goals. You decide what they see of your progress.</p></div>
@@ -87,18 +88,21 @@ const JoinFlow = (() => {
       if (!/^\S+@\S+\.\S+$/.test(mail)) { j.error = 'Enter your email address.'; render(); return; }
       if (!pw) { j.error = 'Enter a password.'; render(); return; }
       if (j.mode === 'signup' && pw.length < 8) { j.error = 'Use a password of at least 8 characters.'; render(); return; }
+      if (j.mode === 'signup' && !j.consent) { j.error = 'Please agree to how your data is stored to create an account.'; render(); return; }
       j.error = ''; j.busy = true; render();
       try {
         if (j.mode === 'signup') {
           const r = await Cloud.signUp(mail, pw);
           if (r.confirm) { j.busy = false; j.mode = 'signin'; j.notice = 'Check your email and tap the confirmation link. It brings you back here to finish.'; render(); return; }
+          Cloud.recordConsent();
         } else await Cloud.signIn(mail, pw);
         if (j.name && !S.onboarded) obDraft().name = j.name.trim();
         const res = await Cloud.afterSignIn();
         j.busy = false; j.pw = '';
         if (S.coach) { j.step = 'already'; render(); return; }
         j.step = 'share'; render(); window.scrollTo(0, 0);
-        if (res === 'choose') pushSheet({ type: 'cloudChoice' });
+        if (res === 'consent') pushSheet({ type: 'cloudConsent' });
+        else if (res === 'choose') pushSheet({ type: 'cloudChoice' });
       } catch (e) { j.busy = false; j.error = Cloud.friendlyAuthError(e); render(); }
     },
     'jf-link': async () => {
@@ -127,7 +131,7 @@ const JoinFlow = (() => {
     },
     'jf-done': () => { UI.join = null; keep(null); UI.tab = 'coach'; UI.sheet = null; UI.stack = []; render(); window.scrollTo(0, 0); },
   });
-  document.addEventListener('input', e => { const el = e.target; if (el && el.dataset && el.dataset.jf && UI.join) UI.join[el.dataset.jf] = el.value; });
+  document.addEventListener('input', e => { const el = e.target; if (el && el.dataset && el.dataset.jf && UI.join && !UI.sheet) UI.join[el.dataset.jf] = el.type === 'checkbox' ? el.checked : el.value; });
 
   /* ---------- hooks ---------- */
   const _render = render;

@@ -114,6 +114,14 @@ try {
   r = await call(`/rest/v1/messages?id=eq.00000000-0000-0000-0000-000000000000`, { method: 'PATCH', token: coach.token, body: { body: 'edited' } });
   r = await call(`/rest/v1/messages?select=body&link_id=eq.${link.id}&order=created_at`, { token: coach.token });
   check('coach reads the conversation', r.ok && r.j.map(x => x.body).join('|') === 'Welcome aboard|Thanks!', r.j);
+  r = await call('/rest/v1/messages?select=id&order=created_at&limit=1', { token: client.token });
+  const firstMsg = r.ok && r.j[0];
+  r = await call('/rest/v1/reports', { method: 'POST', token: client.token, body: { reporter_id: client.id, link_id: link.id, message_id: firstMsg && firstMsg.id, reported_body: 'Welcome aboard', reason: 'other', details: 'live test' }, prefer: 'return=minimal' });
+  check('client can report a message (run migrations/005_safety.sql if this fails)', r.ok, r.j);
+  r = await call('/rest/v1/reports?select=id', { token: coach.token });
+  check('the coach can NOT read reports', r.ok && r.j.length === 0, r.j);
+  r = await call(`/rest/v1/profiles?on_conflict=id`, { method: 'POST', token: client.token, body: [{ id: client.id, display_name: 'Live Client', health_consent_at: new Date().toISOString(), terms_accepted_at: new Date().toISOString() }], prefer: 'resolution=merge-duplicates,return=minimal' });
+  check('consent is recorded on the profile', r.ok, r.j);
   r = await call(`/rest/v1/coach_links?id=eq.${link.id}`, { method: 'PATCH', token: client.token, body: { share: Object.assign({}, share, { nutrition: true, paused: true }) }, prefer: 'return=minimal' });
   r = await call(`/rest/v1/workouts?select=id&user_id=eq.${client.id}`, { token: coach.token });
   check('pause hides everything from the coach', r.ok && r.j.length === 0, r.j);

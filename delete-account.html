@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete Account</title>
+<meta name="description" content="Delete your Groundwork account and all of its data.">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+  :root { --bg: #F3F5F4; --surface: #FFFFFF; --ink: #111A17; --ink-2: #44514C; --line: #DDE3E0; --accent: #0E7A62; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0F1513; --surface: #17201D; --ink: #EEF2F0; --ink-2: #A9B6B1; --line: #2A3531; --accent: #3FB592; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 6px; }
+  p, li { color: var(--ink-2); }
+  .meta { color: var(--ink-2); font-size: 14px; margin: 0 0 24px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  a { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink); }
+  label { display: block; font-weight: 600; margin: 14px 0 4px; color: var(--ink); }
+  input[type=email], input[type=password] { width: 100%; font: inherit; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  button { font: inherit; font-weight: 700; padding: 12px 16px; border-radius: 12px; border: 0; cursor: pointer; margin-top: 16px; }
+  .danger { background: #C0392B; color: #fff; width: 100%; }
+  .linkbtn { background: none; color: var(--accent); padding: 0; margin-top: 10px; }
+  .msg { margin-top: 14px; font-weight: 600; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; color: var(--ink-2); }
+  .check input { margin-top: 5px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Delete your Groundwork account</h1>
+  <p class="meta">Groundwork workout and nutrition app</p>
+  <div class="card">
+    <p style="margin-top:0">Deleting your account permanently removes, straight away:</p>
+    <ul>
+      <li>your account (email and password)</li>
+      <li>everything synced to it: profile, plans, workouts, food log, weigh-ins, measurements, activity summaries, pain reports and settings</li>
+      <li>coach links, messages and plans sent through Groundwork</li>
+    </ul>
+    <p>Nothing is kept afterwards, except a report you filed about another user, which we keep without your account details until it's reviewed. Data saved only on your phone stays there until you erase it in the app (Settings → Erase all data) or uninstall the app.</p>
+    <p style="margin-bottom:0">The quickest way is in the app: <b>Settings → Account &amp; sync → Delete account</b>. Or sign in here:</p>
+  </div>
+  <form class="card" id="f" style="margin-top:16px" autocomplete="on">
+    <label for="em">Email</label><input id="em" type="email" autocomplete="email" required>
+    <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required>
+    <label class="check"><input type="checkbox" id="ok" required> I understand this can't be undone.</label>
+    <button class="danger" type="submit" id="go">Delete my account</button>
+    <button class="linkbtn" type="button" id="forgot">Forgot your password?</button>
+    <p class="msg" id="msg" role="status"></p>
+  </form>
+  <p style="margin-top:24px"><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Use</a></p>
+</main>
+<script src="js/cloud-config.js"></script>
+<script>
+(() => {
+  const C = window.CLOUD_CONFIG || (typeof CLOUD_CONFIG !== 'undefined' ? CLOUD_CONFIG : {}), $ = id => document.getElementById(id), msg = t => { $('msg').textContent = t; };
+  const base = String(C.url || '').replace(/\/+$/, ''), h = t => Object.assign({ apikey: C.anonKey, 'content-type': 'application/json' }, t ? { authorization: 'Bearer ' + t } : {});
+  if (!base) { msg('Accounts aren\'t switched on for this version of Groundwork, so there is nothing to delete.'); $('go').disabled = true; return; }
+  $('f').addEventListener('submit', async e => {
+    e.preventDefault(); $('go').disabled = true; msg('Signing in…');
+    try {
+      const r = await fetch(base + '/auth/v1/token?grant_type=password', { method: 'POST', headers: h(), body: JSON.stringify({ email: $('em').value.trim(), password: $('pw').value }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.access_token) { msg('That email and password don\'t match an account.'); $('go').disabled = false; return; }
+      msg('Deleting…');
+      const d = await fetch(base + '/rest/v1/rpc/delete_my_account', { method: 'POST', headers: h(j.access_token), body: '{}' });
+      if (!d.ok) throw new Error('delete failed');
+      fetch(base + '/auth/v1/logout', { method: 'POST', headers: h(j.access_token) }).catch(() => null);
+      $('f').innerHTML = '<p class="msg" style="margin:0">Your account and its data have been deleted.</p>';
+    } catch (err) { msg('Something went wrong. Check your connection and try again.'); $('go').disabled = false; }
+  });
+  $('forgot').addEventListener('click', async () => {
+    const em = $('em').value.trim(); if (!em) { msg('Enter your email first.'); $('em').focus(); return; }
+    await fetch(base + '/auth/v1/recover', { method: 'POST', headers: h(), body: JSON.stringify({ email: em }) }).catch(() => null);
+    msg('If there\'s an account for that email, a reset link is on its way.');
+  });
+})();
+</script>
+</body>
+</html>

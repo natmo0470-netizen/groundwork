@@ -342,14 +342,15 @@ const SHEETS = {
       <div class="card" style="box-shadow:none"><span class="eyebrow">App</span>
         ${installRow()}
         <button class="li" data-act="open-feedback"><span class="ni">${icon('chat', 20)}</span><span class="grow"><span class="t">Send feedback</span><br><span class="d">Tell us what's confusing or missing</span></span><span class="chev">${icon('chevR', 18)}</span></button>
-        <a class="li" href="https://natmo0470-netizen.github.io/groundwork/privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="ni">${icon('info', 20)}</span><span class="grow"><span class="t">Privacy policy</span><br><span class="d">Your data stays on this device</span></span><span class="chev">${icon('external', 18)}</span></a>
+        <a class="li" href="https://natmo0470-netizen.github.io/groundwork/privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="ni">${icon('info', 20)}</span><span class="grow"><span class="t">Privacy policy</span><br><span class="d">What's stored and where, and your rights</span></span><span class="chev">${icon('external', 18)}</span></a>
+        <a class="li" href="https://natmo0470-netizen.github.io/groundwork/terms.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="ni">${icon('book', 20)}</span><span class="grow"><span class="t">Terms of use</span><br><span class="d">The rules for using Groundwork and messaging</span></span><span class="chev">${icon('external', 18)}</span></a>
       </div>
       <div class="card" style="box-shadow:none"><span class="eyebrow">Your data</span>
-        <p class="small muted">Everything is stored on this device${Store.available() ? '' : ' (browser storage is blocked here, so data lasts only until you close this page)'}. Back it up to move to another device.</p>
+        <p class="small muted">Everything is stored on this device${Store.available() ? '' : ' (browser storage is blocked here, so data lasts only until you close this page)'}${typeof Cloud !== 'undefined' && Cloud.signedIn() ? ', and backed up to your account' : ''}. Back it up to a file to keep your own copy.</p>
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Groundwork v1.13 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
+      <p class="tiny faint">Groundwork v1.14 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement.</p>`;
   },
 
   feedback(s) {

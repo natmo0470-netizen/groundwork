@@ -1,4 +1,4 @@
-# Groundwork — v1.13
+# Groundwork — v1.14
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -40,7 +40,7 @@ A beginner-friendly workout and nutrition web app. It runs entirely in the brows
 | My meals | Build a meal from ingredients (built-in foods, grocery ingredient catalog, your foods, USDA / Open Food Facts, or your own label numbers) in g, oz, lb, cups, spoons, ml or servings; set how many servings it makes and the cooked weight; get calories and macros per serving and for the batch, plus how much to portion out; log it like any food; duplicate, edit, or save a meal-plan recipe to tweak |
 | Grocery list | Built from the plan, grouped by aisle, amounts rounded to what you'd buy, cost estimate, pantry check, add your own items, copy/share, one-tap search links for Instacart, Walmart, Kroger and Amazon Fresh; whole-list Instacart hand-off ready to switch on (see server/README.md) |
 | Data | Download a backup file or copy it as text; restore from file or text on another device; erase all |
-| Account & sync | Optional email account: private cloud backup, sync across phones with a version check (choose which copy to keep if two devices changed), password reset, delete account. Coaches invite with an 8-character code; client progress syncs live, limited by the client's sharing choices and enforced in the database; plans arrive in the client's app to accept or decline. Coaches send an invite link that walks the client through joining (who invited you → account → what to share → setup → Coach tab); Coach tab (Clients tab for coaches) with a message thread; new messages and plans show in the reminders bell, on the tab badge, and as a phone notification when the app is in the background |
+| Account & sync | Optional email account (sign-up asks for consent to store health data; older accounts are asked once before syncing): private cloud backup, sync across phones with a version check (choose which copy to keep if two devices changed), password reset, delete account. Coaches invite with an 8-character code; client progress syncs live, limited by the client's sharing choices and enforced in the database; plans arrive in the client's app to accept or decline. Coaches send an invite link that walks the client through joining (who invited you → account → what to share → setup → Coach tab); Coach tab (Clients tab for coaches) with a message thread; new messages and plans show in the reminders bell, on the tab badge, and as a phone notification when the app is in the background |
 
 ## Files
 
@@ -71,7 +71,9 @@ js/cloud.js         accounts, backup and sync, live coaching (Supabase REST, no 
 js/native.js        phone features (no-op on the website)
 js/health.js        Apple Health / Health Connect (phone app only)
 scripts/android-config.js  Android project settings applied in the cloud build
-privacy.html        privacy policy (linked from the stores and Settings)
+privacy.html        privacy policy, including the consumer health data section (linked from the stores, welcome screen and Settings)
+terms.html          terms of use (conduct rules for messages, coaching, not medical advice)
+delete-account.html web page to delete an account and its data (required by Google Play)
 store/              store screenshot script and Play feature graphic
 native/             Android resources copied into the app build (notification icon)
 .github/workflows/  Android APK + signed Play bundle, iOS build check, store screenshots

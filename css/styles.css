@@ -462,3 +462,10 @@ button.card { font: inherit; color: inherit; text-align: left; width: 100%; curs
 .mb-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mb-cols > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mb-totals { gap: 10px; }
+/* Consent and reports */
+.consent { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.consent input { width: 20px; height: 20px; flex: none; margin-top: 1px; accent-color: var(--train); }
+.consent a { color: var(--train); }
+.msg.them button.bubble { border: 0; font: inherit; text-align: left; cursor: pointer; }
+.msg.them button.bubble[aria-expanded="true"] { outline: 2px solid var(--line); }
+.link.danger { color: var(--bad); }

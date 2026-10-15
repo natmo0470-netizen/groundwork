@@ -31,6 +31,7 @@ New database pieces ship as numbered files in `migrations/`. Run each one once, 
 | `migrations/002_messages.sql` | Coach ↔ client messages (`messages` table, read receipts) |
 | `migrations/003_invite_preview.sql` | Invite links show who invited you before you sign up (`invite_preview`) |
 | `migrations/004_rejoin.sql` | A client can rejoin a coach they were linked to before; clearer join errors |
+| `migrations/005_safety.sql` | Message reports, health-data consent and terms timestamps, size limits |
 
 ## Setting up your project (free plan is fine for testing)
 
