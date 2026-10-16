@@ -4,8 +4,16 @@
 
 /* Optional services. Leave blank to use links only; see server/README.md to switch them on. */
 const SERVICE_CONFIG = {
-  // URL of your server function that creates an Instacart shopping-list page (server/instacart-function.js)
+  // Instacart shopping-list pages come from the Supabase Edge Function server/supabase/functions/instacart-list,
+  // which holds the Instacart Developer Platform key (secret INSTACART_API_KEY). The "Send whole list to Instacart"
+  // button appears once that key is set. instacartEndpoint overrides the URL if you host the function elsewhere.
+  instacartFunction: 'instacart-list',
   instacartEndpoint: '',
+  // Affiliate tracking for the per-item store links. Paste the tracking link template from the store's affiliate
+  // program (Walmart and Instacart both use Impact) with {url} where the product or search page goes, e.g.
+  //   walmart: 'https://goto.walmart.com/c/1234567/123456/9383?u={url}'
+  // Leave blank for plain links.
+  storeAffiliates: { walmart: '', instacart: '', kroger: '', amazon: '' },
   // URL of your server function that searches a recipe service such as Spoonacular (server/recipes-function.js)
   recipeEndpoint: '',
   // USDA FoodData Central search. The project's key is private: it lives only in the Supabase Edge Function
@@ -266,10 +274,34 @@ const STORES = [
   { id: 'amazon', name: 'Amazon Fresh', url: q => 'https://www.amazon.com/s?k=' + encodeURIComponent(q) + '&i=amazonfresh' },
 ];
 
+function storeLink(store, q) {
+  const url = store.url(q), t = (SERVICE_CONFIG.storeAffiliates || {})[store.id];
+  return t && t.includes('{url}') ? t.replace('{url}', encodeURIComponent(url)) : url;
+}
+function instacartEndpoint() {
+  if (SERVICE_CONFIG.instacartEndpoint) return SERVICE_CONFIG.instacartEndpoint;
+  return typeof CLOUD_CONFIG !== 'undefined' && CLOUD_CONFIG.url && SERVICE_CONFIG.instacartFunction ? `${CLOUD_CONFIG.url}/functions/v1/${SERVICE_CONFIG.instacartFunction}` : '';
+}
+const instacartHeaders = () => (typeof CLOUD_CONFIG !== 'undefined' && CLOUD_CONFIG.anonKey ? { apikey: CLOUD_CONFIG.anonKey } : {});
+/* Is whole-list ordering switched on? Asks the function once per session; re-renders when the answer arrives. */
+let instacartState = null;   // null = not asked, 'asking', true, false
+function instacartReady() {
+  if (instacartState === null) {
+    const ep = instacartEndpoint();
+    if (!ep) { instacartState = false; return false; }
+    instacartState = 'asking';
+    fetch(ep, { headers: instacartHeaders(), signal: AbortSignal.timeout ? AbortSignal.timeout(6000) : undefined })
+      .then(r => r.ok ? r.json() : { ready: false }).then(d => { instacartState = !!(d && d.ready); }, () => { instacartState = false; })
+      .then(() => { if (instacartState) render(); });
+  }
+  return instacartState === true;
+}
+
 async function sendToInstacart(list, title) {
-  if (!SERVICE_CONFIG.instacartEndpoint) throw new Error('not-configured');
+  const ep = instacartEndpoint();
+  if (!ep) throw new Error('not-configured');
   const line_items = list.map(i => ({ name: i.q || i.name, display_text: i.name, quantity: Math.max(1, Math.round(i.qty * 100) / 100), unit: i.unit || 'each' }));
-  const res = await fetch(SERVICE_CONFIG.instacartEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, line_items }) });
+  const res = await fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json', ...instacartHeaders() }, body: JSON.stringify({ title, line_items }) });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
   if (!data.url) throw new Error('no-url');

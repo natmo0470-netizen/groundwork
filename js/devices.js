@@ -108,7 +108,53 @@ if (typeof activityProgressCard === 'function') {
     const html = settings(s);
     if (typeof HealthSync !== 'undefined' && HealthSync.ok()) return html;   // phone app: reached from the health sheet
     return html.replace('<div class="card" style="box-shadow:none" id="set-profile">',
-      `<div class="card" style="box-shadow:none"><span class="eyebrow">Phone and watch data</span><button class="li" data-act="devices-open"><span class="ni">${icon('heart', 20)}</span><span class="grow"><span class="t">Watches and smart scales</span><br><span class="d">Works in the phone app with Garmin, Fitbit, Apple Watch, Withings, Renpho and more</span></span><span class="chev">${icon('chevR', 18)}</span></button></div>
+      `<div class="card" style="box-shadow:none"><span class="eyebrow">Phone and watch data</span><button class="li" data-act="devices-open"><span class="ni">${icon('heart', 20)}</span><span class="grow"><span class="t">Watches and smart scales</span><br><span class="d">Works in the phone app with Garmin, Fitbit, Apple Watch, Withings, Renpho and more. Shopping for one? See what\'s compatible</span></span><span class="chev">${icon('chevR', 18)}</span></button></div>
       <div class="card" style="box-shadow:none" id="set-profile">`);
   };
+}
+
+/* ---------- Shopping for a compatible device ----------
+   A quiet guide, reached only from the watch-and-scale guide (Settings → Watches and smart scales, or the health
+   sheet in the phone app). Nothing about it appears unless someone opens it.
+   Affiliate links: paste each brand's tracking link into `link` once you're approved (Renpho's own program,
+   Withings on Awin, Garmin/Oura/Fitbit/WHOOP on Impact or Awin). If `link` is empty and DEVICE_SHOP.amazonTag is set,
+   the button goes to an Amazon search with your Associates tag; otherwise to the brand's own site, untracked. */
+const DEVICE_SHOP = {
+  amazonTag: '',   // Amazon Associates tracking ID, e.g. 'movla-20'
+  picks: [
+    { id: 'renpho', kind: 'scale', name: 'Renpho smart scale', note: 'Budget pick. Weight and body fat; shares with Apple Health and Health Connect.', site: 'https://renpho.com/collections/smart-scales', q: 'Renpho smart scale', link: '' },
+    { id: 'eufy', kind: 'scale', name: 'Eufy smart scale', note: 'Budget pick. Weight and body fat through the EufyLife app.', site: 'https://www.eufy.com/collections/smart-scales', q: 'eufy smart scale', link: '' },
+    { id: 'withings', kind: 'scale', name: 'Withings Body scale', note: 'Premium pick. Accurate, Wi-Fi sync, no phone needed at weigh-in.', site: 'https://www.withings.com/us/en/scales', q: 'Withings Body smart scale', link: '' },
+    { id: 'garmin', kind: 'watch', name: 'Garmin watch', note: 'Long battery, strong workout tracking. Forerunner for running, Venu for everyday.', site: 'https://www.garmin.com/en-US/c/wearables-smartwatches/', q: 'Garmin Forerunner watch', link: '' },
+    { id: 'fitbit', kind: 'watch', name: 'Fitbit tracker', note: 'Simple and affordable: steps, sleep and heart rate.', site: 'https://store.google.com/category/watches_trackers', q: 'Fitbit Charge', link: '' },
+    { id: 'apple', kind: 'watch', name: 'Apple Watch', note: 'For iPhone. Saves to Apple Health automatically.', site: 'https://www.apple.com/watch/', q: 'Apple Watch', link: '', only: 'ios' },
+    { id: 'samsung', kind: 'watch', name: 'Samsung Galaxy Watch', note: 'For Android. Shares through Samsung Health.', site: 'https://www.samsung.com/us/watches/', q: 'Samsung Galaxy Watch', link: '', only: 'android' },
+    { id: 'oura', kind: 'ring', name: 'Oura Ring', note: 'Sleep and recovery in a ring. Needs an Oura membership.', site: 'https://ouraring.com/', q: 'Oura Ring', link: '' },
+    { id: 'whoop', kind: 'band', name: 'WHOOP', note: 'Strap focused on strain and recovery. Sold as a membership.', site: 'https://www.whoop.com/', q: '', link: '' },
+  ],
+};
+function deviceShopUrl(p) {
+  if (p.link) return p.link;
+  if (DEVICE_SHOP.amazonTag && p.q) return `https://www.amazon.com/s?k=${encodeURIComponent(p.q)}&tag=${encodeURIComponent(DEVICE_SHOP.amazonTag)}`;
+  return p.site;
+}
+const deviceShopTracked = () => !!DEVICE_SHOP.amazonTag || DEVICE_SHOP.picks.some(p => p.link);
+
+SHEETS.deviceShop = () => {
+  const plat = (typeof Native !== 'undefined' && Native.platform) || 'web';
+  const picks = DEVICE_SHOP.picks.filter(p => !p.only || plat === 'web' || p.only === plat);
+  const group = (title, kinds) => {
+    const rows = picks.filter(p => kinds.includes(p.kind));
+    return rows.length ? `<span class="eyebrow" style="margin-top:4px">${title}</span><div class="list">${rows.map(p => `<a class="li" href="${esc(deviceShopUrl(p))}" target="_blank" rel="noopener sponsored" data-shop="${p.id}"><span class="grow"><span class="t">${esc(p.name)}${p.only && plat === 'web' ? ` <span class="faint small">(${p.only === 'ios' ? 'iPhone' : 'Android'})</span>` : ''}</span><br><span class="d">${esc(p.note)}</span></span><span class="chev">${icon('external', 16)}</span></a>`).join('')}</div>` : '';
+  };
+  return sheetHead('Compatible devices', 'All of these work with Movla through Apple Health or Health Connect')
+    + group('Smart scales', ['scale']) + group('Watches, rings and bands', ['watch', 'ring', 'band'])
+    + `<p class="tiny faint" style="margin:0">Any device that shares with ${plat === 'ios' ? 'Apple Health' : plat === 'android' ? 'Health Connect' : 'Apple Health or Health Connect'} works, not only these. Prices and models change, so check the store page.${deviceShopTracked() ? ' Movla may earn a commission if you buy through these links, at no extra cost to you.' : ''}</p>`;
+};
+ACT['device-shop'] = () => pushSheet({ type: 'deviceShop' });
+
+/* One quiet line at the bottom of the setup guide. */
+{
+  const guide = SHEETS.devices;
+  SHEETS.devices = s => guide(s) + `<button class="link" data-act="device-shop" style="align-self:center">Don't have one yet? See compatible scales and watches</button>`;
 }

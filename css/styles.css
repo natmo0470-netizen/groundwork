@@ -479,3 +479,4 @@ button.card { font: inherit; color: inherit; text-align: left; width: 100%; curs
 /* Workout logger: delete-set mode and toast actions */
 .sets .ok.del { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
 .toast .toast-act { margin-left: 10px; background: none; border: 0; color: var(--train-soft, #9fe3c9); font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; padding: 0; }
+a.li { text-decoration: none; color: inherit; }

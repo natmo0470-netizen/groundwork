@@ -1,7 +1,9 @@
-# Deploys the Supabase Edge Functions in server/supabase/functions (food-search) and sets their secrets.
-# Needs two repository secrets (Settings → Secrets and variables → Actions):
+# Deploys the Supabase Edge Functions in server/supabase/functions (food-search, instacart-list) and sets their secrets.
+# Repository secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_ACCESS_TOKEN  personal access token from supabase.com/dashboard/account/tokens
 #   USDA_API_KEY           your api.data.gov key (stored only in GitHub and Supabase, never in the app)
+#   INSTACART_API_KEY      optional: Instacart Developer Platform key (dashboard.instacart.com → API Keys)
+#   INSTACART_ENV          optional: 'production' once your production key is active; anything else = development
 name: Deploy edge functions
 on:
   workflow_dispatch:
@@ -33,6 +35,18 @@ jobs:
         run: |
           if [ -z "$USDA_API_KEY" ]; then echo "::warning::USDA_API_KEY secret not set; keeping whatever key Supabase already has"; exit 0; fi
           supabase secrets set USDA_API_KEY="$USDA_API_KEY" --project-ref "$PROJECT_REF"
+      - name: Set the Instacart key on Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          INSTACART_API_KEY: ${{ secrets.INSTACART_API_KEY }}
+          INSTACART_ENV: ${{ secrets.INSTACART_ENV }}
+        run: |
+          if [ -z "$INSTACART_API_KEY" ]; then echo "::warning::INSTACART_API_KEY secret not set; whole-list Instacart ordering stays off"; exit 0; fi
+          supabase secrets set INSTACART_API_KEY="$INSTACART_API_KEY" INSTACART_ENV="${INSTACART_ENV:-development}" --project-ref "$PROJECT_REF"
+      - name: Deploy instacart-list
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy instacart-list --project-ref "$PROJECT_REF" --no-verify-jwt --use-api
       - name: Deploy food-search
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -43,3 +57,5 @@ jobs:
           body=$(curl -s -w '\n%{http_code}' -H "apikey: sb_publishable_uWQzbQu29-2DiaP03_fbzA_l_js2neM" "https://$PROJECT_REF.supabase.co/functions/v1/food-search?q=apple")
           code=$(echo "$body" | tail -1); n=$(echo "$body" | head -n -1 | grep -o '"fdcId"' | wc -l)
           if [ "$code" = "200" ] && [ "$n" -gt 0 ]; then echo "::notice::food-search OK: $n USDA results for 'apple'"; else echo "::error::food-search returned HTTP $code: $(echo "$body" | head -n -1 | head -c 300)"; exit 1; fi
+          r=$(curl -s -H "apikey: sb_publishable_uWQzbQu29-2DiaP03_fbzA_l_js2neM" "https://$PROJECT_REF.supabase.co/functions/v1/instacart-list")
+          echo "::notice::instacart-list: $r"

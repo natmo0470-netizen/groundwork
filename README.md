@@ -1,4 +1,4 @@
-# Movla — v1.21
+# Movla — v1.22
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 

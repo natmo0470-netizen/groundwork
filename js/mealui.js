@@ -115,7 +115,7 @@ function viewGrocery() {
     <div class="card">
       <span class="eyebrow">Order online</span>
       <div class="chips">${STORES.map(s => `<button class="chip" data-act="gro-store" data-v="${s.id}" aria-pressed="${s.id === store.id}">${s.name}</button>`).join('')}</div>
-      ${SERVICE_CONFIG.instacartEndpoint && store.id === 'instacart'
+      ${store.id === 'instacart' && instacartReady()
         ? `<button class="btn fuel block" data-act="gro-instacart">${icon('external', 18)} Send whole list to Instacart</button><p class="tiny faint">Opens an Instacart page with every item, ready to choose a store and check out.</p>`
         : `<p class="small muted">Tap ${icon('external', 14)} next to any item to find it at ${esc(store.name)}.${store.id === 'instacart' ? ' Whole-list ordering switches on once the Instacart connection is set up.' : ''}</p>`}
       <div class="row wrap"><button class="btn sm ghost" data-act="gro-copy">${icon('copy', 16)} Copy list</button>${navigator.share ? `<button class="btn sm ghost" data-act="gro-share">${icon('share', 16)} Share</button>` : ''}${done ? `<button class="btn sm ghost" data-act="gro-reset">Uncheck all</button>` : ''}</div>
@@ -132,7 +132,7 @@ function groceryRow(i, G, store) {
     <button class="gro-check" data-act="gro-toggle" data-k="${esc(i.key)}" aria-pressed="${on}" aria-label="${esc(i.name)}">${icon('check', 16)}</button>
     <span class="grow" style="min-width:0"><span class="t">${esc(i.name)}</span>${i.amount ? `<br><span class="d">${esc(i.amount)}</span>` : ''}</span>
     ${i.custom ? `<button class="icon-btn" data-act="gro-del" data-id="${i.id}" aria-label="Remove ${esc(i.name)}">${icon('x', 16)}</button>` : ''}
-    <a class="icon-btn" href="${store.url(i.q || i.name)}" target="_blank" rel="noopener" aria-label="Find ${esc(i.name)} at ${esc(store.name)}">${icon('external', 16)}</a>
+    <a class="icon-btn" href="${esc(storeLink(store, i.q || i.name))}" target="_blank" rel="noopener" aria-label="Find ${esc(i.name)} at ${esc(store.name)}">${icon('external', 16)}</a>
   </div>`;
 }
 function groceryText() {
