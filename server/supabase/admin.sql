@@ -46,3 +46,12 @@ select created_at, kind, area, rating, message, contact, app_version, platform, 
 select created_at, area, message, contact from public.feedback where kind = 'idea' order by created_at desc;
 -- Mark one as planned / done (copy its id from: select id, message from public.feedback order by created_at desc):
 update public.feedback set status = 'planned' where id = '00000000-0000-0000-0000-000000000000';
+
+-- ---------- admin console (migration 009) ----------
+-- The admin console is at https://movla.app/admin.html. Sign in with your Movla account.
+-- Make your account an admin (type your own email between the quotes):
+insert into public.admins (user_id) select id from auth.users where email = 'you@example.com' on conflict do nothing;
+-- Who's an admin:
+select u.email, a.created_at from public.admins a join auth.users u on u.id = a.user_id;
+-- Remove an admin:
+delete from public.admins where user_id = (select id from auth.users where email = 'someone@example.com');

@@ -408,11 +408,13 @@ const Cloud = (() => {
     await rest('rpc/claim_grants', { method: 'POST', body: {} }).catch(() => null);
     const rows = await rest('rpc/my_access', { method: 'POST', body: {} });
     const test = await rest('rpc/test_checkout_on', { method: 'POST', body: {} }).catch(() => false);
-    access = { userId: me(), rows: Array.isArray(rows) ? rows : [], test: test === true, at: Date.now() }; ls.set(AKEY, access);
+    const admin = await rest('rpc/is_admin', { method: 'POST', body: {} }).catch(() => false);   // migration 009
+    access = { userId: me(), rows: Array.isArray(rows) ? rows : [], test: test === true, admin: admin === true, at: Date.now() }; ls.set(AKEY, access);
   }
   /* Test checkout (migration 007): while payments aren't set up, the server can let anyone start a free
      14-day test coach plan. Switched off on the server before launch. */
   const testCheckout = () => !!(access && access.userId === me() && access.test);
+  const isAdmin = () => !!(access && access.userId === me() && access.admin);
   async function startTestPlan(plan) { await rest('rpc/start_test_coach_plan', { method: 'POST', body: { p_plan: plan } }); await refreshAccess(); }
   const hasCoach = () => accessRows().some(r => r.kind === 'coach' && live(r));
   const hasPlus = () => accessRows().some(r => live(r));            // coaches and coached clients get Plus too
@@ -451,7 +453,7 @@ const Cloud = (() => {
     acceptInvite, activeLink, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
-    needsConsent, recordConsent, report, sendFeedback, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile, testCheckout, startTestPlan,
+    needsConsent, recordConsent, report, sendFeedback, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile, testCheckout, isAdmin, startTestPlan,
   };
 })();
 
@@ -502,6 +504,7 @@ const Cloud = (() => {
         ${Cloud.status.conflict ? `<button class="btn train block" data-act="cloud-resolve">Choose which data to keep</button>` : ''}${Cloud.needsConsent() ? `<button class="btn train block" data-act="cloud-consent">Review and continue</button>` : ''}
         ${(() => { const c = Cloud.coachAccess(), p = Cloud.plusSource(); const end = r => r && r.ends_at ? ` until ${shortDate(dateKey(new Date(r.ends_at)))}` : ''; return c ? `<p class="small" style="margin:0">${icon('check', 14)} Coach plan: up to ${c.seats} clients${c.source === 'grant' ? ' (complimentary)' : ''}${end(c)}</p>` : p ? `<p class="small" style="margin:0">${icon('check', 14)} Movla Plus${p.source === 'coach' ? ' from your coach' : p.source === 'grant' ? ' (complimentary)' : ''}${end(p)}</p>` : `<p class="small" style="margin:0">Free plan · <button class="link" data-act="plus-open">See Plus</button></p>`; })()}
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="cloud-sync">Sync now</button><button class="btn ghost sm" data-act="acct-signout">Sign out</button><button class="btn danger sm" data-act="acct-delete">Delete account</button></div>
+        ${Cloud.isAdmin() ? `<a class="btn ghost sm" href="${esc((CLOUD_CONFIG.inviteBase || '').replace(/[^/]*$/, '') + 'admin.html')}" target="_blank" rel="noopener">${icon('chart', 16)} Admin console</a>` : ''}
         <p class="tiny faint" style="margin:0">Your plan, logs and settings are backed up privately to your account.</p></div>`
     : `<div class="card" style="box-shadow:none" id="set-account"><span class="eyebrow">Account &amp; sync</span>
         <p class="small muted" style="margin:0">Back up your data and use Movla on more than one device. Coaches and clients connect live with an account.</p>

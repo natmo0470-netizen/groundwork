@@ -1,4 +1,4 @@
-# Movla — v1.15
+# Movla — v1.21
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -74,6 +74,8 @@ js/coachstart.js    becoming a coach: onboarding, waits for a coach plan, then i
 js/native.js        phone features (no-op on the website)
 js/health.js        Apple Health / Health Connect (phone app only)
 scripts/android-config.js  Android project settings applied in the cloud build
+admin.html          admin console: analytics, connection checks, coach approvals, feedback, reports, free plans (admins only, migration 009)
+js/admin.js         admin console logic (Supabase REST, admin_* functions)
 privacy.html        privacy policy, including the consumer health data section (linked from the stores, welcome screen and Settings)
 terms.html          terms of use (conduct rules for messages, coaching, not medical advice)
 delete-account.html web page to delete an account and its data (required by Google Play)
