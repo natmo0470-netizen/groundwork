@@ -108,8 +108,11 @@ const Cloud = (() => {
     out.measurements = byDay(st.measurements || [], m => { const v = Object.assign({}, m); delete v.date; delete v.id; return { user_id: uidv, day: m.date, values: v }; });
     const hd = st.healthData || {}, days = new Set();
     ['steps', 'active', 'sleep', 'rhr'].forEach(k => Object.keys(hd[k] || {}).forEach(d => { if (d >= from && d <= today) days.add(d); }));
+    const bodyFatCol = ls.get('groundwork.bfcol') !== false;
+    const bf = typeof bodyFatMap === 'function' ? bodyFatMap(st) : {};   // smart scale or typed in (migration 010)
+    Object.keys(bf).forEach(d => { if (d >= from && d <= today) days.add(d); });
     const num = (o, d) => (o && o[d] != null && isFinite(o[d]) ? Number(o[d]) : null);
-    out.activity_days = [...days].map(d => ({ user_id: uidv, day: d, steps: num(hd.steps, d) == null ? null : Math.round(num(hd.steps, d)), active_kcal: num(hd.active, d) == null ? null : Math.round(num(hd.active, d)), sleep_min: num(hd.sleep, d) == null ? null : Math.round(num(hd.sleep, d)), resting_hr: num(hd.rhr, d) == null ? null : Math.round(num(hd.rhr, d) * 10) / 10 }));
+    out.activity_days = [...days].map(d => ({ user_id: uidv, day: d, steps: num(hd.steps, d) == null ? null : Math.round(num(hd.steps, d)), active_kcal: num(hd.active, d) == null ? null : Math.round(num(hd.active, d)), sleep_min: num(hd.sleep, d) == null ? null : Math.round(num(hd.sleep, d)), resting_hr: num(hd.rhr, d) == null ? null : Math.round(num(hd.rhr, d) * 10) / 10, ...(bodyFatCol ? { body_fat: bf[d] ? bf[d].pct : null } : {}) }));
     out.pain_reports = (st.painLog || []).map((p, i) => ({ user_id: uidv, id: `${p.date}_${p.exId || 'x'}_${i}`, day: p.date, exercise_id: p.exId || null, area: p.area || null, kind: p.kind === 'sharp' ? 'sharp' : 'ache' }));
     const ad = st.onboarded ? adherence14(st) : { planned: 0, done: 0 };
     out.training_summary = st.onboarded ? [{ user_id: uidv, plan_name: st.plan ? st.plan.split : null, days_per_week: (st.schedule && st.schedule.days || []).length, planned_14: ad.planned, done_14: ad.done, goal: st.profile.goal || null, experience: st.profile.experience || null }] : [];
@@ -156,7 +159,14 @@ const Cloud = (() => {
     for (const [t, rows] of Object.entries(all)) {
       const def = TABLES[t], prev = H[t] || {}, cur = {}, changed = [];
       rows.forEach(r => { const k = def.pk(r), h = hash(r); cur[k] = h; if (prev[k] !== h) changed.push(def.stamp ? Object.assign({ updated_at: new Date().toISOString() }, r) : r); });
-      for (let i = 0; i < changed.length; i += 200) await upsert(t, def.conflict, changed.slice(i, i + 200));
+      for (let i = 0; i < changed.length; i += 200) {
+        const part = changed.slice(i, i + 200);
+        try { await upsert(t, def.conflict, part); }
+        catch (e) {   // body_fat arrives with migration 010; until then sync without it
+          if (t !== 'activity_days' || !/body_fat/i.test(e.message || '')) throw e;
+          ls.set('groundwork.bfcol', false); part.forEach(r => { delete r.body_fat; }); await upsert(t, def.conflict, part);
+        }
+      }
       const gone = Object.keys(prev).filter(k => !(k in cur) && !(def.daily && k < from));
       if (def.daily) Object.keys(prev).forEach(k => { if (k < from && !(k in cur)) cur[k] = prev[k]; });
       if (def.del) for (let i = 0; i < gone.length; i += 100) await rest(`${t}?user_id=eq.${me()}&${def.del}=${inList(gone.slice(i, i + 100))}`, { method: 'DELETE', headers: { prefer: 'return=minimal' } });
@@ -453,6 +463,7 @@ const Cloud = (() => {
     acceptInvite, activeLink, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
+    rpc: (fn, body) => rest('rpc/' + fn, { method: 'POST', body: body || {} }),
     needsConsent, recordConsent, report, sendFeedback, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile, testCheckout, isAdmin, startTestPlan,
   };
 })();

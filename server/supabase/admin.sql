@@ -55,3 +55,10 @@ insert into public.admins (user_id) select id from auth.users where email = 'you
 select u.email, a.created_at from public.admins a join auth.users u on u.id = a.user_id;
 -- Remove an admin:
 delete from public.admins where user_id = (select id from auth.users where email = 'someone@example.com');
+
+-- ---------- families and challenges (migration 010) ----------
+-- All groups with member counts:
+select g.kind, g.name, g.metric, g.starts_on, g.ends_on, g.created_at, (select count(*) from public.group_members m where m.group_id = g.id) as members
+  from public.groups g order by g.created_at desc;
+-- Delete a group (members' own data is untouched):
+-- delete from public.groups where code = 'ABCD2345';

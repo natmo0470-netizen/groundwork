@@ -480,3 +480,10 @@ button.card { font: inherit; color: inherit; text-align: left; width: 100%; curs
 .sets .ok.del { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
 .toast .toast-act { margin-left: 10px; background: none; border: 0; color: var(--train-soft, #9fe3c9); font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; padding: 0; }
 a.li { text-decoration: none; color: inherit; }
+/* families and challenges */
+.grp-rank { width: 32px; height: 32px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); display: grid; place-items: center; flex: none; font: 700 15px var(--font-body); font-variant-numeric: tabular-nums; }
+.grp-rank.big { width: 44px; height: 44px; border-radius: 12px; }
+.grp-row.me { background: color-mix(in srgb, var(--train) 7%, transparent); border-radius: 10px; padding-left: 6px; padding-right: 6px; }
+.icon-btn.cheer { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 40px; padding: 0 8px; gap: 3px; color: var(--ink-3); }
+.icon-btn.cheer.on { color: var(--fuel); }
+.icon-btn.cheer .tiny { font-weight: 700; }

@@ -289,11 +289,14 @@ const ACT = {
     const v = num('w-val'), d = val('w-date') || todayKey();
     const kg = dispToKg(S, v);
     if (!kg || kg < 25 || kg > 320) { toast('Enter a valid weight'); return; }
+    const bf = num('w-bf');
+    if (bf && (bf < 2 || bf > 75)) { toast('Body fat should be between 2 and 75%'); return; }
     S.weights = S.weights.filter(w => w.date !== d).concat([{ date: d, kg: Math.round(kg * 100) / 100 }]).sort((a, b) => a.date < b.date ? -1 : 1);
     S.profile.weightKg = S.weights[S.weights.length - 1].kg;
+    if (bf) { S.bodyFatLog = Object.assign(S.bodyFatLog || {}, { [d]: Math.round(bf * 10) / 10 }); }
     save(); popSheet(); toast('Weight logged');
   },
-  'weight-del': t => { S.weights = S.weights.filter(w => w.date !== t.dataset.d); save(); render(); },
+  'weight-del': t => { S.weights = S.weights.filter(w => w.date !== t.dataset.d); if (S.bodyFatLog) delete S.bodyFatLog[t.dataset.d]; save(); render(); },
   'open-checkin': () => pushSheet({ type: 'checkin' }),
   'checkin-answer': t => { UI.sheet.result = computeCheckin(S, t.dataset.v); render(); },
   'checkin-apply': () => {

@@ -262,6 +262,7 @@ const SHEETS = {
     return sheetHead('Log weight', 'Best first thing in the morning')
       + `<div class="field"><label for="w-val">Weight</label><div class="input-suffix"><input class="input big" id="w-val" inputmode="decimal" value="${lastWeight(S) ? kgToDisp(S, lastWeight(S).kg) : ''}"><span>${wUnit(S)}</span></div></div>
       <div class="field"><label for="w-date">Date</label><input class="input" id="w-date" type="date" value="${todayKey()}" max="${todayKey()}"></div>
+      <div class="field"><label for="w-bf">Body fat <span class="faint">(optional)</span></label><div class="input-suffix"><input class="input" id="w-bf" inputmode="decimal" placeholder="From your scale" value="${(S.bodyFatLog || {})[todayKey()] || ''}"><span>%</span></div></div>
       <button class="btn train block" data-act="weight-save">Save</button>
       ${S.weights.length ? `<div class="stack"><span class="eyebrow">Recent</span><div class="list">${S.weights.slice().reverse().slice(0, 10).map(w => `<div class="li"><span class="grow">${prettyDate(w.date)}</span><b class="num">${kgToDisp(S, w.kg)} ${wUnit(S)}</b><button class="icon-btn" data-act="weight-del" data-d="${w.date}" aria-label="Delete ${prettyDate(w.date)}">${icon('trash', 18)}</button></div>`).join('')}</div></div>` : ''}`;
   },
@@ -351,7 +352,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Movla v1.22 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
+      <p class="tiny faint">Movla v1.23 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
   },
 
   feedback(s) {

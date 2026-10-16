@@ -26,13 +26,14 @@ edit('app/src/main/AndroidManifest.xml', s => {
     .concat(REMOVE.map(p => `    <uses-permission android:name="android.permission.health.${p}" tools:node="remove" />`));
   return s.replace('</manifest>', lines.join('\n') + '\n</manifest>');
 });
-// Invite links: movla://join/CODE (and the older groundwork://join/CODE) open the app straight into the join flow.
+// Invite links: movla://join/CODE (coach, and the older groundwork://join/CODE) and movla://group/CODE (family or challenge) open the app.
 edit('app/src/main/AndroidManifest.xml', s => s.includes('android:scheme="movla"') ? s : s.replace('</activity>',
   `    <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="movla" android:host="join" />
+                <data android:scheme="movla" android:host="group" />
                 <data android:scheme="groundwork" android:host="join" />
             </intent-filter>
         </activity>`));

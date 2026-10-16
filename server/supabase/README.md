@@ -36,6 +36,7 @@ New database pieces ship as numbered files in `migrations/`. Run each one once, 
 | `migrations/007_test_checkout.sql` | Test checkout: while payments aren't set up, coaches can start a free 14-day test plan in the app. Turn it off before launch (see `admin.sql`) |
 | `migrations/008_feedback.sql` | Feedback and feature ideas from the app (insert-only, rate-limited) |
 | `migrations/009_admin.sql` | Admin console (`admin.html`): an `admins` table and `admin_*` functions for analytics, approvals, feedback, reports and free plans. Only accounts listed in `admins` can call them |
+| `migrations/010_groups.sql` | Families and challenges: `groups`, `group_members`, `group_cheers` (no direct access; only `group_*` functions that return derived numbers, never body weight), plus a `body_fat` column on `activity_days` |
 
 ## Plans, coaches and free accounts
 

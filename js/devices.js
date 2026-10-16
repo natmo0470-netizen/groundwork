@@ -39,8 +39,15 @@ const DEVICE_GUIDES = [
 ];
 
 /* Body fat from smart scales (S.healthData.bodyFat = { 'YYYY-MM-DD': { pct, from } }). */
+/* Body fat by day: smart scale readings (S.healthData.bodyFat) plus any typed in with a weigh-in (S.bodyFatLog). */
+function bodyFatMap(st) {
+  st = st || S;
+  const out = Object.assign({}, (st.healthData && st.healthData.bodyFat) || {});
+  Object.entries(st.bodyFatLog || {}).forEach(([d, pct]) => { if (!out[d] && pct) out[d] = { pct, from: 'Typed in' }; });
+  return out;
+}
 function bodyFatSummary() {
-  const bf = (S.healthData && S.healthData.bodyFat) || {}, days = Object.keys(bf).sort();
+  const bf = bodyFatMap(), days = Object.keys(bf).sort();
   if (!days.length) return null;
   const last = days[days.length - 1], cut = addDays(last, -30), old = days.filter(k => k >= cut)[0];
   const change = old && old !== last ? Math.round((bf[last].pct - bf[old].pct) * 10) / 10 : null;
