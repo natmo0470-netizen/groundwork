@@ -8,7 +8,8 @@ const UI = {
 const MEALS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner'], ['snacks', 'Snacks']];
 
 function save() { Store.save(S); }
-function toast(msg) { UI.toast = msg; clearTimeout(toast._t); toast._t = setTimeout(() => { UI.toast = null; const t = document.querySelector('.toast'); if (t) t.remove(); }, 2600); render(); }
+/* toast(msg) or toast(msg, 'Undo', 'action-name'): an optional button stays a little longer. */
+function toast(msg, label, act) { UI.toast = msg; UI.toastAct = label && act ? { label, act } : null; clearTimeout(toast._t); toast._t = setTimeout(() => { UI.toast = null; UI.toastAct = null; const t = document.querySelector('.toast'); if (t) t.remove(); }, UI.toastAct ? 5000 : 2600); render(); }
 function openSheet(sheet) { UI.sheet = sheet; render(); }
 function closeSheet() { UI.sheet = null; render(); }
 
@@ -27,7 +28,7 @@ function render() {
       + (S.activeWorkout && UI.loggerOpen ? viewLogger() : '')
       + (UI.rest && S.activeWorkout && UI.loggerOpen ? restBar() : '')
       + (UI.sheet ? `<div class="scrim" data-act="close-sheet"></div>${sheetHtml()}` : '')
-      + (UI.toast ? `<div class="toast" role="status">${esc(UI.toast)}</div>` : '');
+      + (UI.toast ? `<div class="toast" role="status">${esc(UI.toast)}${UI.toastAct ? ` <button class="toast-act" data-act="${UI.toastAct.act}">${esc(UI.toastAct.label)}</button>` : ''}</div>` : '');
   }
   root.querySelectorAll('[data-demo]').forEach(el => {
     const [a, p] = el.dataset.demo.split('|');
@@ -376,6 +377,7 @@ function viewLogger() {
       <span class="elapsed" id="elapsed">${elapsedText(a.startedAt)}</span>
       <button class="btn sm train" data-act="finish-workout">Finish</button></div>
     <div class="progress"><i style="width:${totalSets ? (doneSets / totalSets) * 100 : 0}%"></i></div>
+    ${totalSets && doneSets === totalSets ? `<div class="banner" style="background:var(--train-soft)">${icon('check', 18)}<span class="grow"><b>All ${totalSets} sets done.</b> Add a set if you want more, or finish to save it.</span><button class="btn sm train" data-act="finish-workout">Finish</button></div>` : ''}
     ${tipBanner('logger')}
     ${a.deload ? `<div class="banner">${icon('info', 18)}<span><b>${term('deload')}.</b> Fewer sets at about 90% of your usual weight. Stop 3–4 reps short of failure. This lets you come back stronger next block.</span></div>` : ''}
     ${a.items.map((it, i) => loggerCard(it, i)).join('')}
@@ -396,6 +398,7 @@ function loggerCard(it, i) {
   const dw = deload && it.rows[0] && it.rows[0].weightKg;
   const deloadTip = deload ? `Deload: ${it.rows.length} easy sets of ${it.min}${dw ? ` at ${kgToDisp(S, dw)} ${wUnit(S)} (about 90%)` : ''}. Leave plenty in the tank.` : '';
   if (deload) sug.reps = it.min;
+  const editing = !!(UI.editSets && UI.editSets[i]);
   return `<div class="card" id="ex-${i}">
     <div class="row"><button class="thumb" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" aria-label="How to do ${esc(ex.name)}" style="border:0;padding:0">${Demo.staticSvg(ex.anim, ex.prop, ex.name)}</button>
       <div class="grow">${ssTag}<button class="link" data-act="open-ex" data-id="${ex.id}" data-ctx="${i}" style="color:var(--ink);font-size:16px;text-align:left;display:block">${esc(ex.name)}</button><div class="small muted">${it.slot === 'finisher' ? esc(it.note) + ' · ' : ''}${rxText(it, false)}</div>${loggerHelp(it, ex, i)}</div>
@@ -408,9 +411,9 @@ function loggerCard(it, i) {
         ${weighted ? `<span class="${r.done ? 'done-row' : ''}"><input inputmode="decimal" aria-label="Set ${j + 1} weight" data-set="w" data-i="${i}" data-j="${j}" value="${r.weightKg != null ? kgToDisp(S, r.weightKg) : ''}" placeholder="${sug.weightKg != null ? kgToDisp(S, sug.weightKg) : '–'}"></span>` : ''}
         <span class="${r.done ? 'done-row' : ''}"><input inputmode="numeric" aria-label="Set ${j + 1} ${unitHead.toLowerCase()}" data-set="r" data-i="${i}" data-j="${j}" value="${r.reps != null ? r.reps : ''}" placeholder="${ex.unit === 'reps' ? (sug.reps || it.min) : it.max}"></span>
         ${adv ? `<select class="rir" data-rir data-i="${i}" data-j="${j}" aria-label="Set ${j + 1} reps in reserve">${RIR_OPTIONS.map(v => `<option value="${v}" ${String(r.rir == null ? '' : r.rir) === v ? 'selected' : ''}>${v === '' ? '–' : v === '5' ? '5+' : v}</option>`).join('')}</select>` : ''}
-        <button class="ok" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-pressed="${r.done}" aria-label="Mark set ${j + 1} done">${icon('check', 20)}</button>`).join('')}
+        ${editing ? `<button class="ok del" data-act="delete-set" data-i="${i}" data-j="${j}" aria-label="Delete set ${j + 1}">${icon('trash', 18)}</button>` : `<button class="ok" data-act="toggle-set" data-i="${i}" data-j="${j}" aria-pressed="${r.done}" aria-label="Mark set ${j + 1} done">${icon('check', 20)}</button>`}`).join('')}
     </div>
-    <div class="row" style="flex-wrap:wrap;row-gap:4px"><button class="link" data-act="add-set" data-i="${i}">${icon('plus', 16)} Add set</button>${adv ? `<button class="link" data-act="add-drop" data-i="${i}">Drop set</button>` : ''}${it.rows.length > 1 ? `<button class="link muted" data-act="remove-set" data-i="${i}">Remove last</button>` : ''}<span class="grow"></span>${S.activeWorkout.items.length > 1 ? `<button class="link danger" data-act="remove-ex" data-scope="active" data-idx="${i}">Remove exercise</button>` : ''}</div>
+    <div class="row" style="flex-wrap:wrap;row-gap:4px"><button class="link" data-act="add-set" data-i="${i}">${icon('plus', 16)} Add set</button>${adv ? `<button class="link" data-act="add-drop" data-i="${i}">Drop set</button>` : ''}<button class="link muted" data-act="edit-sets" data-i="${i}" aria-pressed="${editing}">${editing ? 'Done' : 'Delete sets'}</button><span class="grow"></span>${S.activeWorkout.items.length > 1 ? `<button class="link danger" data-act="remove-ex" data-scope="active" data-idx="${i}">Remove exercise</button>` : ''}</div>
     <div class="row" style="flex-wrap:wrap;gap:14px">${barbell && weighted && !(typeof isGuided === 'function' && isGuided()) ? `<button class="link muted small" data-act="plates" data-i="${i}">Plate calculator</button>` : ''}${adv && i < items.length - 1 ? `<button class="link muted small" data-act="superset" data-i="${i}" aria-pressed="${!!it.superset}">${it.superset ? 'Unlink superset' : 'Superset with next'}</button>` : ''}<button class="link muted small" data-act="pain-report" data-i="${i}">Something hurts?</button></div>
   </div>`;
 }

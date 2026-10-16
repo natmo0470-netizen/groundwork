@@ -3,6 +3,29 @@ UI.stack = [];
 function pushSheet(sheet) { if (UI.sheet) UI.stack.push(UI.sheet); UI.sheet = sheet; render(); }
 function popSheet() { UI.sheet = UI.stack.pop() || null; render(); }
 function closeAll() { UI.stack = []; UI.sheet = null; render(); }
+/* A set ticks itself once its numbers are in: reps (or time) and, for weighted moves, the weight.
+   It runs after focus has moved, so the field the person tapped next keeps the keyboard. */
+function autoCheckSet(i, j) {
+  setTimeout(() => {
+    const a = S.activeWorkout; if (!a || !a.items[i]) return;
+    const it = a.items[i], r = it.rows[j], ex = EX_BY_ID[it.exId];
+    if (!r || r.done || r.reps == null || r.reps <= 0) return;
+    const weighted = ex.unit === 'reps' && ex.req.length > 0;
+    if (weighted && r.weightKg == null) return;
+    const ae = document.activeElement, back = ae && ae.dataset && ae.dataset.set ? `input[data-set="${ae.dataset.set}"][data-i="${ae.dataset.i}"][data-j="${ae.dataset.j}"]` : null;
+    ACT['toggle-set']({ dataset: { i: String(i), j: String(j) } });
+    if (back) { const el = document.querySelector(back); if (el) { el.focus(); try { el.select(); } catch (e) { /* ignore */ } } }
+  }, 0);
+}
+/* When every set is ticked, offer to finish (once; adding a set asks again later). */
+function workoutCompleteCheck() {
+  const a = S.activeWorkout; if (!a || a.completeAsked) return;
+  const total = a.items.reduce((n, it) => n + it.rows.length, 0), done = a.items.reduce((n, it) => n + it.rows.filter(r => r.done).length, 0);
+  if (!total || done < total) return;
+  a.completeAsked = true; save();
+  UI.toast = null; UI.toastAct = null;
+  pushSheet({ type: 'confirm', title: 'Workout complete', body: `All ${total} sets are logged. Finish and save it now, or keep going and add more sets.`, ok: 'Finish and save', cancel: 'Keep going', onOk: () => finishWorkout() });
+}
 function confirmSheet(title, body, ok, onOk, danger) { pushSheet({ type: 'confirm', title, body, ok, danger, onOk }); }
 
 function rebuildPlan(msg) { S.plan = buildPlan(S, (S.plan && S.plan.block) || 1); save(); if (msg) toast(msg); }
@@ -176,8 +199,18 @@ const ACT = {
       if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) { /* ignore */ }
     }
     save(); render();
+    workoutCompleteCheck();
   },
-  'add-set': t => { const it = S.activeWorkout.items[Number(t.dataset.i)]; const last = it.rows[it.rows.length - 1]; it.rows.push({ weightKg: last ? last.weightKg : null, reps: null, done: false }); save(); render(); },
+  'add-set': t => { const it = S.activeWorkout.items[Number(t.dataset.i)]; const last = it.rows[it.rows.length - 1]; it.rows.push({ weightKg: last ? last.weightKg : null, reps: null, done: false }); S.activeWorkout.completeAsked = false; save(); render(); },
+  'edit-sets': t => { const i = Number(t.dataset.i); UI.editSets = UI.editSets || {}; UI.editSets[i] = !UI.editSets[i]; render(); },
+  'delete-set': t => {
+    const i = Number(t.dataset.i), j = Number(t.dataset.j), it = S.activeWorkout.items[i];
+    if (it.rows.length <= 1) { toast('Each exercise keeps at least one set. To drop the exercise, use Swap → Remove.'); return; }
+    const [gone] = it.rows.splice(j, 1);
+    UI.lastDeleted = { i, j, row: gone };
+    save(); render(); toast(`Set ${j + 1} deleted`, 'Undo', 'undo-delete-set');
+  },
+  'undo-delete-set': () => { UI.toast = null; UI.toastAct = null; const d = UI.lastDeleted; if (!d || !S.activeWorkout) return; const it = S.activeWorkout.items[d.i]; if (it) it.rows.splice(d.j, 0, d.row); UI.lastDeleted = null; save(); render(); },
   'remove-set': t => { const it = S.activeWorkout.items[Number(t.dataset.i)]; if (it.rows.length > 1) it.rows.pop(); save(); render(); },
   'rest-add': t => { if (!UI.rest) return; UI.rest.end += Number(t.dataset.v) * 1000; UI.rest.total = Math.max(UI.rest.total, Math.ceil((UI.rest.end - Date.now()) / 1000)); tickRest(); },
   'rest-skip': () => { UI.rest = null; render(); },
@@ -455,6 +488,7 @@ document.addEventListener('change', e => {
     }
     else r.reps = v === '' ? null : Math.max(0, Math.round(parseFloat(v)) || 0);
     save();
+    autoCheckSet(Number(t.dataset.i), Number(t.dataset.j));
   } else if (t.dataset.prof) {
     const k = t.dataset.prof, p = S.profile;
     if (k === 'name') p.name = t.value.trim();

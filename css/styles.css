@@ -475,3 +475,7 @@ button.card { font: inherit; color: inherit; text-align: left; width: 100%; curs
 /* Free-plan card (plus.js): quiet, below the user's own content, dismissible for the day */
 .card.promo { position: relative; gap: 6px; border-style: dashed; }
 .card.promo .card-head .x { width: 30px; height: 30px; border: 0; background: none; color: var(--ink-3); border-radius: 8px; display: grid; place-items: center; margin: -6px -6px -6px 0; }
+
+/* Workout logger: delete-set mode and toast actions */
+.sets .ok.del { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+.toast .toast-act { margin-left: 10px; background: none; border: 0; color: var(--train-soft, #9fe3c9); font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; padding: 0; }

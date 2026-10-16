@@ -292,7 +292,7 @@ const SHEETS = {
 
   confirm(s) {
     return `<div class="grab"></div><div class="stack" style="padding:6px 0"><div class="h2">${esc(s.title)}</div><p class="muted">${esc(s.body)}</p></div>
-      <button class="btn ${s.danger ? 'danger' : 'train'} block" data-act="confirm-ok">${esc(s.ok)}</button><button class="btn ghost block" data-act="close-sheet">Cancel</button>`;
+      <button class="btn ${s.danger ? 'danger' : 'train'} block" data-act="confirm-ok">${esc(s.ok)}</button><button class="btn ghost block" data-act="close-sheet">${esc(s.cancel || 'Cancel')}</button>`;
   },
 
   settings(s) {
@@ -351,7 +351,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Movla v1.18 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
+      <p class="tiny faint">Movla v1.19 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
   },
 
   feedback(s) {
