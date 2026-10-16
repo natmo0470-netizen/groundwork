@@ -4,6 +4,8 @@
 #   USDA_API_KEY           your api.data.gov key (stored only in GitHub and Supabase, never in the app)
 #   INSTACART_API_KEY      optional: Instacart Developer Platform key (dashboard.instacart.com → API Keys)
 #   INSTACART_ENV          optional: 'production' once your production key is active; anything else = development
+#   REVENUECAT_SECRET_KEY  optional: RevenueCat secret API key (sk_...) for App Store / Google Play subscriptions
+#   REVENUECAT_WEBHOOK_AUTH optional: random string; the same value goes in RevenueCat's webhook Authorization header
 name: Deploy edge functions
 on:
   workflow_dispatch:
@@ -47,6 +49,18 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase functions deploy instacart-list --project-ref "$PROJECT_REF" --no-verify-jwt --use-api
+      - name: Set the RevenueCat keys on Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REVENUECAT_SECRET_KEY: ${{ secrets.REVENUECAT_SECRET_KEY }}
+          REVENUECAT_WEBHOOK_AUTH: ${{ secrets.REVENUECAT_WEBHOOK_AUTH }}
+        run: |
+          if [ -z "$REVENUECAT_SECRET_KEY" ] || [ -z "$REVENUECAT_WEBHOOK_AUTH" ]; then echo "::warning::RevenueCat secrets not set; store purchases stay off"; exit 0; fi
+          supabase secrets set REVENUECAT_SECRET_KEY="$REVENUECAT_SECRET_KEY" REVENUECAT_WEBHOOK_AUTH="$REVENUECAT_WEBHOOK_AUTH" --project-ref "$PROJECT_REF"
+      - name: Deploy revenuecat
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy revenuecat --project-ref "$PROJECT_REF" --no-verify-jwt --use-api
       - name: Deploy food-search
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -59,3 +73,5 @@ jobs:
           if [ "$code" = "200" ] && [ "$n" -gt 0 ]; then echo "::notice::food-search OK: $n USDA results for 'apple'"; else echo "::error::food-search returned HTTP $code: $(echo "$body" | head -n -1 | head -c 300)"; exit 1; fi
           r=$(curl -s -H "apikey: sb_publishable_uWQzbQu29-2DiaP03_fbzA_l_js2neM" "https://$PROJECT_REF.supabase.co/functions/v1/instacart-list")
           echo "::notice::instacart-list: $r"
+          r=$(curl -s -H "apikey: sb_publishable_uWQzbQu29-2DiaP03_fbzA_l_js2neM" "https://$PROJECT_REF.supabase.co/functions/v1/revenuecat")
+          echo "::notice::revenuecat: $r"

@@ -26,6 +26,9 @@ edit('app/src/main/AndroidManifest.xml', s => {
     .concat(REMOVE.map(p => `    <uses-permission android:name="android.permission.health.${p}" tools:node="remove" />`));
   return s.replace('</manifest>', lines.join('\n') + '\n</manifest>');
 });
+// In-app purchases (RevenueCat / Google Play Billing): the activity must not be singleTask, or leaving the app to
+// confirm a payment (bank app, 2-step check) cancels the purchase. singleTop still delivers invite links.
+edit('app/src/main/AndroidManifest.xml', s => s.replace(/android:launchMode="singleTask"/, 'android:launchMode="singleTop"'));
 // Invite links: movla://join/CODE (coach, and the older groundwork://join/CODE) and movla://group/CODE (family or challenge) open the app.
 edit('app/src/main/AndroidManifest.xml', s => s.includes('android:scheme="movla"') ? s : s.replace('</activity>',
   `    <intent-filter>

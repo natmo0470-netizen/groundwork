@@ -62,3 +62,11 @@ select g.kind, g.name, g.metric, g.starts_on, g.ends_on, g.created_at, (select c
   from public.groups g order by g.created_at desc;
 -- Delete a group (members' own data is untouched):
 -- delete from public.groups where code = 'ABCD2345';
+
+-- ---------- store subscriptions (migration 011) ----------
+-- Recent billing activity from RevenueCat (purchases, renewals, cancellations, expirations):
+select received_at, type, product, store, environment, (select email from auth.users u where u.id = b.user_id) as email
+  from public.billing_events b order by received_at desc limit 50;
+-- Who has a paid plan right now:
+select u.email, e.kind, e.plan, e.ends_at, e.note from public.entitlements e join auth.users u on u.id = e.user_id
+ where e.source = 'store' and (e.ends_at is null or e.ends_at > now()) order by e.kind, u.email;

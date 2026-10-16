@@ -464,6 +464,7 @@ const Cloud = (() => {
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
     rpc: (fn, body) => rest('rpc/' + fn, { method: 'POST', body: body || {} }),
+    fn: (name, body) => api('/functions/v1/' + name, { method: 'POST', body: body || {} }),
     needsConsent, recordConsent, report, sendFeedback, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile, testCheckout, isAdmin, startTestPlan,
   };
 })();

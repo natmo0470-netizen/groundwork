@@ -1,4 +1,4 @@
-# Movla — v1.25
+# Movla — v1.26
 
 A beginner-friendly workout and nutrition web app. It runs entirely in the browser, with no server and no account. Data is saved on the device.
 
@@ -74,6 +74,7 @@ js/coachstart.js    becoming a coach: onboarding, waits for a coach plan, then i
 js/native.js        phone features (no-op on the website)
 js/health.js        Apple Health / Health Connect (phone app only)
 scripts/android-config.js  Android project settings applied in the cloud build
+js/purchases.js     App Store / Google Play subscriptions through RevenueCat (Plus and coach plans)
 js/portions.js      food amounts in grams, ounces, cups, spoons, ml or servings when logging
 js/timers.js        hold and cardio timers in the workout logger, rest-over sound and background notification
 js/groups.js        families and challenges: invite codes, leaderboards, team goals, cheers (migration 010)
