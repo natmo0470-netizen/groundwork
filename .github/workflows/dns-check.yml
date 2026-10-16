@@ -1,0 +1,15 @@
+# Shows what public DNS currently returns for movla.app's mail records (run from Actions when debugging email setup).
+name: DNS check
+on: workflow_dispatch
+jobs:
+  dig:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for q in "movla.app MX" "send.movla.app MX" "send.movla.app TXT" "resend._domainkey.movla.app TXT" "_dmarc.movla.app TXT" "movla.app TXT"; do
+            set -- $q
+            for r in 8.8.8.8 1.1.1.1 dns1.registrar-servers.com; do
+              a=$(dig +short @$r $1 $2 | tr '\n' ' ' | cut -c1-180)
+              echo "::notice title=$1 $2 @ $r::${a:-(none)}"
+            done
+          done
