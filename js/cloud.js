@@ -420,6 +420,9 @@ const Cloud = (() => {
   function plusSource() { const r = accessRows().filter(live); return r.find(x => x.kind === 'plus' && x.source !== 'coach') || r.find(x => x.kind === 'coach') || r.find(x => x.source === 'coach') || null; }
   async function saveCoachProfile(p) { await upsert('coach_profiles', 'user_id', [Object.assign({ user_id: me(), updated_at: new Date().toISOString() }, p)]); }
 
+  /* ---------- feedback (migration 008): insert-only, works signed in or not ---------- */
+  async function sendFeedback(row) { await rest('feedback', { method: 'POST', headers: { prefer: 'return=minimal' }, body: row }); }
+
   /* ---------- reports ---------- */
   async function report(r) {
     await rest('reports', { method: 'POST', headers: { prefer: 'return=minimal' }, body: { reporter_id: me(), link_id: r.linkId || null, message_id: r.messageId || null, reported_body: r.body ? String(r.body).slice(0, 2000) : null, reason: r.reason, details: (r.details || '').slice(0, 1000) } });
@@ -448,7 +451,7 @@ const Cloud = (() => {
     acceptInvite, activeLink, setShare, setClientNote, answer, pending: () => pending, readAuthLink, isApplying: () => applying,
     checkInbox, loadThread, markRead, sendMessage, thread: id => threads[id] || null, threadBusy: id => !!loadingThread[id],
     unread: id => (id ? unread[id] || [] : unread), onMessages: fn => { notifyHook = fn; }, inviteLink, invitePreview,
-    needsConsent, recordConsent, report, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile, testCheckout, startTestPlan,
+    needsConsent, recordConsent, report, sendFeedback, refreshAccess, hasCoach, hasPlus, coachAccess, plusSource, saveCoachProfile, testCheckout, startTestPlan,
   };
 })();
 

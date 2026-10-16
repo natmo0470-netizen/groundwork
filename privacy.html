@@ -37,6 +37,7 @@
   <h2>When the app connects to the internet</h2>
   <table>
     <tr><th>Feature</th><th>What is sent</th><th>To whom</th></tr>
+    <tr><td>Feedback you send</td><td>Your note, which part of the app it's about, an optional ease rating, the app version and phone type, and your email only if you choose to add it. Used only to improve Movla and to reply to you.</td><td>Stored with our database provider (Supabase); read only by the Movla team</td></tr>
     <tr><td>Online food search</td><td>The search words you enter. No personal details. USDA searches pass through our server (Supabase), which keeps them only briefly in memory to answer repeat searches faster and doesn't log who searched.</td><td><a href="https://fdc.nal.usda.gov/">USDA FoodData Central</a> (via Supabase) and <a href="https://world.openfoodfacts.org/privacy">Open Food Facts</a></td></tr>
     <tr><td>Barcode lookup</td><td>The barcode number. No personal details.</td><td><a href="https://world.openfoodfacts.org/privacy">Open Food Facts</a></td></tr>
     <tr><td>Product links on the free plan</td><td>Nothing until you tap a link; it then opens the retailer's site (currently RitFit) through the Awin affiliate network, so they know the visit came from Movla. Nothing about you is included.</td><td>RitFit, Awin</td></tr>

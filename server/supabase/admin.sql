@@ -38,3 +38,11 @@ update public.app_settings set value = 'off', updated_at = now() where key = 'te
 update public.entitlements set ends_at = now() where note = 'test checkout' and (ends_at is null or ends_at > now());
 -- Turn it back on:
 update public.app_settings set value = 'on', updated_at = now() where key = 'test_checkout';
+
+-- ---------- feedback (migration 008) ----------
+-- Newest feedback first:
+select created_at, kind, area, rating, message, contact, app_version, platform, status from public.feedback order by created_at desc limit 100;
+-- Feature requests only:
+select created_at, area, message, contact from public.feedback where kind = 'idea' order by created_at desc;
+-- Mark one as planned / done (copy its id from: select id, message from public.feedback order by created_at desc):
+update public.feedback set status = 'planned' where id = '00000000-0000-0000-0000-000000000000';
