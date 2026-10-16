@@ -34,8 +34,6 @@ async function signup(role) {
   return { email, token: t.j.access_token, id: t.j.user.id };
 }
 const users = [];
-// Coach tools need a coach plan (migration 006). The test grants one to its throwaway coach with the project's
-// secret key, passed in from the SUPABASE_SECRET_KEY GitHub secret; it never appears in logs.
 async function admin(path, method, body) {
   const r = await fetch(URL_ + path, { method, headers: { apikey: SECRET, authorization: SECRET.startsWith('eyJ') ? 'Bearer ' + SECRET : undefined, 'content-type': 'application/json', prefer: 'return=minimal' }, body: body == null ? undefined : JSON.stringify(body) });
   return r.ok;
