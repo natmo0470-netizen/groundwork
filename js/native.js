@@ -89,15 +89,18 @@ const Native = (() => {
   }
   /* Rest timer: a notification when rest ends, so a phone in your pocket (and a paired watch) buzzes. */
   const REST_ID = 7990, SNOOZE_ID = 7950;
+  // One alarm at a time (rest over, or a timed hold/cardio set finishing), shown only while the app is in the
+  // background; in the app the timers beep instead (timers.js). Follows the workout-timer alert setting.
   let restAt = 0;
-  async function syncRest(rest, label) {
-    if (!isNative || !S.reminders || !S.reminders.browser) return;
+  async function syncRest(rest, label, title) {
+    const prefs = S.timerPrefs || {};
+    if (!isNative || prefs.notify === false) return;
     const end = rest ? Math.round(rest.end / 1000) * 1000 : 0;
     if (end === restAt) return;
     restAt = end;
     try {
       await call('LocalNotifications', 'cancel', { notifications: [{ id: REST_ID }] });
-      if (end && end - Date.now() > 3000) await call('LocalNotifications', 'schedule', { notifications: [{ id: REST_ID, title: 'Rest is over', body: label || 'Time for your next set.', schedule: { at: new Date(end), allowWhileIdle: true }, extra: { act: 'rest' } }] });
+      if (end && end - Date.now() > 1500) await call('LocalNotifications', 'schedule', { notifications: [{ id: REST_ID, title: title || 'Rest is over', body: label || 'Time for your next set.', schedule: { at: new Date(end), allowWhileIdle: true }, extra: { act: 'rest' } }] });
     } catch (e) { /* best effort */ }
   }
   async function clearReminders() {
@@ -159,10 +162,17 @@ const Native = (() => {
   // Rest-over notification follows the in-app rest timer.
   function restSync() {
     if (!Native.isNative) return;
+    // Only while the app is in the background: in the app the timers beep instead of notifying.
+    if (!appHidden || !S.activeWorkout) { Native.syncRest(null); return; }
+    if (typeof Timers !== 'undefined') { const a = Timers.alarm(); Native.syncRest(a, a && a.body, a && a.title); return; }
     let label = '';
-    if (UI.rest && S.activeWorkout) { const it = S.activeWorkout.items.find(x => x.rows.some(r => !r.done)); if (it) { const j = it.rows.findIndex(r => !r.done); label = `Next: ${EX_BY_ID[it.exId].name}, set ${j + 1}`; } }
-    Native.syncRest(S.activeWorkout ? UI.rest : null, label);
+    if (UI.rest) { const it = S.activeWorkout.items.find(x => x.rows.some(r => !r.done)); if (it) { const j = it.rows.findIndex(r => !r.done); label = `Next: ${EX_BY_ID[it.exId].name}, set ${j + 1}`; } }
+    Native.syncRest(UI.rest, label);
   }
+  let appHidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+  document.addEventListener('visibilitychange', () => { appHidden = document.visibilityState === 'hidden'; restSync(); });
+  if (Native.isNative) Native.listen('App', 'appStateChange', st => { appHidden = !(st && st.isActive); restSync(); });
+  window.restSync = restSync;
   ['rest-add', 'rest-skip'].forEach(k => { const f = ACT[k]; if (f) ACT[k] = t => { f(t); restSync(); }; });
   // Haptics.
   const tog = ACT['toggle-set'];

@@ -487,3 +487,11 @@ a.li { text-decoration: none; color: inherit; }
 .icon-btn.cheer { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 40px; padding: 0 8px; gap: 3px; color: var(--ink-3); }
 .icon-btn.cheer.on { color: var(--fuel); }
 .icon-btn.cheer .tiny { font-weight: 700; }
+/* timed sets */
+.hold-start { margin-top: 2px; }
+.hold { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--train-soft); }
+.hold-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.hold-t { font: 700 40px/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--train); }
+.hold .tbar { background: color-mix(in srgb, var(--train) 18%, transparent); }
+.hold-btns { display: flex; gap: 8px; align-items: center; }
+.hold-btns .btn { flex: 1; }
