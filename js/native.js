@@ -141,6 +141,7 @@ const Native = (() => {
       if (act === 'food') { UI.tab = 'food'; UI.foodDate = todayKey(); }
       else if (act === 'weight') { UI.tab = 'today'; render(); pushSheet({ type: 'weight' }); return; }
       else if (act === 'coachmsg') { UI.tab = typeof coachOn === 'function' && coachOn() ? 'clients' : 'coach'; }
+      else if (act === 'group' && n.extra.id) { UI.tab = 'progress'; render(); if (typeof GroupAlerts !== 'undefined') GroupAlerts.markSeen(n.extra.id); pushSheet({ type: 'group', id: n.extra.id, tall: true }); return; }
       else if (act === 'checkin') { UI.tab = 'today'; render(); if (ACT['open-checkin']) ACT['open-checkin'](); return; }
       else UI.tab = 'today';
       render();

@@ -227,7 +227,7 @@ function viewToday() {
     </div>`;
 }
 function nudgeHtml(r) {
-  return `<div class="nudge ${r.level === 'high' ? 'high' : ''}"><span class="ni">${icon(r.icon, 20)}</span><div class="stack grow" style="gap:4px;padding-right:22px"><b>${esc(r.title)}</b><span class="small muted">${esc(r.body)}</span>${r.action ? `<button class="link" data-act="${r.action}" style="align-self:flex-start">${esc(r.actionLabel)}</button>` : ''}</div><button class="x" data-act="dismiss" data-id="${r.id}" aria-label="Dismiss for today">${icon('x', 16)}</button></div>`;
+  return `<div class="nudge ${r.level === 'high' ? 'high' : ''}"><span class="ni">${icon(r.icon, 20)}</span><div class="stack grow" style="gap:4px;padding-right:22px"><b>${esc(r.title)}</b><span class="small muted">${esc(r.body)}</span>${r.action ? `<button class="link" data-act="${r.action}"${r.data ? ` data-id="${esc(r.data)}"` : ''} style="align-self:flex-start">${esc(r.actionLabel)}</button>` : ''}</div><button class="x" data-act="dismiss" data-id="${r.id}" aria-label="Dismiss for today">${icon('x', 16)}</button></div>`;
 }
 function mealForNow() { const h = new Date().getHours(); return h < 11 ? 'breakfast' : h < 15 ? 'lunch' : h < 21 ? 'dinner' : 'snacks'; }
 function nextPlanned(fromKey) {

@@ -38,6 +38,7 @@ New database pieces ship as numbered files in `migrations/`. Run each one once, 
 | `migrations/009_admin.sql` | Admin console (`admin.html`): an `admins` table and `admin_*` functions for analytics, approvals, feedback, reports and free plans. Only accounts listed in `admins` can call them |
 | `migrations/010_groups.sql` | Families and challenges: `groups`, `group_members`, `group_cheers` (no direct access; only `group_*` functions that return derived numbers, never body weight), plus a `body_fat` column on `activity_days` |
 | `migrations/011_store_billing.sql` | App Store / Google Play subscriptions through RevenueCat: `billing_events` log and `apply_store_entitlements()` (server only), used by the `revenuecat` Edge Function |
+| `migrations/012_group_activity.sql` | `my_group_activity()`: cheers you received and new members in your groups, for notifications |
 
 ## Plans, coaches and free accounts
 

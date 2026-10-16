@@ -342,7 +342,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Movla v1.26 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
+      <p class="tiny faint">Movla v1.27 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
   },
 
   feedback(s) {

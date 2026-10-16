@@ -39,7 +39,7 @@ const Groups = (() => {
       const before = JSON.stringify([c.list, c.detail]);
       c.list = await rpc('my_groups'); c.at = Date.now(); persist();
       // Details for active groups, so cards can show ranks and team totals.
-      for (const g of c.list.filter(g => !g.ended).slice(0, 10)) await loadDetail(g.id, force, true);
+      for (const g of c.list.filter(g => !g.ended || (g.ends_on && g.ends_on >= addDays(todayKey(), -7))).slice(0, 10)) await loadDetail(g.id, force, true);
       if (JSON.stringify([c.list, c.detail]) !== before) render();
     } catch (e) { if (missing(e)) { unavailable = true; render(); } }
     loadingList = false;
