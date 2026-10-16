@@ -1,0 +1,37 @@
+# Diagnoses email: movla.app mail DNS, Supabase Auth email settings (no secrets printed) and recent Auth log errors.
+name: Email check
+on: workflow_dispatch
+env:
+  PROJECT_REF: eavcynlwjpwigrvfuvzd
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mail DNS
+        run: |
+          for q in "movla.app MX" "movla.app TXT" "send.movla.app CNAME" "rsend.movla.app CNAME" "resend._domainkey.movla.app TXT" "_dmarc.movla.app TXT"; do
+            set -- $q
+            for r in 1.1.1.1 dns1.registrar-servers.com; do
+              a=$(dig +short @$r $1 $2 | tr '\n' ' ' | cut -c1-160)
+              echo "::notice title=DNS $1 $2 @ $r::${a:-(none)}"
+            done
+          done
+          for h in eforward1.registrar-servers.com eforward2.registrar-servers.com; do
+            if timeout 8 bash -c "exec 3<>/dev/tcp/$h/25 && head -c 120 <&3" >/tmp/b 2>/dev/null; then echo "::notice title=SMTP $h::$(tr -d '\r\n' </tmp/b)"; else echo "::warning title=SMTP $h::no answer on port 25 from GitHub (often blocked; not conclusive)"; fi
+          done
+      - name: Supabase Auth email settings
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          c=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth")
+          echo "$c" | jq -r '{site_url, uri_allow_list, mailer_autoconfirm, external_email_enabled, smtp_host, smtp_port, smtp_user, smtp_admin_email, smtp_sender_name, smtp_pass_set: ((.smtp_pass // "") != ""), rate_limit_email_sent, mailer_secure_email_change_enabled} | to_entries[] | "\(.key)=\(.value)"' | while read l; do echo "::notice title=Auth config::$l"; done
+          echo "$c" | jq -r '.message // empty' | while read l; do echo "::error title=Auth config::$l"; done
+      - name: Recent Auth log errors
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          start=$(date -u -d '-3 days' +%Y-%m-%dT%H:%M:%SZ); end=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          sql="select timestamp, event_message from auth_logs order by timestamp desc limit 200"
+          r=$(curl -s -G -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "https://api.supabase.com/v1/projects/$PROJECT_REF/analytics/endpoints/logs.all" --data-urlencode "sql=$sql" --data-urlencode "iso_timestamp_start=$start" --data-urlencode "iso_timestamp_end=$end")
+          echo "$r" | jq -r '.error // empty | tostring' | head -c 400 | while read l; do [ -n "$l" ] && echo "::warning title=Logs API::$l"; done
+          echo "$r" | jq -r '.result[]? | .event_message' | grep -iE 'mail|smtp|recover|error|rate' | grep -viE 'password=|token=' | head -15 | while read l; do echo "::notice title=Auth log::$(echo "$l" | cut -c1-600)"; done
