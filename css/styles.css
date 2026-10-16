@@ -503,3 +503,5 @@ a.li { text-decoration: none; color: inherit; }
 .hold .tbar { background: color-mix(in srgb, var(--train) 18%, transparent); }
 .hold-btns { display: flex; gap: 8px; align-items: center; }
 .hold-btns .btn { flex: 1; }
+.por-units { margin-top: 8px; }
+.por-units button { white-space: nowrap; }

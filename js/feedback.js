@@ -3,7 +3,7 @@
    feedback table (migration 008, insert-only) whether or not the person has an account. If the phone
    is offline, the note waits on the device and sends next time the app opens. Builds without cloud
    settings fall back to an email to support@movla.app. */
-const APP_VERSION = '1.24.1';
+const APP_VERSION = '1.25.0';
 
 const Feedback = (() => {
   const KINDS = [

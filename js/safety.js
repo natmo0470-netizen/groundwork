@@ -219,7 +219,7 @@ searchOnlineFoods = async function (q) {
 const _foodPick = foodPick;
 foodPick = f => _foodPick(f).replace(`${esc(f.serving)} · <span class="pcf">`, `${sourceBadge(f)}${esc(f.serving)} · <span class="pcf">`);
 const _servingSheet = SHEETS.serving;
-SHEETS.serving = s => { const html = _servingSheet(s); const q = foodQuality(s.food); return q ? html.replace('<div class="field"><span class="label">Servings</span>', `<div class="banner">${icon('info', 18)}<span>${esc(q)}</span></div><div class="field"><span class="label">Servings</span>`) : html; };
+SHEETS.serving = s => { const html = _servingSheet(s); const q = foodQuality(s.food); return q ? html.replace('<div class="field"><span class="label">How much?</span>', `<div class="banner">${icon('info', 18)}<span>${esc(q)}</span></div><div class="field"><span class="label">How much?</span>`) : html; };
 
 /* ================= actions ================= */
 Object.assign(ACT, {

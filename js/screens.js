@@ -194,17 +194,7 @@ const SHEETS = {
       <div id="food-results">${foodResults()}</div>`;
   },
 
-  serving(s) {
-    const f = s.food;
-    const tot = k => r0(f[k] * s.servings);
-    return sheetHead(esc(f.name), esc(f.serving) + (f.source ? ' · ' + esc(f.source) : ''))
-      + `<div class="field"><span class="label">Servings</span><div class="stepper"><button data-act="serv-step" data-v="-0.25" aria-label="Less">−</button><input class="input big" id="serv-n" inputmode="decimal" value="${fmtServ(s.servings)}" aria-label="Servings"><button data-act="serv-step" data-v="0.25" aria-label="More">+</button></div></div>
-      <div class="chips">${[0.5, 1, 1.5, 2].map(v => `<button class="chip" data-act="serv-set" data-v="${v}" aria-pressed="${s.servings === v}">${v}×</button>`).join('')}</div>
-      <div class="card" style="box-shadow:none" id="serv-preview">${servPreview(f, s.servings)}</div>
-      <div class="field"><span class="label">Meal</span><div class="seg">${MEALS.map(([id, l]) => `<button data-act="serv-meal" data-v="${id}" aria-pressed="${s.meal === id}">${l}</button>`).join('')}</div></div>
-      <button class="btn fuel block" data-act="serv-save">${s.editId ? 'Save changes' : 'Add to log'}</button>
-      ${s.editId ? `<button class="btn danger block" data-act="food-delete" data-id="${s.editId}">${icon('trash', 18)} Remove from log</button>` : ''}`;
-  },
+  serving(s) { return portionSheet(s); },   // portions.js: amounts in grams, ounces, cups or servings
 
   scan(s) {
     return sheetHead('Scan a barcode', 'Point your camera at the barcode on the package')
@@ -352,7 +342,7 @@ const SHEETS = {
         <div class="grid2"><button class="btn ghost sm" data-act="export">${icon('download', 16)} Back up</button><button class="btn ghost sm" data-act="import">Restore</button></div>
         <button class="btn danger sm" data-act="reset-all">Erase all data</button>
       </div>
-      <p class="tiny faint">Movla v1.24 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
+      <p class="tiny faint">Movla v1.25 · General fitness guidance, not medical advice. Exercise demos are simplified illustrations of each movement. Food data: USDA FoodData Central and Open Food Facts (ODbL).</p>`;
   },
 
   feedback(s) {
