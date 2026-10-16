@@ -256,7 +256,7 @@
         ${row('food', 'Food search', 'food-search function → USDA (private key)')}
         ${row('off', 'Barcodes', 'Open Food Facts')}
       </tbody></table></div>
-      <p class="tiny faint" style="margin:0">Email sending (Resend) and builds (GitHub Actions) are checked in their own dashboards: <a href="https://resend.com/emails" target="_blank" rel="noopener">Resend</a> · <a href="https://github.com/natmo0470-netizen/groundwork/actions" target="_blank" rel="noopener">GitHub Actions</a> · <a href="https://supabase.com/dashboard/project/eavcynlwjpwigrvfuvzd" target="_blank" rel="noopener">Supabase</a></p></div>
+      <p class="tiny faint" style="margin:0">Email sending (Resend) and builds (GitHub Actions) are checked in their own dashboards: <a href="https://resend.com/emails" target="_blank" rel="noopener">Resend</a> · <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a> · <a href="https://supabase.com/dashboard/project/eavcynlwjpwigrvfuvzd" target="_blank" rel="noopener">Supabase</a></p></div>
     <div class="grid2">
       <div class="card"><span class="eyebrow">Database</span>
         <div class="row between small"><span>Storage used</span><b>${(used / 1048576).toFixed(1)} MB of 500 MB (free plan)</b></div>
