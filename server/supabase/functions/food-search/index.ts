@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
   const url = 'https://api.nal.usda.gov/fdc/v1/foods/search?pageSize=15&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)&query=' + encodeURIComponent(q);
   try {
     const res = await fetch(url, { headers: { 'X-Api-Key': KEY }, signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return reply(502, { error: 'USDA returned ' + res.status });
+    if (!res.ok) return reply(502, { error: 'USDA returned ' + res.status, detail: (await res.text()).replace(/[A-Za-z0-9]{40}/g, '…').slice(0, 300) });
     const body = JSON.stringify(trim(await res.json()));
     cache.set(k, { at: now, body });
     if (cache.size > 1000) cache.delete(cache.keys().next().value!);
