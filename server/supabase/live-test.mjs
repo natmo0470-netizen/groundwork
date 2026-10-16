@@ -14,21 +14,28 @@ async function call(path, { method = 'GET', token, body, prefer } = {}) {
   return { status: r.status, ok: r.ok, j };
 }
 const tag = Date.now().toString(36);
+// Coach tools need a coach plan (migration 006). The test grants one to its throwaway coach with the project's
+// secret key, passed in from the SUPABASE_SECRET_KEY GitHub secret; it never appears in logs.
+const SECRET = process.env.SUPABASE_SECRET_KEY || '';
 const coachEmail = `gw-live-${tag}-coach@example.com`;
+// Test accounts are created already confirmed through the admin API (secret key), so the check works with
+// "Confirm email" on and never sends mail. Without the secret key it falls back to a normal sign-up.
 async function signup(role) {
-  for (const dom of ['example.com', 'groundworktest.dev', 'mailinator.com']) {
-    const email = `gw-live-${tag}-${role}@${dom}`;
-    const r = await call('/auth/v1/signup', { method: 'POST', body: { email, password: 'Live-test-' + tag } });
-    if (r.ok && r.j && r.j.access_token) return { email, token: r.j.access_token, id: r.j.user.id };
-    if (r.ok && !(r.j && r.j.access_token)) throw new Error('Signup returned no session: "Confirm email" is still on (Authentication → Sign In / Providers → Email).');
-    if (!/invalid/i.test(JSON.stringify(r.j))) throw new Error('Signup failed: ' + JSON.stringify(r.j));
+  const email = `gw-live-${tag}-${role}@example.com`, password = 'Live-test-' + tag;
+  if (SECRET) {
+    const r = await fetch(URL_ + '/auth/v1/admin/users', { method: 'POST', headers: { apikey: SECRET, authorization: SECRET.startsWith('eyJ') ? 'Bearer ' + SECRET : undefined, 'content-type': 'application/json' }, body: JSON.stringify({ email, password, email_confirm: true }) });
+    if (!r.ok) throw new Error('Admin create user failed: ' + r.status + ' ' + (await r.text()).slice(0, 200));
+  } else {
+    const r = await call('/auth/v1/signup', { method: 'POST', body: { email, password } });
+    if (!r.ok) throw new Error('Signup failed: ' + JSON.stringify(r.j));
   }
-  throw new Error('Signup rejected every test email domain');
+  const t = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password } });
+  if (!t.ok) throw new Error('Sign in after sign-up failed: ' + JSON.stringify(t.j));
+  return { email, token: t.j.access_token, id: t.j.user.id };
 }
 const users = [];
 // Coach tools need a coach plan (migration 006). The test grants one to its throwaway coach with the project's
 // secret key, passed in from the SUPABASE_SECRET_KEY GitHub secret; it never appears in logs.
-const SECRET = process.env.SUPABASE_SECRET_KEY || '';
 async function admin(path, method, body) {
   const r = await fetch(URL_ + path, { method, headers: { apikey: SECRET, authorization: SECRET.startsWith('eyJ') ? 'Bearer ' + SECRET : undefined, 'content-type': 'application/json', prefer: 'return=minimal' }, body: body == null ? undefined : JSON.stringify(body) });
   return r.ok;
@@ -37,7 +44,7 @@ try {
   const settings = await call('/auth/v1/settings');
   check('project reachable with publishable key', settings.ok, settings.status);
   check('email sign-in enabled', settings.j && settings.j.external && settings.j.external.email === true, settings.j && settings.j.external);
-  check('confirm email off (autoconfirm)', settings.j && settings.j.mailer_autoconfirm === true, settings.j && settings.j.mailer_autoconfirm);
+  check('confirm email on (new accounts verify their address)', settings.j && settings.j.mailer_autoconfirm === false, settings.j && settings.j.mailer_autoconfirm);
   const anonRead = await call('/rest/v1/app_state?select=user_id');
   check('signed-out visitors see no data', anonRead.ok ? anonRead.j.length === 0 : anonRead.status === 401, anonRead);
   check('SUPABASE_SECRET_KEY secret is set (GitHub → Settings → Secrets → Actions)', !!SECRET);
