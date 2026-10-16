@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
   const hit = cache.get(k);
   if (hit && now - hit.at < CACHE_MS) return reply(200, hit.body);
 
-  const url = 'https://api.nal.usda.gov/fdc/v1/foods/search?pageSize=15&dataType=' +
-    encodeURIComponent('Foundation,SR Legacy,Survey (FNDDS)') + '&query=' + encodeURIComponent(q);
+  // Commas in dataType must stay as commas: USDA rejects an encoded list (%2C) with HTTP 400.
+  const url = 'https://api.nal.usda.gov/fdc/v1/foods/search?pageSize=15&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)&query=' + encodeURIComponent(q);
   try {
     const res = await fetch(url, { headers: { 'X-Api-Key': KEY }, signal: AbortSignal.timeout(8000) });
     if (!res.ok) return reply(502, { error: 'USDA returned ' + res.status });
