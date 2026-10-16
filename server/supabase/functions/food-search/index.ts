@@ -4,7 +4,7 @@
 // Anyone can search without an account, so the function limits each IP address and caches popular searches
 // to stay well inside USDA's 1,000 requests an hour.
 
-const KEY = Deno.env.get('USDA_API_KEY') ?? '';
+const KEY = (Deno.env.get('USDA_API_KEY') ?? '').trim();   // a pasted key can carry a newline, which USDA's server rejects
 const PER_MINUTE = 20;                 // searches per IP address per minute
 const CACHE_MS = 6 * 60 * 60 * 1000;   // keep a result for 6 hours
 const cache = new Map<string, { at: number; body: string }>();
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
   // Commas in dataType must stay as commas: USDA rejects an encoded list (%2C) with HTTP 400.
   const url = 'https://api.nal.usda.gov/fdc/v1/foods/search?pageSize=15&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)&query=' + encodeURIComponent(q);
   try {
-    const res = await fetch(url, { headers: { 'X-Api-Key': KEY }, signal: AbortSignal.timeout(8000) });
+    const res = await fetch(url, { headers: { 'X-Api-Key': KEY, accept: 'application/json', 'user-agent': 'Movla/1.0 (+https://movla.app)' }, signal: AbortSignal.timeout(8000) });
     if (!res.ok) return reply(502, { error: 'USDA returned ' + res.status, detail: (await res.text()).replace(/[A-Za-z0-9]{40}/g, '…').slice(0, 300) });
     const body = JSON.stringify(trim(await res.json()));
     cache.set(k, { at: now, body });
