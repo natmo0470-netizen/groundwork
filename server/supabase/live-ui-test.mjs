@@ -1,16 +1,26 @@
-// Live check of the real app against the Supabase project: sign up in the UI, sync, restore on a
+// Live check of the real app against the Supabase project: sign in in the UI, sync, restore on a
 // second "phone", then delete the account. Needs playwright and the site served on :8080.
+// "Confirm email" is on, so the test account is created already confirmed with the admin API (secret key)
+// and the app signs in to it; no email is sent to the made-up address.
 import { chromium } from 'playwright';
+import fs from 'node:fs';
 const tag = Date.now().toString(36), email = `gw-ui-${tag}@example.com`, pw = 'Ui-test-' + tag;
 const out = []; let failed = 0; const check = (n, ok, x) => { out.push(`${ok ? 'PASS' : 'FAIL'}  ${n}${ok || x === undefined ? '' : '  → ' + JSON.stringify(x)}`); if (!ok) failed++; };
 const b = await chromium.launch();
 const page = async () => { const c = await b.newContext({ viewport: { width: 390, height: 844 } }); const p = await c.newPage(); p._e = []; p.on('pageerror', e => p._e.push(e.message)); await p.goto('http://127.0.0.1:8080/index.html'); await p.waitForTimeout(500); return p; };
+const cfgText = fs.readFileSync(new URL('../../js/cloud-config.js', import.meta.url), 'utf8');
+const URL_ = cfgText.match(/url:\s*'([^']+)'/)[1], SECRET = process.env.SUPABASE_SECRET_KEY || '';
 try {
+  if (!SECRET) throw new Error('SUPABASE_SECRET_KEY is needed to create the test account');
+  const cr = await fetch(URL_ + '/auth/v1/admin/users', { method: 'POST', headers: { apikey: SECRET, authorization: SECRET.startsWith('eyJ') ? 'Bearer ' + SECRET : undefined, 'content-type': 'application/json' }, body: JSON.stringify({ email, password: pw, email_confirm: true }) });
+  check('create a confirmed test account', cr.ok, cr.status);
   const A = await page();
-  await A.evaluate(() => { seedDemo(); S.demo = false; S.profile.name = 'UI Test'; save(); render(); ACT['acct-open']({ dataset: { mode: 'signup' } }); });
-  await A.fill('#acct-email', email); await A.fill('#acct-pw', pw); await A.check('.sheet .consent input'); await A.click('[data-act=acct-submit]');
-  await A.waitForFunction(() => Cloud.signedIn() && !UI.sheet, null, { timeout: 20000 }).catch(() => null);
-  check('sign up in the app', await A.evaluate(() => Cloud.signedIn()), await A.evaluate(() => UI.sheet && UI.sheet.error));
+  await A.evaluate(() => { seedDemo(); S.demo = false; S.profile.name = 'UI Test'; save(); render(); ACT['acct-open']({ dataset: { mode: 'signin' } }); });
+  await A.fill('#acct-email', email); await A.fill('#acct-pw', pw); await A.click('[data-act=acct-submit]');
+  await A.waitForFunction(() => Cloud.signedIn() && (!UI.sheet || UI.sheet.type === 'cloudConsent' || UI.sheet.type === 'cloudChoice'), null, { timeout: 20000 }).catch(() => null);
+  // New account: agree to the health-data consent, keep this phone's data.
+  await A.evaluate(async () => { if (UI.sheet && UI.sheet.type === 'cloudConsent') { UI.sheet.consent = true; await ACT['consent-agree'](); } if (UI.sheet && UI.sheet.type === 'cloudChoice') await Cloud.keepLocal(); UI.sheet = null; UI.stack = []; });
+  check('sign in in the app', await A.evaluate(() => Cloud.signedIn()), await A.evaluate(() => UI.sheet && UI.sheet.error));
   await A.evaluate(() => Cloud.syncNow());
   const st = await A.evaluate(() => ({ s: Cloud.status.state, e: Cloud.status.error, v: Cloud.meta().version, n: S.workouts.length }));
   check('first backup', st.s === 'ok' && st.v >= 1, st);
