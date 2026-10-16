@@ -1,0 +1,17 @@
+# Manual check of outside APIs the app depends on (no secrets printed).
+name: API check
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: USDA FoodData Central
+        env:
+          USDA_API_KEY: ${{ secrets.USDA_API_KEY }}
+        run: |
+          try() { code=$(curl -s -o /tmp/r -w '%{http_code}' -H "X-Api-Key: $2" "$1"); echo "::notice title=$3::HTTP $code $(head -c 200 /tmp/r | tr '\n' ' ')"; }
+          Q='https://api.nal.usda.gov/fdc/v1/foods/search?pageSize=2&query=apple'
+          try "$Q" "DEMO_KEY" "demo key, no dataType"
+          try "$Q" "$USDA_API_KEY" "our key, no dataType"
+          try "$Q&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)" "$USDA_API_KEY" "our key, with dataType"
+          try "$Q&dataType=Foundation&dataType=SR%20Legacy" "$USDA_API_KEY" "our key, repeated dataType"
