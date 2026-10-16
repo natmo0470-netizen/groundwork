@@ -54,19 +54,49 @@ const Timers = (() => {
   const inLead = h => h.running && Date.now() < h.startAt;
 
   function nextRow(it) { return it.rows.findIndex(r => !r.done); }
-  function target(it, ex, r) {
-    const v = r && r.reps != null && r.reps > 0 ? r.reps : it.max || it.min || (ex.unit === 'min' ? 10 : 30);
+  /* Duration of the timed set, in seconds. Set with the − / + control (or typed); remembered per exercise. */
+  function target(it, ex) {
+    if (it.timerTarget > 0) return it.timerTarget;
+    const saved = (S.timerDefaults || {})[ex.id]; if (saved > 0) return saved;
+    const v = it.max || it.min || (ex.unit === 'min' ? 10 : 30);
     return ex.unit === 'min' ? v * 60 : v;
+  }
+  const LIMITS = { sec: [5, 900], min: [60, 240 * 60] };
+  function step(ex, secs, dir) {
+    if (ex.unit === 'min') return dir * (secs >= 30 * 60 ? 300 : 60);
+    return dir * (secs >= 120 ? 15 : 5);
+  }
+  function setTarget(i, secs, quiet) {
+    const it = S.activeWorkout && S.activeWorkout.items[i]; if (!it) return;
+    const ex = EX_BY_ID[it.exId], [lo, hi] = LIMITS[ex.unit];
+    secs = Math.min(hi, Math.max(lo, Math.round(secs)));
+    it.timerTarget = secs;
+    S.timerDefaults = Object.assign(S.timerDefaults || {}, { [ex.id]: secs });
+    const h = UI.hold;
+    if (h && h.i === i) {
+      // While a hold is running, never set it below what's already done (+3 s).
+      if (h.mode === 'down' && !inLead(h)) secs = Math.max(secs, Math.ceil(elapsed(h) / 1000) + 3);
+      h.target = secs; if (h.mode === 'up' && elapsed(h) / 1000 < secs) h.pinged = false;
+      h.ticked = Object.fromEntries(Object.entries(h.ticked).filter(([k]) => !/^end/.test(k)));
+    }
+    save();
+    // Typed in the box: fix the number in place without redrawing, so a tap on Start right after still lands.
+    if (quiet) { const box = document.getElementById('hold-dur-' + i); if (box) box.value = ex.unit === 'min' ? Math.round(secs / 60) : secs; return; }
+    render();
+  }
+  function nudge(i, dir) {
+    const it = S.activeWorkout && S.activeWorkout.items[i]; if (!it) return;
+    const ex = EX_BY_ID[it.exId], h = UI.hold && UI.hold.i === i ? UI.hold : null, cur = h ? h.target : target(it, ex);
+    setTarget(i, cur + step(ex, cur, dir));
   }
   function start(i, j) {
     const it = S.activeWorkout && S.activeWorkout.items[i]; if (!it) return;
-    const ex = EX_BY_ID[it.exId], r = it.rows[j];
-    // Use what's typed in the box as the target, if anything.
-    const box = document.querySelector(`input[data-set="r"][data-i="${i}"][data-j="${j}"]`);
-    if (box && box.value) { const n = parseFloat(box.value); if (n > 0) r.reps = n; }
+    const ex = EX_BY_ID[it.exId];
+    const box = document.getElementById('hold-dur-' + i);   // a typed duration not yet saved
+    if (box && box.value) { const n = parseFloat(box.value); if (n > 0) setTarget(i, ex.unit === 'min' ? n * 60 : n, true); }
     UI.rest = null;
     const lead = timerPrefs().leadIn ? LEAD : 0;
-    UI.hold = { i, j, mode: ex.unit === 'min' ? 'up' : 'down', target: target(it, ex, r), acc: 0, startAt: Date.now() + lead, running: true, pinged: false, ticked: {} };
+    UI.hold = { i, j, mode: ex.unit === 'min' ? 'up' : 'down', target: target(it, ex), acc: 0, startAt: Date.now() + lead, running: true, pinged: false, ticked: {} };
     askPermissionOnce();
     Beep.unlock();
     render();
@@ -145,25 +175,34 @@ const Timers = (() => {
   }
 
   /* The timer panel inside an exercise card. */
+  function durControl(it, i, ex, secs, small) {
+    const isMin = ex.unit === 'min', shown = isMin ? Math.round(secs / 60) : secs;
+    return `<div class="dur${small ? ' sm' : ''}" role="group" aria-label="${isMin ? 'Duration' : 'Hold time'}">
+      <button class="dur-b" data-act="hold-dur" data-i="${i}" data-d="-1" aria-label="Less time">−</button>
+      <label class="dur-v"><input id="hold-dur-${i}" data-hdur="${i}" inputmode="numeric" value="${shown}" aria-label="${isMin ? 'Minutes' : 'Seconds'}"><span>${isMin ? 'min' : 'sec'}</span></label>
+      <button class="dur-b" data-act="hold-dur" data-i="${i}" data-d="1" aria-label="More time">+</button></div>`;
+  }
   function panel(it, i) {
     const ex = EX_BY_ID[it.exId];
     if (ex.unit !== 'sec' && ex.unit !== 'min') return '';
     const h = UI.hold && UI.hold.i === i ? UI.hold : null;
     if (!h) {
       const j = nextRow(it); if (j < 0) return '';
-      const tg = target(it, ex, it.rows[j]);
-      return `<button class="btn soft block hold-start" data-act="hold-start" data-i="${i}" data-j="${j}">${icon('timer', 18)} ${ex.unit === 'min' ? `Start · set ${j + 1} · ${Math.round(tg / 60)} min` : `Start ${tg}-second hold · set ${j + 1}`}</button>`;
+      const tg = target(it, ex);
+      return `<div class="hold idle"><div class="hold-row"><span class="small"><b>${ex.unit === 'min' ? 'Duration' : 'Hold time'}</b><br><span class="faint">Set ${j + 1} of ${it.rows.length}</span></span>${durControl(it, i, ex, tg)}</div>
+        <button class="btn train block" data-act="hold-start" data-i="${i}" data-j="${j}">${icon('play', 18)} Start timer</button></div>`;
     }
     return `<div class="hold" role="timer" aria-live="off">
       <div class="hold-top"><span class="small muted">Set ${h.j + 1} · <span id="hold-l"></span></span><span class="hold-t" id="hold-t">${h.mode === 'down' ? fmt(h.target) : '0:00'}</span></div>
       <div class="tbar"><i id="hold-prog" style="width:0%;background:var(--train)"></i></div>
+      <div class="hold-row"><span class="small muted">${h.mode === 'down' ? 'Hold time' : 'Target'}</span>${durControl(it, i, ex, h.target, true)}</div>
       <div class="hold-btns">${h.running ? `<button class="btn ghost sm" data-act="hold-pause">${icon('pause', 16)} Pause</button>` : `<button class="btn ghost sm" data-act="hold-resume">${icon('play', 16)} Resume</button>`}
         <button class="btn train sm" data-act="hold-done">${icon('check', 16)} Done</button><button class="icon-btn" data-act="hold-cancel" aria-label="Cancel timer">${icon('x', 18)}</button></div>
     </div>`;
   }
 
   setInterval(tick, 200);
-  return { start, stop, pause, resume, finish, panel, alarm, paint, tick };
+  return { start, stop, pause, resume, finish, panel, alarm, paint, tick, nudge, setTarget };
 })();
 
 /* ---------- hook into the workout logger ---------- */
@@ -185,6 +224,14 @@ Object.assign(ACT, {
   'hold-resume': () => Timers.resume(),
   'hold-done': () => Timers.finish(false),
   'hold-cancel': () => Timers.stop(),
+  'hold-dur': t => Timers.nudge(Number(t.dataset.i), Number(t.dataset.d)),
+});
+// Typing a duration: saved when the box loses focus or Enter is pressed.
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.dataset || t.dataset.hdur == null || !S.activeWorkout) return;
+  const i = Number(t.dataset.hdur), it = S.activeWorkout.items[i]; if (!it) return;
+  const n = parseFloat(t.value); if (!(n > 0)) { render(); return; }
+  Timers.setTarget(i, EX_BY_ID[it.exId].unit === 'min' ? n * 60 : n, true);
 });
 // Unticking a set or leaving the workout stops its timer.
 ['finish-workout', 'cancel-workout'].forEach(k => { const f = ACT[k]; if (f) ACT[k] = t => { UI.hold = null; return f(t); }; });
